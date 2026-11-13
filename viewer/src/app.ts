@@ -5,6 +5,8 @@
 import { english, forgetKey, open, splitLine as split, type Desk, type Stage, type Store } from "./desk";
 import { card, offer, STUN_NAMES, type Card, type Heard, type Offer } from "./direct";
 import { drawScene } from "./scene";
+import { createDockview, themeDark, themeLight, type DockviewApi, type IDockviewPanel } from "dockview";
+import dockviewStyle from "dockview/dist/styles/dockview.css";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -47,10 +49,143 @@ const store: Store = {
 
 type Kind = "" | "bad" | "ok" | "wait";
 
-/** The desk shown while the machine has the page in, the form while not. */
-function seen(desk: boolean): void {
-    form.style.display = desk ? "none" : "";
-    deskHost.classList.toggle("on", desk);
+// ── the machines connected at once: a panel of dockview each ──
+//
+// A machine let in is a panel: tabs in a group, and a tab dragged to an edge splits the screen - a mosaic -, out of the groups it
+// floats over them ( ▣ ). ⧉ takes a machine into a window of its own, anywhere on the screens; closed, it comes back as a panel. Every desk
+// seen takes the video; one behind the tab of another, or under the form, takes none - its machine neither captures nor encodes for
+// it ( src/desk.ts ). + brings the form: another machine is connected beside the ones there; a desk that ends takes its panel with it.
+
+const backButton = $<HTMLButtonElement>("to-desks");
+
+/** A machine connected, or being connected: its desk; its panel once it let the page in, or its window of its own. */
+interface Open {
+    desk: Desk;
+    /** Its name as it tells it, and its address. */
+    title: string;
+    panel: IDockviewPanel | undefined;
+    window: Window | undefined;
+    /** It went: its panel goes, the desk is not left again for it. */
+    ended: boolean;
+}
+const opens: Open[] = [];
+/** The form is shown: no desk is seen. */
+let formShown = true;
+
+const dockStyle = document.createElement("style");
+dockStyle.textContent = dockviewStyle;
+document.head.append(dockStyle);
+const darkScheme = matchMedia("(prefers-color-scheme: dark)");
+
+/** A small button of a group or a window. */
+function action(text: string, title: string, act: () => void): HTMLButtonElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "rd-act";
+    b.textContent = text;
+    b.title = title;
+    b.addEventListener("click", e => { e.stopPropagation(); act(); });
+    return b;
+}
+
+const dock: DockviewApi = createDockview(deskHost, {
+    theme: darkScheme.matches ? themeDark : themeLight,
+    // the content of a panel: the element of the desk of its machine
+    createComponent: () => {
+        const element = document.createElement("div");
+        element.className = "rd-panel";
+        return { element, init: p => { element.append((p.params as { open: Open }).open.desk.root); } };
+    },
+    // + and ⧉ at the right of each group
+    createRightHeaderActionComponent: group => {
+        const element = document.createElement("div");
+        element.className = "rd-acts";
+        element.append(
+            action("+", "Connect to another computer as well: the ones connected stay", () => showForm(true)),
+            action("▣", "Over the others, anywhere on this page; once more: back among them", () => {
+                if (group.api.location.type === "floating") group.api.moveTo({ position: "right" });
+                else dock.addFloatingGroup(group, { width: 640, height: 420 });
+            }),
+            action("⧉", "Into a window of its own: put it anywhere on your screens; closed, it comes back here", () => {
+                const o = opens.find(x => x.panel === group.activePanel);
+                if (o) apart(o);
+            }),
+        );
+        return { element, init: () => undefined, dispose: () => element.remove() };
+    },
+});
+darkScheme.addEventListener("change", () => dock.updateOptions({ theme: darkScheme.matches ? themeDark : themeLight }));
+dock.onDidRemovePanel(panel => {
+    const o = opens.find(x => x.panel === panel);
+    if (!o || o.window) return; // gone to a window of its own: the desk stays
+    o.panel = undefined;
+    if (!o.ended) o.desk.leave(); // ✕ of its tab
+    seenAll();
+});
+dock.onDidLayoutChange(() => seenAll());
+
+/** Each desk seen takes the video, the others not: what the form covers, or the tab of another, is not seen. */
+function seenAll(): void {
+    for (const o of opens) {
+        if (o.window) o.desk.show(!o.window.closed);
+        else if (o.panel) o.desk.show(!formShown && o.panel.api.isVisible);
+    }
+    const any = opens.some(o => o.panel || o.window);
+    backButton.hidden = !any;
+}
+
+/** The form, or the panels. */
+function showForm(on: boolean): void {
+    formShown = on || !opens.some(o => o.panel);
+    form.style.display = formShown ? "" : "none";
+    deskHost.classList.toggle("on", !formShown);
+    if (formShown && !busy) {
+        where = "";
+        address.value = "";
+        draw();
+    }
+    seenAll();
+    if (formShown) address.focus();
+}
+
+backButton.addEventListener("click", () => showForm(false));
+
+/** `o` as a panel, in front. */
+function panelOf(o: Open): void {
+    o.panel = dock.addPanel({ id: `desk-${opens.indexOf(o)}-${Date.now()}`, component: "desk", title: o.title, params: { open: o } });
+    o.panel.api.onDidVisibilityChange(() => seenAll());
+    o.panel.api.setActive();
+    o.desk.moved(); // from its own window, or from where it waited: the same window, nothing to do
+}
+
+/**
+ * `o` in a window of its own: the panel goes, its desk with the style of the page into the window - the window shows what the page
+ * draws there. Closed, or the page gone, it comes back as a panel.
+ */
+function apart(o: Open): void {
+    const w = window.open("", `rd-${Date.now()}`, "width=1280,height=800");
+    if (!w) return show("The browser did not let the page open a window: allow its pop-ups for this page.", "bad");
+    w.document.title = o.title;
+    for (const s of document.querySelectorAll("style")) w.document.head.append(s.cloneNode(true));
+    w.document.body.style.cssText = "margin:0;height:100vh;background:#000";
+    o.window = w;
+    const panel = o.panel;
+    o.panel = undefined;
+    if (panel) dock.removePanel(panel);
+    w.document.body.append(o.desk.root);
+    o.desk.root.style.height = "100%";
+    o.desk.moved();
+    // back as a panel when the window closes
+    const home = () => {
+        if (o.window !== w) return;
+        o.window = undefined;
+        if (o.ended) return;
+        panelOf(o);
+        showForm(false);
+    };
+    w.addEventListener("pagehide", home);
+    window.addEventListener("pagehide", () => w.close());
+    seenAll();
 }
 
 /** A line of the log under the diagram: what happens, in detail, for whoever opens it. */
@@ -291,10 +426,12 @@ function hint(b: ReturnType<typeof back>): [string, Kind] {
 
 // ── the session ──
 
-/** The desk open: undefined - none. */
-let desk: Desk | undefined;
-/** The number of the desk opened last: what an earlier one tells is not heard. */
-let opened = 0;
+/** The desk being connected from the form: what it tells is drawn on the diagram until it is in. */
+let attempting: Open | undefined;
+/** Where a desk waits, out of sight, until its machine lets the page in: then it goes into a panel. */
+const waiting = document.createElement("div");
+waiting.hidden = true;
+document.body.append(waiting);
 
 /** Connects, when all is there: as soon as the line is pasted; a line typed by hand at Enter, in its field or the one of the name. */
 function go(): void {
@@ -330,46 +467,67 @@ function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?:
     keyLine.textContent = "";
     note(channel === undefined ? `Dialing ${at}` : "The session starts over the direct channel");
 
-    const mine = ++opened; // connecting now: the desk before, retrying or not, ends
-    desk?.leave();
-    desk = open(deskHost, {
+    // connecting now: an attempt of the form before it, not in yet, ends; the machines in stay
+    attempting?.desk.leave();
+    const o: Open = { desk: undefined as unknown as Desk, title: at.replace(/^ws:\/\//, ""), panel: undefined, window: undefined, ended: false };
+    const mine = () => attempting === o;
+    attempting = o;
+    opens.push(o);
+    o.desk = open(waiting, {
         address: at, token: typed, check, name: yourName.value, store, channel,
         onStage: s => {
-            if (mine !== opened) return;
+            if (!mine()) return;
             where = s === "left" ? "" : s;
             const said = STAGE_NOTE[s];
             if (said !== undefined) note(said, s === "live" ? "ok" : "");
             draw();
         },
         onStatus: (text, bad) => {
-            if (mine !== opened) return;
+            if (!mine()) return;
             whereText = text;
             if (bad) note(text, "bad");
             draw();
             show(text, bad ? "bad" : "");
         },
         onKey: (text, other) => {
-            if (mine !== opened) return;
+            if (!mine()) return;
             keyLine.textContent = other ? text : ""; // the key said only when it is not the one kept: else the page checks it alone
             forget.hidden = !other;
             if (text !== "") note(text, other ? "bad" : "");
         },
-        onLive: on => {
-            if (mine !== opened) return;
-            seen(on);
-            if (!on) { busy = false; draw(); show(whereText, "bad"); } // the button connects at once, not waiting for the next attempt
+        onLive: (on, host) => {
+            o.panel?.api.setTitle(on ? o.title : `⟳ ${o.title}`); // broke: it dials again on its own, the desk says how it goes
+            if (!on || o.panel || o.window) return;
+            // in: a panel of its own, in front; the form is free for another machine
+            if (host !== "") o.title = `${host} · ${o.title}`;
+            attempting = undefined;
+            busy = false;
+            overChannel = false;
+            panelOf(o);
+            showForm(false);
         },
         onEnded: (text, bad) => {
             attempt?.close();
-            if (mine !== opened) return;
-            desk = undefined;
-            seen(false);
-            busy = false;
-            overChannel = false;
-            whereText = text;
-            if (bad) note(text, "bad");
-            draw();
-            if (where !== "") show(text, bad ? "bad" : "");
+            o.ended = true;
+            opens.splice(opens.indexOf(o), 1);
+            if (o.panel) dock.removePanel(o.panel);
+            o.window?.close();
+            if (bad) note(`${o.title}: ${text}`, "bad");
+            if (mine()) {
+                // never in: the form says why, the diagram where
+                attempting = undefined;
+                busy = false;
+                overChannel = false;
+                whereText = text;
+                draw();
+                if (where !== "") show(text, bad ? "bad" : "");
+                return seenAll();
+            }
+            // a machine that was in: the form, saying why it ended, when no other is left
+            if (!opens.some(x => x.panel || x.window)) {
+                showForm(true);
+                show(`${o.title}: ${text}`, bad ? "bad" : "");
+            } else seenAll();
         },
     });
     draw();

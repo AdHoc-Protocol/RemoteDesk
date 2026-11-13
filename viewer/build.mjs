@@ -276,6 +276,7 @@ const watch = process.argv.includes("--watch");
 const options = {
     entryPoints: ["src/app.ts"], outfile: "viewer.js", bundle: true, format: "iife", target: "es2021", logLevel: "info", plugins: [sessionWorker(), onePage()],
     define: { HAND_FONT: JSON.stringify(HAND) },
+    loader: { ".css": "text" }, // the style of dockview: its text, put in by the page
 };
 
 if (process.argv.includes("--pictures")) await pictures();

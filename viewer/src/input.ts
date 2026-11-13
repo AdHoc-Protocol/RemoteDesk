@@ -17,6 +17,8 @@ export interface Input {
     lockPointer(): void;
     /** The keys of the page come to this desk now. */
     focus(): void;
+    /** The desk went into another window: its keys leave the window it left. */
+    moved(): void;
     stop(): void;
 }
 
@@ -24,9 +26,12 @@ export interface Input {
  * `frameWidth` - the width of the frames, pixels of the machine: what a pixel of the page is on the machine; `layer` - the element the desk
  * is in ( full screen shows only it ): the field the keys come to is there.
  */
-export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth: () => number, post: Post): Input {
+export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth: () => number, post: Post,
+    pinch: (phase: "start" | "move" | "end", ratio: number, x: number, y: number) => void = () => undefined): Input {
     // the keys come to an invisible field over the canvas: input methods and soft keyboards type into a field
     const field = document.createElement("textarea");
+    /** The window the desk is in: the page's, or one of its own ( src/app.ts ). */
+    const view = () => canvas.ownerDocument.defaultView ?? window;
     field.setAttribute("autocapitalize", "off");
     field.setAttribute("autocomplete", "off");
     field.spellcheck = false;
@@ -138,7 +143,8 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
     field.addEventListener("compositionend", onComposed);
     field.addEventListener("input", onInput);
     field.addEventListener("blur", releaseAll);
-    window.addEventListener("blur", releaseAll);
+    let blurred = view(); // the keys held go up when the window loses the focus
+    blurred.addEventListener("blur", releaseAll);
 
     // ── the mouse and the pen ──
 
@@ -173,11 +179,11 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
     const later = () => {
         if (!frameAsked) {
             frameAsked = true;
-            requestAnimationFrame(flush);
+            view().requestAnimationFrame(flush);
         }
     };
 
-    const locked = () => document.pointerLockElement === canvas;
+    const locked = () => canvas.ownerDocument.pointerLockElement === canvas;
 
     const button = (e: PointerEvent, down: boolean) => {
         if (e.button < 0 || e.button > 4) return;
@@ -228,6 +234,39 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
         if (points.length) touchEvent(Touch.MOVE, points);
     };
 
+    // ── a pinch: two fingers apart or together zoom the view of the page, as AnyDesk does ──
+    //
+    // Two fingers go to the machine as they are - a scroll of two fingers is the machine's - until their distance changes by more
+    // than a little: then it is a pinch. What they began on the machine is cancelled there, and the view of the page is zoomed about
+    // the point between them ( ./screen.ts ), till every finger is up.
+
+    /** The fingers on the canvas, where each is now. */
+    const fingers = new Map<number, { x: number; y: number }>();
+    /** The last event of each finger the machine has: a cancel tells where it was. */
+    const lastTouch = new Map<number, PointerEvent>();
+    /** Two fingers down: how far apart they were then, the point between them. */
+    let pinchStart: { d: number; x: number; y: number } | undefined;
+    let pinching = false;
+
+    const spread = () => {
+        const [a, b] = [...fingers.values()] as [{ x: number; y: number }, { x: number; y: number }];
+        return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    };
+
+    /** The fingers became a pinch: what they began on the machine is cancelled there. */
+    const pinchBegins = () => {
+        flushTouch();
+        for (const [pointerId, id] of touches) {
+            const e = lastTouch.get(pointerId);
+            if (e) touchEvent(Touch.CANCEL, one(e, id));
+        }
+        touches.clear();
+        touchMoved.clear();
+        used = 0;
+        pinching = true;
+        pinch("start", 1, pinchStart!.x, pinchStart!.y);
+    };
+
     // ── the events of the canvas ──
 
     const onPointerDown = (e: PointerEvent) => {
@@ -235,6 +274,14 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
         field.focus({ preventScroll: true });
         canvas.setPointerCapture(e.pointerId);
         if (e.pointerType === "touch") {
+            fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            pinchStart = undefined;
+            if (fingers.size === 2) {
+                const s = spread();
+                pinchStart = { d: Math.max(1, s.d), x: s.x, y: s.y };
+            }
+            if (pinching) return; // a finger more in a pinch: the view's, not the machine's
+            lastTouch.set(e.pointerId, e);
             const free = ~used & (used + 1); // the lowest free one, its bit
             const id = free === 0 ? 31 : 31 - Math.clz32(free);
             used |= 1 << id;
@@ -246,6 +293,14 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
 
     const onPointerUp = (e: PointerEvent) => {
         if (e.pointerType === "touch") {
+            fingers.delete(e.pointerId);
+            lastTouch.delete(e.pointerId);
+            pinchStart = undefined;
+            if (pinching) {
+                if (fingers.size === 1) pinch("end", 1, 0, 0); // one finger left: the zoom stays as it is
+                if (fingers.size === 0) pinching = false;
+                return;
+            }
             const id = touches.get(e.pointerId);
             if (id === undefined) return;
             flushTouch();
@@ -257,11 +312,26 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
 
     const onPointerMove = (e: PointerEvent) => {
         if (e.pointerType === "touch") {
+            if (fingers.has(e.pointerId)) fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (pinching) {
+                if (fingers.size >= 2 && pinchStart === undefined) return; // a third finger came and went: the pinch stays put
+                if (fingers.size === 2) {
+                    const s = spread();
+                    pinch("move", s.d / pinchStart!.d, s.x, s.y);
+                }
+                return;
+            }
+            if (pinchStart && fingers.size === 2 && Math.abs(spread().d - pinchStart.d) > Math.max(24, pinchStart.d * 0.15)) {
+                pinchBegins();
+                const s = spread();
+                return pinch("move", s.d / pinchStart.d, s.x, s.y);
+            }
             if (!touches.has(e.pointerId)) return;
+            lastTouch.set(e.pointerId, e);
             touchMoved.set(e.pointerId, e);
             if (!touchFrame) {
                 touchFrame = true;
-                requestAnimationFrame(flushTouch);
+                view().requestAnimationFrame(flushTouch);
             }
             return;
         }
@@ -305,10 +375,16 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
             field.focus({ preventScroll: true });
             void canvas.requestPointerLock?.();
         },
+        moved() {
+            releaseAll();
+            blurred.removeEventListener("blur", releaseAll);
+            blurred = view();
+            blurred.addEventListener("blur", releaseAll);
+        },
         stop() {
             releaseAll();
             stopped = true;
-            if (locked()) document.exitPointerLock();
+            if (locked()) canvas.ownerDocument.exitPointerLock();
             field.removeEventListener("keydown", onKeyDown);
             field.removeEventListener("paste", onPaste);
             if (pasteKey) clearTimeout(pasteKey.timer);
@@ -316,7 +392,7 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
             field.removeEventListener("compositionend", onComposed);
             field.removeEventListener("input", onInput);
             field.removeEventListener("blur", releaseAll);
-            window.removeEventListener("blur", releaseAll);
+            blurred.removeEventListener("blur", releaseAll);
             canvas.removeEventListener("pointerdown", onPointerDown);
             canvas.removeEventListener("pointerup", onPointerUp);
             canvas.removeEventListener("pointercancel", onPointerUp);
@@ -327,6 +403,8 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
             field.remove();
             touches.clear();
             touchMoved.clear();
+            fingers.clear();
+            lastTouch.clear();
         },
     };
 }

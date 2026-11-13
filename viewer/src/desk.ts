@@ -93,7 +93,8 @@ export const english = {
     fitTitle: "The resolution of the machine follows the size of this window; off restores it",
     viewWhole: "View: whole",
     viewOne: "View: 1:1",
-    viewTitle: "Whole: the screen of the machine fits this window. 1:1: a pixel of it is a pixel here, as large as there - the pointer or a finger at an edge moves the view",
+    viewZoom: "View: {percent}%",
+    viewTitle: "Whole: the screen of the machine fits this window. 1:1: a pixel of it is a pixel here, as large as there - the pointer or a finger at an edge moves the view. Two fingers apart or together zoom it",
     fps: "{n} fps",
     fpsTitle: "The most frames a second the machine sends: 60 is smoother, and takes more of the link and of the machine",
     lock: "Lock pointer",
@@ -182,6 +183,8 @@ export interface Desk {
     leave(): void;
     /** Shows the desk, or hides it: a hidden one takes no video; a shown one takes the keys. */
     show(on: boolean): void;
+    /** `root` went into another window ( or back ): the screen, the keys and the clipboard follow it there. */
+    moved(): void;
 }
 
 /** The line a machine prints for its viewer - `<address>:<port>#<token>` -: its address and token; `undefined` - not such a line. */
@@ -439,7 +442,7 @@ export function open(container: HTMLElement, options: Options): Desk {
         controlling = false;
         audienceLine.textContent = "";
         takeButton.hidden = true;
-        if (document.fullscreenElement === root) void document.exitFullscreen();
+        if (root.ownerDocument.fullscreenElement === root) void root.ownerDocument.exitFullscreen();
     }
 
     const setLive = (on: boolean, host = "") => {
@@ -513,7 +516,7 @@ export function open(container: HTMLElement, options: Options): Desk {
         setLive(true, host ?? ""); // seen before the screen measures itself
         const canvas = nextCanvas ?? document.createElement("canvas"); // the worker draws on the one it was given
         nextCanvas = undefined;
-        shown = screen.start(canvas, screenHost, root, displaySelect, stats, screenWords, () => seen, post);
+        shown = screen.start(canvas, screenHost, root, displaySelect, stats, screenWords, () => seen, post, viewLabel);
         if (oneToOne) shown.oneToOne(true);
         moving = files.start(transfer, cancelButton);
         notice.textContent = "";
@@ -536,12 +539,12 @@ export function open(container: HTMLElement, options: Options): Desk {
         hearing?.control(on);
         const v = shown;
         if (on && v && !typing) {
-            const before = document.activeElement as HTMLElement | null;
-            typing = input.start(v.canvas, root, () => v.frameWidth(), post);
+            const before = root.ownerDocument.activeElement as HTMLElement | null;
+            typing = input.start(v.canvas, root, () => v.frameWidth(), post, (phase, ratio, x, y) => v.pinch(phase, ratio, x, y));
             // the keys stay where they were - another desk, a field of the page - unless they were in this desk, or nowhere
             if (!seen) root.querySelector("textarea")?.blur(); // a hidden desk does not take the keys
-            else if (before && before !== document.body && !root.contains(before)) before.focus({ preventScroll: true });
-            copying = clipboard.start(v.canvas, () => root.contains(document.activeElement), post);
+            else if (before && before !== root.ownerDocument.body && !root.contains(before)) before.focus({ preventScroll: true });
+            copying = clipboard.start(v.canvas, () => root.contains(root.ownerDocument.activeElement), post);
             if (fitting) v.fit(true);
         } else if (!on && typing) {
             typing.stop();
@@ -588,13 +591,18 @@ export function open(container: HTMLElement, options: Options): Desk {
     adminButton.addEventListener("click", () => post({ t: W.ELEVATE }));
     lockButton.addEventListener("click", () => typing?.lockPointer());
 
-    /** 1:1 or the whole screen: kept on the device, for every machine. */
+    /** 1:1 or the whole screen: kept on the device, for every machine; a zoom of a pinch is not kept. */
     let oneToOne = store.get("view") === "1:1";
-    const viewLabel = () => { viewButton.textContent = oneToOne ? t.viewOne : t.viewWhole; };
+    /** The view as the screen tells it: the button says it; pressed, a zoom or 1:1 goes back to the whole screen, the whole to 1:1. */
+    let view: screen.View = { kind: oneToOne ? "one" : "whole" };
+    function viewLabel(now: screen.View = view): void {
+        view = now;
+        viewButton.textContent = now.kind === "one" ? t.viewOne : now.kind === "zoom" ? fill(t.viewZoom, { percent: now.percent }) : t.viewWhole;
+    }
     viewButton.addEventListener("click", () => {
-        oneToOne = !oneToOne;
+        oneToOne = view.kind === "whole";
         store.set("view", oneToOne ? "1:1" : undefined);
-        viewLabel();
+        viewLabel({ kind: oneToOne ? "one" : "whole" });
         shown?.oneToOne(oneToOne);
     });
     viewLabel();
@@ -641,7 +649,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     });
 
     fullButton.addEventListener("click", async () => {
-        if (document.fullscreenElement === root) return void document.exitFullscreen();
+        if (root.ownerDocument.fullscreenElement === root) return void root.ownerDocument.exitFullscreen();
         await root.requestFullscreen().catch(() => undefined);
         // in full screen the keys of the system - Alt+Tab, the Windows key - go to the machine too
         await (navigator as Navigator & { keyboard?: { lock?: () => Promise<void> } }).keyboard?.lock?.().catch(() => undefined);
@@ -708,7 +716,13 @@ export function open(container: HTMLElement, options: Options): Desk {
             if (on) {
                 typing?.focus();
                 copying?.sync();
-            } else if (document.fullscreenElement === root) void document.exitFullscreen();
+            } else if (root.ownerDocument.fullscreenElement === root) void root.ownerDocument.exitFullscreen();
+        },
+        moved() {
+            shown?.moved();
+            typing?.moved();
+            copying?.moved();
+            if (seen) typing?.focus();
         },
     };
 }

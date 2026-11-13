@@ -165,7 +165,14 @@
         /* the desk ( src/desk.ts ) brings its own style: its colours are the page's */
         #desk { display: none; height: 100%; }
         #desk.on { display: block; }
-        #desk .rd-desk { --rd-bg: var(--bg); --rd-fg: var(--fg); --rd-muted: var(--muted); --rd-line: var(--line); --rd-accent: var(--accent); --rd-bad: var(--bad); }
+        /* the machines connected at once: dockview - a panel each, tabs, a mosaic, floating; + and ⧉ at the right of each group */
+        .rd-panel { height: 100%; }
+        .rd-panel > .rd-desk { height: 100%; }
+        .rd-acts { display: flex; align-items: center; height: 100%; gap: 2px; padding: 0 4px; }
+        .rd-act { margin: 0; padding: 0 8px; height: 24px; background: transparent; color: var(--accent); font-size: 15px; line-height: 1; }
+        .rd-act:hover { background: var(--soft); }
+        #to-desks { margin: 0 0 12px; }
+        .rd-desk { --rd-bg: var(--bg); --rd-fg: var(--fg); --rd-muted: var(--muted); --rd-line: var(--line); --rd-accent: var(--accent); --rd-bad: var(--bad); }
     </style>
 </head>
 <body>
@@ -176,6 +183,7 @@
 </svg>
 <form id="login" autocomplete="on">
     <header>
+        <button id="to-desks" class="plain" type="button" hidden>← Back to the computers connected</button>
         <h1>RemoteDesk</h1>
         <p>See and control a computer of yours, straight from this page.</p>
     </header>

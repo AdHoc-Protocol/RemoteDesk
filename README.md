@@ -396,7 +396,7 @@ The bar of the page, on your device:
 | Button | What it does |
 |:--|:--|
 | The list of displays | Shows another display of the remote computer. The display its user works on is marked |
-| **View: whole / 1:1** | Whole: the screen of the remote computer fits your window. 1:1: a pixel of it is a pixel of your screen, its text as large as there - for a large screen seen from a small one. Bring the pointer, or a finger, to an edge of the window: the view goes that way. Kept for the next time |
+| **View: whole / 1:1** | Whole: the screen of the remote computer fits your window. 1:1: a pixel of it is a pixel of your screen, its text as large as there - for a large screen seen from a small one. Bring the pointer, or a finger, to an edge of the window: the view goes that way. Two fingers apart or together zoom the view about the point between them, as in AnyDesk; two fingers that move together still scroll on the remote computer. Pressed after a zoom: the whole screen again. Whole and 1:1 are kept for the next time |
 | **Fit** | The resolution of the remote computer follows the size of your window. Turning it off, or leaving, restores it |
 | **30 fps** | Switches to 60 frames a second and back: 60 is smoother, and takes twice the network and more of the remote computer. The page remembers the choice |
 | **Lock pointer** | Your mouse moves the pointer of the remote computer without limits, for games and 3D. **Esc** frees it |
@@ -428,6 +428,24 @@ Up to 8 devices with the token are in at once, each with the display it chose. A
 
 The bar shows how many watch and who controls. The keyboard, the mouse, **Fit**, the microphone, the clipboard and the files
 reach the remote computer only from the one who controls. The remote computer prints who comes in and who leaves.
+
+### Several computers at once
+
+One page connects to several remote computers at once, a tab each, and lays them out as you like:
+
+| What you do | What happens |
+| --- | --- |
+| **+** at the right of the tabs | The form comes back: paste the line of another computer, and it opens in a tab of its own beside the ones there. **← Back to the computers connected** returns without connecting |
+| Drag a tab to an edge of another computer | The screen splits: the two side by side or one above the other. Drag more, and they tile the page as a mosaic; the borders between them move |
+| Drag a tab onto the tabs of another group | It joins them |
+| **▣** | The group floats over the others, anywhere on the page, any size. **▣** once more puts it back among them |
+| **⧉** | The computer goes into a browser window of its own: put it on another monitor, beside other programs. Closed, it comes back as a tab. A browser that blocks it says so: allow pop-ups for the page |
+| ✕ on a tab | Disconnects that computer |
+
+A tab shows the name of its computer, with ⟳ while the connection is lost and dialed again.
+
+Only the computers you see send their screens: one behind the tab of another, or under the form, neither captures nor
+encodes, and its connection carries no video. It stays connected and shows its screen at once when its tab is pressed.
 
 ## The first start
 

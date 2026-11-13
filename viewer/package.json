@@ -15,5 +15,8 @@
     "jsdom": "latest",
     "roughjs": "latest",
     "typescript": "latest"
+  },
+  "dependencies": {
+    "dockview": "^8.9.0"
   }
 }

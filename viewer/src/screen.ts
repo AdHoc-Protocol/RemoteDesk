@@ -28,21 +28,30 @@ export interface Screen {
     fit(on: boolean): void;
     /** 1:1 - a pixel of the frames is a pixel of the device, the view moved by the pointer or a finger at an edge; else the whole frame fits the screen. */
     oneToOne(on: boolean): void;
+    /** Two fingers zoom the view ( ./input.ts tells ): `ratio` - their distance to the one they began at, (`x`, `y`) - the point between them. */
+    pinch(phase: "start" | "move" | "end", ratio: number, x: number, y: number): void;
     /** Tells the worker again whether the screen is seen: the page, and the desk in it ( `seen` ). */
     visibility(): void;
     /** What the worker tells of the video. */
     take(message: Extract<ToMain, { t: M.SIZE | M.SCREEN | M.DISPLAYS | M.CURSOR | M.HOST_AT | M.STATS }>): void;
+    /** The desk went into another window: what is watched is watched there. */
+    moved(): void;
     stop(): void;
 }
+
+/** How large the view is: the whole screen, 1:1, or a zoom a pinch made - `percent` of 1:1. */
+export type View = { kind: "whole" } | { kind: "one" } | { kind: "zoom"; percent: number };
 
 /**
  * Shows `canvas` in `host`: `select` is filled with the displays of the machine, `stats` shows how the frames go; `layer` - the element
  * the desk is in ( full screen shows only it ): the pointer of the machine is drawn there; `seen` - the desk is shown on the page ( one of
- * several may be hidden ).
+ * several may be hidden ); `viewed` - how large the view is now, told when it changes.
  */
 export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLElement, select: HTMLSelectElement, stats: HTMLElement, words: Words,
-    seen: () => boolean, post: Post): Screen {
+    seen: () => boolean, post: Post, viewed: (view: View) => void): Screen {
     host.replaceChildren(canvas);
+    /** The window the desk is in: the page's, or one of its own ( src/app.ts ). */
+    const view = () => host.ownerDocument.defaultView ?? window;
 
     const marker = document.createElement("img"); // the pointer of the machine, when the one of the page is not over the canvas
     marker.style.cssText = "position:fixed;pointer-events:none;display:none;z-index:2";
@@ -76,32 +85,52 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
     /** The screen of the page, pixels of the device: the worker waits for the window to settle unless `now`. */
     const fit = (now: boolean) => {
         const r = host.getBoundingClientRect();
-        const ratio = window.devicePixelRatio || 1;
+        const ratio = view().devicePixelRatio || 1;
         post({ t: W.FIT, on: true, now, w: Math.min(65535, Math.round(r.width * ratio)), h: Math.min(65535, Math.round(r.height * ratio)) });
     };
     // the page or the frame changed size: the pointer of the machine moves with the canvas, not with each frame drawn
-    const resized = new ResizeObserver(() => { if (fitting) fit(false); placeMarker(); });
+    // made by the window the desk is in: that window measures it
+    const sized = () => { if (fitting) fit(false); placeMarker(); };
+    let resized = new (view().ResizeObserver)(sized);
     resized.observe(host);
     resized.observe(canvas);
 
-    // ── 1:1: a pixel of the frames on a pixel of the device; the view goes where the pointer or a finger comes to an edge ──
+    // ── the size of the view: the whole screen fitted; 1:1 - a pixel of the frames on a pixel of the device; or what a pinch made ──
     //
-    // As the viewers of phones do it ( bVNC "one to one", Microsoft Remote Desktop ): nothing scaled - the text of the machine as
-    // large as there -, and no gesture taken from the machine for it: the view follows the pointer near an edge. The canvas is moved,
-    // not scrolled: the input reads where it is ( getBoundingClientRect ), so a point of the page is still the point of the machine.
+    // As the viewers of phones do it ( bVNC "one to one", Microsoft Remote Desktop, the pinch of AnyDesk ): the view follows the
+    // pointer or a finger near an edge, two fingers apart or together zoom it about the point between them. The canvas is moved, not
+    // scrolled: the input reads where it is ( getBoundingClientRect ), so a point of the page is still the point of the machine.
 
-    let one = false;
+    /** Pixels of the page a pixel of the frames is: undefined - the whole frame fits the screen. */
+    let zoom: number | undefined;
     let panX = 0, panY = 0; // where the view begins on the canvas, pixels of the page
     let edgeX = 0, edgeY = 0; // the speed of the pan at an edge: -1 … 1
     let panning = 0; // the frame of the pan asked: 0 - none
+    let panWindow: Window = window; // the window it was asked of
+    /** A pinch going: the zoom it began at, the point of the frames under the fingers then. */
+    let pinchFrom: { zoom: number; fx: number; fy: number } | undefined;
+    /** The most a pinch zooms: pixels of the page a pixel of the frames. */
+    const MAX_ZOOM = 4;
 
-    /** The canvas as large as its frames on the device, moved to the view; or as before, fitted. */
+    /** The zoom of the whole frame fitted, as the style fits it: never larger than the frame. */
+    const fitted = () => {
+        const r = host.getBoundingClientRect();
+        return Math.min(1, r.width / Math.max(1, frameWidth), r.height / Math.max(1, frameHeight));
+    };
+    const oneToOne = () => 1 / (view().devicePixelRatio || 1);
+
+    /** Tells how large the view is. */
+    const tell = () => viewed(zoom === undefined ? { kind: "whole" } : Math.abs(zoom - oneToOne()) < 1e-3 ? { kind: "one" }
+        : { kind: "zoom", percent: Math.round(zoom / oneToOne() * 100) });
+
+    /** The canvas as large as the zoom makes it, moved to the view; or as before, fitted. */
     function layout(): void {
-        if (!one) {
+        host.classList.toggle("rd-one", zoom !== undefined);
+        if (zoom === undefined) {
             canvas.style.width = canvas.style.height = canvas.style.transform = "";
             return placeMarker();
         }
-        const ratio = window.devicePixelRatio || 1, w = frameWidth / ratio, h = frameHeight / ratio;
+        const w = frameWidth * zoom, h = frameHeight * zoom;
         const r = host.getBoundingClientRect();
         canvas.style.width = `${w}px`;
         canvas.style.height = `${h}px`;
@@ -114,24 +143,24 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
 
     /** The pointer or a finger at an edge of the view: how fast the view goes there, by how deep in the edge it is. */
     const onPan = (e: PointerEvent) => {
-        if (!one || document.pointerLockElement === canvas) return;
+        if (zoom === undefined || pinchFrom || host.ownerDocument.pointerLockElement === canvas) return;
         const r = host.getBoundingClientRect(), edge = Math.max(24, Math.min(72, r.width / 10, r.height / 10));
         const x = e.clientX - r.left, y = e.clientY - r.top;
         const depth = (at: number, size: number) => at < edge ? -(edge - Math.max(at, 0)) / edge : at > size - edge ? (Math.min(at, size) - (size - edge)) / edge : 0;
         edgeX = depth(x, r.width);
         edgeY = depth(y, r.height);
-        if ((edgeX || edgeY) && !panning) panning = requestAnimationFrame(pan);
+        if ((edgeX || edgeY) && !panning) panning = (panWindow = view()).requestAnimationFrame(pan);
     };
     const panStops = () => { edgeX = edgeY = 0; };
 
     /** One step of the pan: up to 28 pixels a frame, deep in the edge. */
     function pan(): void {
         panning = 0;
-        if (!one || (!edgeX && !edgeY)) return;
+        if (zoom === undefined || pinchFrom || (!edgeX && !edgeY)) return;
         panX += edgeX * 28;
         panY += edgeY * 28;
         layout();
-        panning = requestAnimationFrame(pan);
+        panning = (panWindow = view()).requestAnimationFrame(pan);
     }
 
     host.addEventListener("pointermove", onPan);
@@ -139,7 +168,8 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
     host.addEventListener("pointerleave", panStops);
     host.addEventListener("pointerup", panStops);
     host.addEventListener("pointercancel", panStops);
-    const relaid = new ResizeObserver(() => { if (one) layout(); });
+    const relayout = () => { if (zoom !== undefined) layout(); };
+    let relaid = new (view().ResizeObserver)(relayout);
     relaid.observe(host);
 
     // ── the pointer of the machine ──
@@ -168,9 +198,10 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
      * A screen not seen - the page in another tab, a minimized window, the desk hidden on the page - takes no video: the machine neither
      * captures nor encodes for it.
      */
-    const onVisibility = () => post({ t: W.VISIBLE, on: !document.hidden && seen() });
-    document.addEventListener("visibilitychange", onVisibility);
-    if (document.hidden || !seen()) onVisibility();
+    const onVisibility = () => post({ t: W.VISIBLE, on: !host.ownerDocument.hidden && seen() });
+    let watched = host.ownerDocument;
+    watched.addEventListener("visibilitychange", onVisibility);
+    if (watched.hidden || !seen()) onVisibility();
 
     return {
         canvas,
@@ -181,10 +212,34 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
             else post({ t: W.FIT, on: false, now: true, w: 0, h: 0 });
         },
         oneToOne(on: boolean) {
-            one = on;
-            host.classList.toggle("rd-one", on);
+            zoom = on ? oneToOne() : undefined;
             panStops();
             layout();
+            tell();
+        },
+        pinch(phase, ratio, x, y) {
+            if (phase === "start") {
+                const from = zoom ?? fitted(), r = canvas.getBoundingClientRect();
+                pinchFrom = { zoom: from, fx: (x - r.left) / from, fy: (y - r.top) / from };
+                panStops();
+                return;
+            }
+            if (!pinchFrom) return;
+            if (phase === "end") {
+                pinchFrom = undefined;
+                return tell();
+            }
+            // the point of the frames that was under the fingers stays under them, wherever they go
+            const least = fitted(), z = Math.min(MAX_ZOOM, Math.max(least, pinchFrom.zoom * ratio));
+            if (z <= least * 1.001) zoom = undefined;
+            else {
+                const r = host.getBoundingClientRect();
+                zoom = z;
+                panX = pinchFrom.fx * z - (x - r.left);
+                panY = pinchFrom.fy * z - (y - r.top);
+            }
+            layout();
+            tell();
         },
         visibility: onVisibility,
         take(m) {
@@ -192,7 +247,7 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
                 case M.SIZE:
                     frameWidth = m.w;
                     frameHeight = m.h;
-                    if (one) layout();
+                    if (zoom !== undefined) layout();
                     return;
                 case M.SCREEN:
                     screen = m.screen;
@@ -223,10 +278,23 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
                     return;
             }
         },
+        moved() {
+            watched.removeEventListener("visibilitychange", onVisibility);
+            watched = host.ownerDocument;
+            watched.addEventListener("visibilitychange", onVisibility);
+            resized.disconnect();
+            relaid.disconnect();
+            resized = new (view().ResizeObserver)(sized);
+            resized.observe(host);
+            resized.observe(canvas);
+            relaid = new (view().ResizeObserver)(relayout);
+            relaid.observe(host);
+            onVisibility();
+        },
         stop() {
             resized.disconnect();
             relaid.disconnect();
-            if (panning) cancelAnimationFrame(panning);
+            if (panning) panWindow.cancelAnimationFrame(panning);
             host.removeEventListener("pointermove", onPan);
             host.removeEventListener("pointerdown", onPan);
             host.removeEventListener("pointerleave", panStops);
@@ -236,7 +304,7 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
             canvas.removeEventListener("pointerenter", onEnter);
             canvas.removeEventListener("pointerleave", onLeave);
             select.removeEventListener("change", onSelect);
-            document.removeEventListener("visibilitychange", onVisibility);
+            watched.removeEventListener("visibilitychange", onVisibility);
             marker.remove();
             host.replaceChildren();
             stats.textContent = "";
