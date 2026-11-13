@@ -26,6 +26,8 @@ export interface Screen {
     frameWidth(): number;
     /** The resolution of the display shown follows the size of the screen of the page, or is restored. */
     fit(on: boolean): void;
+    /** 1:1 - a pixel of the frames is a pixel of the device, the view moved by the pointer or a finger at an edge; else the whole frame fits the screen. */
+    oneToOne(on: boolean): void;
     /** Tells the worker again whether the screen is seen: the page, and the desk in it ( `seen` ). */
     visibility(): void;
     /** What the worker tells of the video. */
@@ -46,7 +48,7 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
     marker.style.cssText = "position:fixed;pointer-events:none;display:none;z-index:2";
     layer.appendChild(marker);
 
-    let frameWidth = 300; // of a canvas before its first frame
+    let frameWidth = 300, frameHeight = 150; // of a canvas before its first frame
     let screen = 0;
     let pointerOver = false;
     let hotspotX = 0, hotspotY = 0;
@@ -81,6 +83,64 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
     const resized = new ResizeObserver(() => { if (fitting) fit(false); placeMarker(); });
     resized.observe(host);
     resized.observe(canvas);
+
+    // ── 1:1: a pixel of the frames on a pixel of the device; the view goes where the pointer or a finger comes to an edge ──
+    //
+    // As the viewers of phones do it ( bVNC "one to one", Microsoft Remote Desktop ): nothing scaled - the text of the machine as
+    // large as there -, and no gesture taken from the machine for it: the view follows the pointer near an edge. The canvas is moved,
+    // not scrolled: the input reads where it is ( getBoundingClientRect ), so a point of the page is still the point of the machine.
+
+    let one = false;
+    let panX = 0, panY = 0; // where the view begins on the canvas, pixels of the page
+    let edgeX = 0, edgeY = 0; // the speed of the pan at an edge: -1 … 1
+    let panning = 0; // the frame of the pan asked: 0 - none
+
+    /** The canvas as large as its frames on the device, moved to the view; or as before, fitted. */
+    function layout(): void {
+        if (!one) {
+            canvas.style.width = canvas.style.height = canvas.style.transform = "";
+            return placeMarker();
+        }
+        const ratio = window.devicePixelRatio || 1, w = frameWidth / ratio, h = frameHeight / ratio;
+        const r = host.getBoundingClientRect();
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+        // larger than the view: within it; smaller: in its middle
+        panX = w > r.width ? Math.min(Math.max(panX, 0), w - r.width) : (w - r.width) / 2;
+        panY = h > r.height ? Math.min(Math.max(panY, 0), h - r.height) : (h - r.height) / 2;
+        canvas.style.transform = `translate(${-panX}px, ${-panY}px)`;
+        placeMarker();
+    }
+
+    /** The pointer or a finger at an edge of the view: how fast the view goes there, by how deep in the edge it is. */
+    const onPan = (e: PointerEvent) => {
+        if (!one || document.pointerLockElement === canvas) return;
+        const r = host.getBoundingClientRect(), edge = Math.max(24, Math.min(72, r.width / 10, r.height / 10));
+        const x = e.clientX - r.left, y = e.clientY - r.top;
+        const depth = (at: number, size: number) => at < edge ? -(edge - Math.max(at, 0)) / edge : at > size - edge ? (Math.min(at, size) - (size - edge)) / edge : 0;
+        edgeX = depth(x, r.width);
+        edgeY = depth(y, r.height);
+        if ((edgeX || edgeY) && !panning) panning = requestAnimationFrame(pan);
+    };
+    const panStops = () => { edgeX = edgeY = 0; };
+
+    /** One step of the pan: up to 28 pixels a frame, deep in the edge. */
+    function pan(): void {
+        panning = 0;
+        if (!one || (!edgeX && !edgeY)) return;
+        panX += edgeX * 28;
+        panY += edgeY * 28;
+        layout();
+        panning = requestAnimationFrame(pan);
+    }
+
+    host.addEventListener("pointermove", onPan);
+    host.addEventListener("pointerdown", onPan);
+    host.addEventListener("pointerleave", panStops);
+    host.addEventListener("pointerup", panStops);
+    host.addEventListener("pointercancel", panStops);
+    const relaid = new ResizeObserver(() => { if (one) layout(); });
+    relaid.observe(host);
 
     // ── the pointer of the machine ──
 
@@ -120,11 +180,19 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
             if (on) fit(true);
             else post({ t: W.FIT, on: false, now: true, w: 0, h: 0 });
         },
+        oneToOne(on: boolean) {
+            one = on;
+            host.classList.toggle("rd-one", on);
+            panStops();
+            layout();
+        },
         visibility: onVisibility,
         take(m) {
             switch (m.t) {
                 case M.SIZE:
                     frameWidth = m.w;
+                    frameHeight = m.h;
+                    if (one) layout();
                     return;
                 case M.SCREEN:
                     screen = m.screen;
@@ -157,6 +225,14 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
         },
         stop() {
             resized.disconnect();
+            relaid.disconnect();
+            if (panning) cancelAnimationFrame(panning);
+            host.removeEventListener("pointermove", onPan);
+            host.removeEventListener("pointerdown", onPan);
+            host.removeEventListener("pointerleave", panStops);
+            host.removeEventListener("pointerup", panStops);
+            host.removeEventListener("pointercancel", panStops);
+            host.classList.remove("rd-one");
             canvas.removeEventListener("pointerenter", onEnter);
             canvas.removeEventListener("pointerleave", onLeave);
             select.removeEventListener("change", onSelect);

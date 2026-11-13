@@ -396,6 +396,7 @@ The bar of the page, on your device:
 | Button | What it does |
 |:--|:--|
 | The list of displays | Shows another display of the remote computer. The display its user works on is marked |
+| **View: whole / 1:1** | Whole: the screen of the remote computer fits your window. 1:1: a pixel of it is a pixel of your screen, its text as large as there - for a large screen seen from a small one. Bring the pointer, or a finger, to an edge of the window: the view goes that way. Kept for the next time |
 | **Fit** | The resolution of the remote computer follows the size of your window. Turning it off, or leaving, restores it |
 | **30 fps** | Switches to 60 frames a second and back: 60 is smoother, and takes twice the network and more of the remote computer. The page remembers the choice |
 | **Lock pointer** | Your mouse moves the pointer of the remote computer without limits, for games and 3D. **Esc** frees it |
@@ -449,7 +450,7 @@ Started without options, by a double click, the program asks in its window what 
 | `--listen <address:port>` | `0.0.0.0:8765` | Where the program waits for the page: ways ① and ② |
 | `--token <token>` | variable `RDP_TOKEN`, else new at each start | The token the page must give |
 | `--key <file>` | `host.key` beside the program | The key of the remote computer: the page recognizes the computer by it |
-| `--software` | | Encode the video on the processor even when the graphics card can (Windows) |
+| `--software` | | Encode the video on the processor even when the graphics card can (Windows). A screen larger than 4096 pixels a side is sent at half its size |
 | `--meet <meeting point>[:<port>]` | port `40000` | Way ③: meet the page through this meeting point with SYN Mirror. After `:` its port of requests, when it is not 40000 |
 | `--meet-password <8 characters>` | variable `RDP_MEET_PASSWORD` | The password of that meeting point |
 | `--direct` | | Way ④: first asks the router to open the port of `--listen` to this computer, for one line; else meets the page over WebRTC, its line pasted into the window of the program. The program waits at `--listen` for ways ① and ② all along. Not together with `--meet` |

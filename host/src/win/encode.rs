@@ -29,19 +29,24 @@ pub struct Encoder {
     clock:      Clock,
     /// SPS and PPS of the output type: put in front of a key frame that comes without them.
     header:     Vec<u8>,
+    /// The frames are halved: the desktop is larger than H.264 takes ( `gpu::MAX_SIDE` ), each pixel the average of a 2 × 2 block.
+    half:       bool,
 }
 
 impl Encoder {
-    /// `width` and `height` even; `bitrate` bits a second.
-    pub fn new(width: u32, height: u32, fps: u32, bitrate: u32) -> Result<Self> {
+    /// An encoder of frames `width` × `height`, even; `half` - the frames given are twice as large, halved as they are converted;
+    /// `bitrate` bits a second.
+    pub fn new(width: u32, height: u32, half: bool, fps: u32, bitrate: u32) -> Result<Self> {
         unsafe {
             let transform: IMFTransform = CoCreateInstance(&CLSID_MSH264EncoderMFT, None, CLSCTX_INPROC_SERVER)?;
 
-            set_types(&transform, width, height, fps, bitrate)?;
+            // tuned before the types are set: the encoder of Windows takes low latency only then - after them it holds 16 frames
+            // before the first access unit, and a desktop that changes little shows nothing
             let codec = transform.cast::<ICodecAPI>().ok();
             if let Some(codec) = &codec {
                 tune(codec, fps, bitrate);
             }
+            set_types(&transform, width, height, fps, bitrate)?;
             let header = sequence_header(&transform);
 
             let info = transform.GetOutputStreamInfo(0)?;
@@ -64,7 +69,7 @@ impl Encoder {
             transform.ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0)?;
             transform.ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0)?;
 
-            Ok(Self { transform, codec, width, height, input, pixels, output, clock: Clock::new(), header })
+            Ok(Self { transform, codec, width, height, input, pixels, output, clock: Clock::new(), header, half })
         }
     }
 
@@ -92,7 +97,8 @@ impl Encoder {
             let (width, height) = (self.width as usize, self.height as usize);
             let mut data = std::ptr::null_mut();
             self.pixels.Lock(&mut data, None, None)?;
-            bgra_to_nv12(bgra, pitch, width, height, std::slice::from_raw_parts_mut(data, width * height * 3 / 2));
+            let nv12 = std::slice::from_raw_parts_mut(data, width * height * 3 / 2);
+            if self.half { bgra_to_nv12_half(bgra, pitch, width, height, nv12) } else { bgra_to_nv12(bgra, pitch, width, height, nv12) }
             self.pixels.Unlock()?;
             self.input.SetSampleTime(self.clock.time(present))?;
             self.transform.ProcessInput(0, &self.input, 0)?;
@@ -297,6 +303,34 @@ pub fn bgra_to_nv12(bgra: &[u8], pitch: usize, width: usize, height: usize, nv12
     }
 }
 
+/// BGRA, rows `pitch` bytes apart, of `2 width` × `2 height` at least → NV12 of `width` × `height` ( even ), halved: each pixel the
+/// average of a 2 × 2 block, the chroma of each 4 × 4 block. BT.709 limited range, as `bgra_to_nv12`.
+pub fn bgra_to_nv12_half(bgra: &[u8], pitch: usize, width: usize, height: usize, nv12: &mut [u8]) {
+    let (luma, chroma) = nv12.split_at_mut(width * height);
+    let y_of = |(r, g, b): (i32, i32, i32)| (16 + ((47 * r + 157 * g + 16 * b + 128) >> 8)) as u8;
+    // the colour of the pixel `x` of the rows `a` and `b` of the source: the average of its 2 × 2 block
+    let px = |a: &[u8], b: &[u8], x: usize| {
+        let (p, q) = (&a[x * 8..][..8], &b[x * 8..][..8]);
+        let sum = |c: usize| p[c] as i32 + p[c + 4] as i32 + q[c] as i32 + q[c + 4] as i32;
+        ((sum(2) + 2) >> 2, (sum(1) + 2) >> 2, (sum(0) + 2) >> 2)
+    };
+    for ((pair, lumas), uv) in luma.chunks_exact_mut(width * 2).enumerate().zip(chroma.chunks_exact_mut(width)) {
+        let rows: [&[u8]; 4] = std::array::from_fn(|k| &bgra[(pair * 4 + k) * pitch..][..width * 8]);
+        let (y0, y1) = lumas.split_at_mut(width);
+        for (x2, c) in uv.chunks_exact_mut(2).enumerate() {
+            let (x, x1) = (x2 * 2, x2 * 2 + 1);
+            let (a, b, d, e) = (px(rows[0], rows[1], x), px(rows[0], rows[1], x1), px(rows[2], rows[3], x), px(rows[2], rows[3], x1));
+            y0[x] = y_of(a);
+            y0[x1] = y_of(b);
+            y1[x] = y_of(d);
+            y1[x1] = y_of(e);
+            let (r, g, bl) = ((a.0 + b.0 + d.0 + e.0) >> 2, (a.1 + b.1 + d.1 + e.1) >> 2, (a.2 + b.2 + d.2 + e.2) >> 2);
+            c[0] = (128 + ((-26 * r - 87 * g + 112 * bl + 128) >> 8)) as u8;
+            c[1] = (128 + ((112 * r - 102 * g - 10 * bl + 128) >> 8)) as u8;
+        }
+    }
+}
+
 pub(crate) fn variant_u32(value: u32) -> VARIANT {
     let mut v = VARIANT::default();
     unsafe {
@@ -313,4 +347,51 @@ fn variant_bool(value: bool) -> VARIANT {
         (*v.Anonymous.Anonymous).Anonymous.boolVal = if value { windows::Win32::Foundation::VARIANT_TRUE } else { windows::Win32::Foundation::VARIANT_FALSE };
     }
     v
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A frame of BGRA, `w` × `h`, each pixel of `colour( x, y )`.
+    fn frame(w: usize, h: usize, colour: impl Fn(usize, usize) -> [u8; 4]) -> Vec<u8> {
+        let mut out = Vec::with_capacity(w * h * 4);
+        for y in 0..h {
+            for x in 0..w {
+                out.extend(colour(x, y));
+            }
+        }
+        out
+    }
+
+    /// Halved: a 2 × 2 block of one colour is a pixel of that colour, as `bgra_to_nv12` makes it of the same colour whole.
+    #[test]
+    fn a_frame_halved() {
+        let (w, h) = (16, 8);
+        // blocks of 2 × 2 of their own colour
+        let big = frame(w * 2, h * 2, |x, y| [(x / 2 * 16) as u8, (y / 2 * 30) as u8, ((x / 2 + y / 2) * 9) as u8, 255]);
+        let small = frame(w, h, |x, y| [(x * 16) as u8, (y * 30) as u8, ((x + y) * 9) as u8, 255]);
+        let (mut halved, mut whole) = (vec![0; w * h * 3 / 2], vec![0; w * h * 3 / 2]);
+        bgra_to_nv12_half(&big, w * 2 * 4, w, h, &mut halved);
+        bgra_to_nv12(&small, w * 4, w, h, &mut whole);
+        assert_eq!(halved, whole);
+    }
+
+    /// The software encoder of Windows gives an access unit for each frame at once: for a halved large desktop, and a small one.
+    #[test]
+    fn the_software_encoder_encodes() {
+        startup().unwrap();
+        for (w, h, half) in [(640usize, 360usize, false), (2160, 1280, true)] {
+            let (sw, sh) = if half { (w * 2, h * 2) } else { (w, h) };
+            let bgra = frame(sw, sh, |x, y| [(x % 256) as u8, (y % 256) as u8, 128, 255]);
+            let mut encoder = Encoder::new(w as u32, h as u32, half, 30, 4_000_000).unwrap();
+            // low latency: each frame gives its access unit at once - a desktop that changes little is shown too
+            let mut out = Vec::new();
+            for i in 0..3 {
+                encoder.encode(&bgra, sw * 4, 1_000_000 + i * 333_333, &mut out).unwrap();
+                assert_eq!(out.len(), i as usize + 1, "{w}×{h}: frame {i} gave no access unit at once");
+            }
+            assert!(out[0].keyframe, "{w}×{h}: the first is not a key frame");
+        }
+    }
 }

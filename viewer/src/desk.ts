@@ -91,6 +91,9 @@ export const english = {
     fitOn: "Fit: on",
     fitOff: "Fit: off",
     fitTitle: "The resolution of the machine follows the size of this window; off restores it",
+    viewWhole: "View: whole",
+    viewOne: "View: 1:1",
+    viewTitle: "Whole: the screen of the machine fits this window. 1:1: a pixel of it is a pixel here, as large as there - the pointer or a finger at an edge moves the view",
     fps: "{n} fps",
     fpsTitle: "The most frames a second the machine sends: 60 is smoother, and takes more of the link and of the machine",
     lock: "Lock pointer",
@@ -214,6 +217,8 @@ const STYLE = `
 .rd-screen{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000}
 .rd-screen.rd-drop{outline:3px dashed var(--rd-accent);outline-offset:-3px}
 .rd-screen canvas{max-width:100%;max-height:100%;outline:none}
+.rd-screen.rd-one{display:block;position:relative;overflow:hidden}
+.rd-screen.rd-one canvas{max-width:none;max-height:none;position:absolute;left:0;top:0}
 .rd-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center}
 .rd-state .rd-bad{color:var(--rd-bad)}
 .rd-key{max-width:60ch;color:var(--rd-muted);font:12px/1.4 ui-monospace,monospace;word-break:break-all}
@@ -288,11 +293,12 @@ export function open(container: HTMLElement, options: Options): Desk {
     pick.hidden = true;
     const adminButton = button("rd-s", t.adminAsk, t.adminAskTitle);
     const fitButton = button("rd-s", "", t.fitTitle);
+    const viewButton = button("rd-s", "", t.viewTitle);
     const fpsButton = button("rd-s", "", t.fpsTitle);
     const lockButton = button("rd-s", t.lock, t.lockTitle);
     const fullButton = button("rd-s", t.full, t.fullTitle);
     const leaveButton = button("", t.leave);
-    bar.append(who, audienceLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, soundButton, micButton, sendButton, getButton, pick, adminButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
+    bar.append(who, audienceLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
     const screenHost = element("div", "rd-screen");
     const state = element("div", "rd-state");
     const stateLine = element("div", "");
@@ -508,6 +514,7 @@ export function open(container: HTMLElement, options: Options): Desk {
         const canvas = nextCanvas ?? document.createElement("canvas"); // the worker draws on the one it was given
         nextCanvas = undefined;
         shown = screen.start(canvas, screenHost, root, displaySelect, stats, screenWords, () => seen, post);
+        if (oneToOne) shown.oneToOne(true);
         moving = files.start(transfer, cancelButton);
         notice.textContent = "";
         hearing = audio.start(soundButton, micButton, text => { notice.textContent = text; }, audioWords, post);
@@ -580,6 +587,17 @@ export function open(container: HTMLElement, options: Options): Desk {
 
     adminButton.addEventListener("click", () => post({ t: W.ELEVATE }));
     lockButton.addEventListener("click", () => typing?.lockPointer());
+
+    /** 1:1 or the whole screen: kept on the device, for every machine. */
+    let oneToOne = store.get("view") === "1:1";
+    const viewLabel = () => { viewButton.textContent = oneToOne ? t.viewOne : t.viewWhole; };
+    viewButton.addEventListener("click", () => {
+        oneToOne = !oneToOne;
+        store.set("view", oneToOne ? "1:1" : undefined);
+        viewLabel();
+        shown?.oneToOne(oneToOne);
+    });
+    viewLabel();
 
     const fitLabel = () => { fitButton.textContent = fitting ? t.fitOn : t.fitOff; };
     fitButton.addEventListener("click", () => {

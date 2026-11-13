@@ -75,9 +75,12 @@ impl Source {
         let dup = Duplicator::new(display, gpu)?;
         let mut source = Self { dup, coder: None, fps, bitrate, announce: None, unsent: false, _timer: Timer::new() };
         if !gpu {
-            let (width, height) = (source.dup.width & !1, source.dup.height & !1);
-            source.coder = Some(Coder::Cpu { encoder: Encoder::new(width, height, fps, bitrate)?, ready: Vec::new() });
-            source.announce = Some(format!("{width}×{height}, the software encoder"));
+            // larger than H.264 takes - a page decodes none of it: halved as it is converted, as the GPU scales it
+            let (dw, dh) = (source.dup.width, source.dup.height);
+            let half = dw > super::gpu::MAX_SIDE || dh > super::gpu::MAX_SIDE;
+            let (width, height) = if half { ((dw / 2) & !1, (dh / 2) & !1) } else { (dw & !1, dh & !1) };
+            source.coder = Some(Coder::Cpu { encoder: Encoder::new(width, height, half, fps, bitrate)?, ready: Vec::new() });
+            source.announce = Some(if half { format!("{dw}×{dh} → {width}×{height}, the software encoder") } else { format!("{width}×{height}, the software encoder") });
         }
         Ok(source)
     }
