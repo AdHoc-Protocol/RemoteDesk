@@ -73,9 +73,21 @@ line; what is done is green, the line alive with pulses both ways. A part that b
 beside it say what to check. Under the picture, **What happens, in detail** opens the log of each step: the addresses, the times,
 the answers of the STUN servers.
 
-| Waited for | On its way | Alive | Broken |
-|:--:|:--:|:--:|:--:|
-| ![Way 4: the line of the page sent, its answer waited for](docs/page-4-waiting.svg) | ![Way 3: dialing through the meeting point](docs/page-3-connecting.svg) | ![Way 4: the two met, the line alive](docs/page-4-alive.svg) | ![Way 2: the router of the remote computer does not let the page in](docs/page-2-broken.svg) |
+**Waited for.** Way ④: the STUN servers answered, your line flies there, its answer is waited for.
+
+![Way 4: the line of the page sent, its answer waited for](docs/page-4-waiting.svg)
+
+**On its way.** Way ③: the page dials the remote computer through the meeting point.
+
+![Way 3: dialing through the meeting point](docs/page-3-connecting.svg)
+
+**Alive.** Way ④: the two met, straight through both routers, and the remote computer let you in.
+
+![Way 4: the two met, the line alive](docs/page-4-alive.svg)
+
+**Broken.** Way ②: the router of the remote computer does not let the page in, and the page says what to check.
+
+![Way 2: the router of the remote computer does not let the page in](docs/page-2-broken.svg)
 
 ✗ The address alone is not enough: without the token the remote computer lets nobody in. Send the whole line, or the address
 and the token both.
