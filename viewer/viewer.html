@@ -44,11 +44,11 @@
         @media (prefers-color-scheme: dark) { #map { --ink: #c9d0dc; --paper: #171b22; --hatch: #3c5576; --dot: #262c36; } }
         #scene { display: block; width: 100%; height: auto; overflow: visible; }
         .hand, .say, .tag .head, #ways b, header h1 { font-family: "RD Hand", "Segoe Print", "Bradley Hand", cursive; }
-        header h1 { font-size: 36px; font-weight: 700; line-height: 1.1; }
-        #ways b { font-size: 20px; line-height: 1.05; }
+        header h1 { font-size: 28px; font-weight: 400; line-height: 1.2; }
+        #ways b { font-size: 15px; font-weight: 400; line-height: 1.2; }
         #scene text.hand { fill: var(--ink); }
         #scene text.small { fill: var(--muted); }
-        #scene text.screen-text { fill: var(--accent); font-weight: 700; }
+        #scene text.screen-text { fill: var(--accent); }
         #scene .console-text { font: 13px ui-monospace, Consolas, monospace; fill: #9fe3a8; }
         #scene .console-text.strong { fill: #fff; font-weight: 700; }
         #scene .cursor { fill: #9fe3a8; animation: blink 1s steps(1) infinite; }
@@ -110,7 +110,7 @@
 
         /* what is typed and pressed, on the scene where it happens: placed in the units of the scene, 1000 × 680 */
         .spot { position: absolute; margin: 0; }
-        .say { font-size: 20px; line-height: 1.1; color: var(--ink); }
+        .say { font-size: 16px; line-height: 1.25; color: var(--ink); }
         .say:empty { display: none; }
         .mid-say { left: 34%; top: 49%; width: 32%; text-align: center; }
         .rem-say { left: 72%; top: 49.5%; width: 21.5%; text-align: center; }
@@ -124,10 +124,12 @@
         #map[data-out=wait] .tag-out { --pen: var(--warn); } #map[data-out=try] .tag-out { --pen: var(--accent); } #map[data-out=ok] .tag-out { --pen: var(--ok); }
         #map[data-back=wait] .tag-back { --pen: var(--warn); } #map[data-back=ok] .tag-back { --pen: var(--ok); } #map[data-back=bad] .tag-back { --pen: var(--bad); }
         #map:not([data-way="4"]) .tag-out { display: none; }
-        .tag .head { margin: 0 0 6px; font-size: 21px; font-weight: 700; display: flex; align-items: center; gap: 8px; line-height: 1.1; }
+        .tag .head { margin: 0 0 6px; font-size: 16px; font-weight: 400; display: flex; align-items: center; gap: 8px; line-height: 1.1; }
         .tag .head label { margin: 0; color: inherit; font-size: inherit; }
         /* the name: right of "You", the two of them centred over the laptop */
-        #map .me-spot { left: 11.4%; top: 13.4%; width: 15.2%; padding: 6px 9px; }
+        #map .me-spot { left: 5.8%; top: 12.6%; width: 20%; display: flex; align-items: center; gap: 8px; }
+        .me-spot .you { font-size: 21px; color: var(--ink); line-height: 1; }
+        #map .me-spot input { flex: 1; min-width: 0; padding: 6px 10px; font-size: 16px; }
         .tag .n { width: 24px; height: 24px; border-radius: 50%; background: var(--pen, var(--ink)); color: var(--paper); text-align: center; line-height: 24px; font: 700 14px system-ui, sans-serif; flex: none; }
         .said { margin: 6px 0 0; color: var(--ok); font-size: 13px; }
         .said.bad { color: var(--bad); }
@@ -150,6 +152,8 @@
         #feed .t { color: var(--muted); margin-right: 8px; }
         #key { margin-top: 8px; color: var(--muted); font: 12px/1.4 ui-monospace, monospace; word-break: break-all; }
 
+        /* the page: "You" stands beside its field, in .me-spot - the one of the scene is for the pictures of the README */
+        #scene #n-me .you { display: none; }
         /* a narrow screen: the scene above, smaller; what is typed and pressed under it, in the order it is done */
         @media (max-width: 760px) {
             #login { padding: 16px; margin: 0 auto; }
@@ -189,7 +193,10 @@
         <svg id="scene" role="img" aria-label="This computer, the way to the remote computer, and the lines that go by chat or mail"></svg>
 
         <!-- who you are, beside "You" over the laptop: not needed, the remote computer shows it -->
-        <input id="name" class="spot me-spot" type="text" spellcheck="false" placeholder="your name" title="Your name: the remote computer shows it; not needed" aria-label="Your name" enterkeyhint="go">
+        <div class="spot me-spot">
+            <span class="you hand" aria-hidden="true">You</span>
+            <input id="name" type="text" spellcheck="false" placeholder="your name" title="Your name: the remote computer shows it; not needed" aria-label="Your name" enterkeyhint="go">
+        </div>
         <p id="mid-say" class="spot say mid-say"></p>
         <p id="rem-say" class="spot say rem-say"></p>
 

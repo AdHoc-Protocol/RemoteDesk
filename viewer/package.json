@@ -10,7 +10,7 @@
     "pictures": "node build.mjs --pictures"
   },
   "devDependencies": {
-    "@fontsource/caveat": "latest",
+    "@fontsource/coming-soon": "latest",
     "esbuild": "latest",
     "jsdom": "latest",
     "roughjs": "latest",

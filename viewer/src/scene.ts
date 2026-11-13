@@ -22,9 +22,12 @@ function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Attrs = {}, par
     return e;
 }
 
+/** How much smaller the hand is drawn than the sizes given: its letters are big for their size. */
+export const HAND_SIZE = 0.8;
+
 /** Text written by hand. */
 const write = (parent: Element, x: number, y: number, text: string, size = 22, cls = "") =>
-    el("text", { x, y, "font-size": size, "text-anchor": "middle", class: "hand " + cls }, parent, text);
+    el("text", { x, y, "font-size": size * HAND_SIZE, "text-anchor": "middle", class: "hand " + cls }, parent, text);
 
 /** Pulses running along `path`: `n` each way, `back` - the other way too; the style shows them in the states that have them. */
 function pulses(parent: Element, path: string, n: number, seconds: number, back: boolean): void {
@@ -205,7 +208,7 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
 
     // ── this computer: a laptop, this page on its screen ──
     const me = el("g", { id: "n-me", class: "node" }, svg);
-    write(me, 88, 126, "You", 30, "label big"); // the name of the user to its right, the two over the middle of the laptop
+    write(me, 88, 126, "You", 30, "label big you"); // the name of the user to its right, the two over the middle of the laptop
     laptop(rc, me, "RemoteDesk");
 
     // ── the remote computer: a monitor, its keyboard and mouse; the window of rdp-host on the screen, the number pressed ──

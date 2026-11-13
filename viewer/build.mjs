@@ -22,8 +22,9 @@ const onePage = () => ({
     },
 });
 
-/** The hand of the diagram ( Caveat, SIL Open Font License ): inside the page, as data - the page needs nothing from the internet. */
-const HAND = "data:font/woff2;base64," + readFileSync("node_modules/@fontsource/caveat/files/caveat-latin-600-normal.woff2").toString("base64");
+/** The hand of the diagram ( Coming Soon, Apache License 2.0 ): printed letters by hand, inside the page as data - the page needs nothing
+ *  from the internet. */
+const HAND = "data:font/woff2;base64," + readFileSync("node_modules/@fontsource/coming-soon/files/coming-soon-latin-400-normal.woff2").toString("base64");
 
 // ── `--pictures`: the scene of the page in a few moments, for the README ──
 //
@@ -99,9 +100,10 @@ async function pictures() {
         const rc = rough.svg(scene);
 
         const text = (parent, x, y, t, attrs) => el("text", { x, y, ...attrs }, parent, t);
-        const field = (parent, x, y, w, value, placeholder) => {
-            el("rect", { x, y, width: w, height: 32, rx: 6, style: "fill: var(--card); stroke: var(--line)" }, parent);
-            text(parent, x + 10, y + 21, value || placeholder, { style: `font: 14px system-ui, sans-serif; fill: var(${value ? "--fg" : "--muted"})` });
+        const field = (parent, x, y, w, value, placeholder, size = 14) => {
+            const h = size + 18;
+            el("rect", { x, y, width: w, height: h, rx: 6, style: "fill: var(--card); stroke: var(--line)" }, parent);
+            text(parent, x + 10, y + h / 2 + size * 0.36, value || placeholder, { style: `font: ${size}px system-ui, sans-serif; fill: var(${value ? "--fg" : "--muted"})` });
         };
         const button = (parent, x, y, w, label, second, off) => {
             el("rect", { x, y, width: w, height: 34, rx: 6, style: second ? "fill: none; stroke: var(--accent)" : `fill: var(--accent); opacity: ${off ? .4 : 1}` }, parent);
@@ -115,7 +117,7 @@ async function pictures() {
             g.append(box);
             el("circle", { cx: x + 26, cy: y + 24, r: 12, style: "fill: var(--pen)" }, g);
             text(g, x + 26, y + 29, n, { "text-anchor": "middle", style: "font: 700 14px system-ui, sans-serif; fill: var(--paper)" });
-            text(g, x + 46, y + 31, head, { class: "hand", style: "font-size: 22px; font-weight: 700; fill: var(--pen)" });
+            text(g, x + 46, y + 30, head, { class: "hand", style: "font-size: 16.5px; fill: var(--pen)" });
             return g;
         };
         /** Words written by hand under a part, broken into lines that fit `w`. */
@@ -126,7 +128,7 @@ async function pictures() {
                 if (last >= 0 && (lines[last] + " " + word).length <= most) lines[last] += " " + word;
                 else lines.push(word);
             }
-            lines.forEach((line, i) => text(scene, cx, y + 20 + i * 22, line, { class: "hand", "text-anchor": "middle", style: `font-size: 21px; fill: ${COLOR[kind]}` }));
+            lines.forEach((line, i) => text(scene, cx, y + 20 + i * 22, line, { class: "hand", "text-anchor": "middle", style: `font-size: 15.5px; fill: ${COLOR[kind]}` }));
         };
 
         if (p.mid) say(500, p.way === 1 ? 360 : 333, 320, p.mid);
@@ -142,7 +144,7 @@ async function pictures() {
         // the line: Enter connects
         const back = tag(200, y, 600, 86, p.parts.back, p.way === 4 ? "2" : "1", p.way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here");
         field(back, 214, y + 44, 572, p.back, "rd1a.EQh6cTJmY1M2dFZ4b0pXa3RnU2xh…");
-        field(scene, 114, 94, 152, "Anna", "your name"); // beside "You", over the laptop
+        field(scene, 112, 101, 154, "Anna", "your name", 16); // beside "You", its middle on the middle of the word, over the laptop
 
         writeFileSync(`../docs/${p.file}.svg`, svg.outerHTML + "\n");
         svg.remove();
@@ -169,7 +171,7 @@ async function pictures() {
         console.log(`docs/${file}.svg`);
     };
     const hand = (parent, x, y, words, size, fill, anchor = "middle") =>
-        el("text", { x, y, class: "hand", "text-anchor": anchor, style: `font-size: ${size}px; fill: ${fill}` }, parent, words);
+        el("text", { x, y, class: "hand", "text-anchor": anchor, style: `font-size: ${size * drawn.HAND_SIZE}px; fill: ${fill}` }, parent, words);
     /** Words broken into lines of `most` letters, from `y` down. */
     const lines = (words, most) => {
         const out = [];

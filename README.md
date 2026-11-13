@@ -547,7 +547,7 @@ sudo apt-get install pkg-config clang libclang-dev libpipewire-0.3-dev libspa-0.
 - [`host/`](host): the program, in Rust. `src/meet.rs`: way ③; `src/portmap.rs`: way ④, the port of the router, UPnP by
   [igd-next](https://github.com/dariusc93/rust-igd); `src/direct.rs`: way ④, WebRTC by [str0m](https://github.com/algesten/str0m).
 - [`viewer/`](viewer): the page, in TypeScript. `src/direct.ts`: way ④; `src/scene.ts`: the picture of the page, drawn by hand
-  with [Rough.js](https://roughjs.com), written in [Caveat](https://fonts.google.com/specimen/Caveat).
+  with [Rough.js](https://roughjs.com), written in [Coming Soon](https://fonts.google.com/specimen/Coming+Soon).
 - [`keymap/`](keymap): the table of keyboard keys.
 - [`docs/`](docs): the pictures of this README, drawn by `npm run pictures` from the code of the page itself: they show it as it
   is, and move by themselves, as the page does.
