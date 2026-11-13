@@ -235,6 +235,11 @@ let where: Where = "";
 /** What the desk or the meeting said last. */
 let whereText = "";
 const stun = new Map<string, "ask" | "ok" | "no">();
+/**
+ * Way 4, what is known of the way through the routers: `strict` - the network of this device gives it a new port for each address,
+ * the way is in doubt; `doomed` - and the answer says the router of the machine lets in only what it asked for: they will not meet.
+ */
+let net: "" | "strict" | "doomed" = "";
 
 /** The port the program listens on when its line names none. */
 const PORT = 8765;
@@ -318,7 +323,12 @@ function draw(): void {
     backNumber.textContent = way === 4 ? "2" : "1";
     backLabel.textContent = way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here";
     address.placeholder = EXAMPLE[way]; // what such a line looks like: the user sees what to paste
-    for (const e of [address, yourName, directStart, ...wayButtons]) e.disabled = busy || (e === directStart && making);
+    // way 4, the two will not meet, or did not: another answer to this line is no use - the field of 2 is shut till a new line
+    const shut = way === 4 && (net === "doomed" || where === "noPath");
+    map.dataset["shut"] = shut ? "1" : "";
+    // way 4: 2 is there only once 1 is done - the line made, or the meeting under way
+    map.dataset["made"] = pending !== undefined || where !== "" || overChannel ? "1" : "";
+    for (const e of [address, yourName, directStart, ...wayButtons]) e.disabled = busy || (e === directStart && making) || (e === address && shut);
     directStart.textContent = making ? "Asking the STUN servers…" : pending !== undefined ? "Make a new line" : "Make the line";
     directStart.classList.toggle("second", pending !== undefined); // made: what is pressed now is on the other arrow
     offerSaid.hidden = pending === undefined;
@@ -327,6 +337,10 @@ function draw(): void {
     // before connecting: what is here, what is still waited for
     set(nodeMe, busy ? "try" : ready() ? "ok" : "");
     set(nodeMid, ""); say(midSay, MIDDLE[way]);
+    const net4 = way === 4 ? net : "";
+    map.dataset["net"] = net4;
+    if (net4 === "strict") { set(nodeMid, "wait"); say(midSay, "your network gives a new port for each address: only a router that lets you in meets it", "wait"); }
+    if (net4 === "doomed") { set(nodeMid, "bad"); say(midSay, "your network and its router will not meet directly: way 3, or Wi-Fi", "bad"); }
     set(wireA, ""); set(wireB, "");
     set(arrowOut, making ? "try" : pending !== undefined ? "ok" : "wait");
     const waitingBack = way !== 4 || pending !== undefined;
@@ -351,8 +365,9 @@ function draw(): void {
     };
     switch (where) {
         case "meeting":
-            set(wireA, "try"); set(wireB, "try"); set(nodeMid, "try"); set(nodeRem, "try");
-            say(midSay, "trying the pairs of addresses of both sides…");
+            set(wireA, "try"); set(wireB, "try"); set(nodeMid, net4 === "doomed" ? "bad" : "try"); set(nodeRem, "try");
+            if (net4 === "doomed") say(midSay, "trying anyway: your network and its router will not meet directly", "bad");
+            else say(midSay, "trying the pairs of addresses of both sides…");
             say(remSay, "has your line: knocks at your addresses");
             break;
         case "met":
@@ -420,7 +435,11 @@ function hint(b: ReturnType<typeof back>): [string, Kind] {
     if (ready()) return ["All is here: press Enter.", "ok"];
     if (way !== 4) return ["Waiting for the line of the remote computer: when it comes by chat or mail, paste it on the arrow.", "wait"];
     if (making) return ["Asking the STUN servers the address of this computer…", ""];
-    if (pending === undefined) return ["Start with 1: make the line of this page. A line address:port#token came from the remote computer already? Paste it in 2.", "wait"];
+    if (pending === undefined)
+        return ["Start with 1: make the line of this page. The remote computer sent a line address:port#token? That is way 2: choose 2 above.", "wait"];
+    if (pending.strict)
+        return ["Your line is in the clipboard. This network gives a new port for each address: if rdp-host says its router lets in only " +
+            "what it asked for, they will not meet - use way 3, or this device on Wi-Fi.", "wait"];
     return ["Your line is in the clipboard: send it. Now waiting for its answer, rd1a.…", "wait"];
 }
 
@@ -560,7 +579,7 @@ function heard(h: Heard): void {
         case "gathered": note(`The line is made in ${h.ms} ms: ${h.seen} of ${STUN_NAMES.length} STUN servers answered`, h.seen > 0 ? "ok" : "bad"); break;
         case "strict":
             note("The network of this device gives it a new port for each address it talks to ( a strict NAT, as mobile operators have ): " +
-                "it meets the remote computer only if the router there lets in what it did not ask for. If not: way 3, or this device on Wi-Fi", "bad");
+                "it meets the remote computer only if the router there lets in what it did not ask for. If not: way 3, or this device on Wi-Fi", "wait");
             break;
         case "state": note(`ICE: ${h.state}`, h.state === "failed" ? "bad" : h.state === "connected" ? "ok" : ""); break;
         case "checked": note(`${h.address}: ${h.sent} checks sent, ${h.answered} answered`, h.answered > 0 ? "" : "bad"); break;
@@ -576,15 +595,18 @@ function heard(h: Heard): void {
 function unmade(): void {
     pending?.close();
     pending = undefined;
+    net = "";
 }
 
 directStart.addEventListener("click", () => void (async () => {
     unmade();
+    if (card(address.value, true) !== undefined) address.value = ""; // the answer to the line before: no use to the new one
     making = true;
     where = "";
     draw();
     try {
         pending = await offer(heard);
+        net = pending.strict ? "strict" : "";
         offerLine.value = pending.line;
         await putLine();
     } catch (e) {
@@ -633,7 +655,7 @@ async function meet(answer: Card): Promise<void> {
         ? "this device and the remote computer will not meet directly: the network of this device gives it a new port for each address " +
           "( as mobile operators do ), and the router of the remote computer lets in only what it asked for. Use way 3, or this device on Wi-Fi"
         : undefined;
-    if (doomed !== undefined) note(doomed, "bad");
+    if (doomed !== undefined) { net = "doomed"; note(doomed, "bad"); }
     note("Meeting: ICE tries the addresses of both sides, pair by pair, a minute at most");
     draw();
     show(doomed !== undefined ? "Direct connection: " + doomed : "Meeting the remote computer: trying the ways through both routers…", doomed !== undefined ? "bad" : undefined);

@@ -321,8 +321,8 @@ way ②:
 
 1. **The user of the remote computer** sends you the line from the internet, the token in it: the program has put it in the
    clipboard.
-2. **You** press **4** on the page and paste it on the arrow ②, where the answer would come: the page connects. That is all: the
-   rest is as on way ②.
+2. **You** press **2** on the page, as the line is the one of way ②, and paste it there: the page connects. That is all: the rest
+   is as on way ②. On **4** the field of the answer shows only once the page made its own line.
 
 The router keeps the port for an hour, and the program asks for it again every half hour while it runs. When the program is
 closed, by Ctrl+C or its window, it closes the port. A program that stops without closing loses the port within the hour; a
