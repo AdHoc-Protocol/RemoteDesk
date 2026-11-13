@@ -1,7 +1,6 @@
 // The files on Android: those from the viewer go to the folder of the app the app named at the start ( Android/data/…/files/Download,
-// seen in the app Files ).
-//
-// TODO(port): `pick` - the picker of Android ( ACTION_OPEN_DOCUMENT ), shown by the app on the screen of the phone.
+// seen in the app Files ). A file to the viewer its user picks in the picker of Android, shown by the app ( Host.pickFile ): the app
+// gives a path that opens the file it picked, under its name - nothing is copied.
 
 use std::path::PathBuf;
 
@@ -12,8 +11,5 @@ pub fn downloads() -> std::io::Result<PathBuf> {
     Ok(dir)
 }
 
-/// No file is picked on the phone yet.
-pub fn pick() -> Option<PathBuf> {
-    say!("📁", Warn, "This phone does not send files yet: it takes the ones the viewer sends");
-    None
-}
+/// The picker of Android on the screen of the phone: the file its user picked, none when cancelled.
+pub fn pick() -> Option<PathBuf> { super::pick_file().filter(|p| !p.is_empty()).map(PathBuf::from) }

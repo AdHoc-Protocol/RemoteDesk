@@ -49,6 +49,11 @@ struct Java {
     type_text:   jmethodID,
     touch:       jmethodID,
     scroll:      jmethodID,
+    mic_start:   jmethodID,
+    mic_write:   jmethodID,
+    mic_stop:    jmethodID,
+    pick_file:   jmethodID,
+    set_image:   jmethodID,
 }
 
 // SAFETY: the VM, a global reference and the ids of methods are for every thread
@@ -116,6 +121,17 @@ unsafe fn bytes(env: *mut JNIEnv, data: &[u8]) -> jbyteArray {
         ((**env).v1_6.SetByteArrayRegion)(env, array, 0, data.len() as jint, data.as_ptr() as *const i8);
     }
     array
+}
+
+/// A byte[] of Java as bytes.
+unsafe fn bytes_of(env: *mut JNIEnv, array: jbyteArray) -> Vec<u8> {
+    if array.is_null() {
+        return Vec::new();
+    }
+    let n = ((**env).v1_6.GetArrayLength)(env, array).max(0) as usize;
+    let mut data = vec![0u8; n];
+    ((**env).v1_6.GetByteArrayRegion)(env, array, 0, n as jint, data.as_mut_ptr() as *mut i8);
+    data
 }
 
 /// A byte[] of Java as a String of UTF-8.
@@ -233,6 +249,11 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_start(env: *mut J
         type_text: method(env, class, "typeText", "([B)Z"),
         touch: method(env, class, "touch", "(IIFF)Z"),
         scroll: method(env, class, "scroll", "(FFFF)Z"),
+        mic_start: method(env, class, "micStart", "(I)Z"),
+        mic_write: method(env, class, "micWrite", "(Ljava/nio/ByteBuffer;I)V"),
+        mic_stop: method(env, class, "micStop", "()V"),
+        pick_file: method(env, class, "pickFile", "()[B"),
+        set_image: method(env, class, "setClipImage", "([B)Z"),
     });
     let mut args = Vec::new();
     let n = ((**env).v1_6.GetArrayLength)(env, arguments);
@@ -305,6 +326,13 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_sound(env: *mut J
 pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_clip(env: *mut JNIEnv, _class: jclass, data: jbyteArray) {
     let t = text(env, data);
     guarded("the text sent", || clip::sent(t));
+}
+
+/// `Host.clipImage( png )`: a picture the user of the phone sent to the computer - shared, or the clipboard sent.
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_clipImage(env: *mut JNIEnv, _class: jclass, data: jbyteArray) {
+    let png = bytes_of(env, data);
+    guarded("the picture sent", || clip::sent_image(png));
 }
 
 /// `Host.answer( text )`: what the user typed or pressed where a computer would read its console.
@@ -400,4 +428,51 @@ fn touch(finger: jint, phase: jint, x: f32, y: f32) -> bool {
 /// `Host.scroll( x, y, dx, dy )`: notches of the wheel at a point of the screen.
 fn scroll(x: f32, y: f32, dx: f32, dy: f32) -> bool {
     boolean(|j| j.scroll, &[jvalue { f: x }, jvalue { f: y }, jvalue { f: dx }, jvalue { f: dy }])
+}
+
+// ── the microphone of the page, and the picker of files ──
+
+/// `Host.micStart( rate )`: a player of the sound on the speaker of the phone.
+fn mic_start(rate: u32) -> bool { boolean(|j| j.mic_start, &[jvalue { i: rate as jint }]) }
+
+/// `Host.micWrite( buffer, size )`: samples to the player, over this memory; the app waits while its buffer is full.
+fn mic_write(samples: &[i16]) {
+    with(|env, java| unsafe {
+        let bytes = std::mem::size_of_val(samples);
+        let buffer = ((**env).v1_6.NewDirectByteBuffer)(env, samples.as_ptr() as *mut c_void, bytes as i64);
+        if buffer.is_null() {
+            return;
+        }
+        let args = [jvalue { l: buffer }, jvalue { i: bytes as jint }];
+        ((**env).v1_6.CallStaticVoidMethodA)(env, java.host, java.mic_write, args.as_ptr());
+        ((**env).v1_6.DeleteLocalRef)(env, buffer);
+    });
+}
+
+fn mic_stop() { void(|j| j.mic_stop, &[]); }
+
+/// `Host.pickFile()`: the path of the file the user of the phone picked - blocks until then; empty - cancelled.
+fn pick_file() -> Option<String> {
+    with(|env, java| unsafe {
+        let got = ((**env).v1_6.CallStaticObjectMethodA)(env, java.host, java.pick_file, [].as_ptr());
+        if got.is_null() {
+            return None;
+        }
+        let path = text(env, got);
+        ((**env).v1_6.DeleteLocalRef)(env, got);
+        Some(path)
+    })
+    .flatten()
+}
+
+/// `Host.setClipImage( png )`: a picture on the clipboard of the phone.
+fn set_clip_image(png: &[u8]) -> bool {
+    with(|env, java| unsafe {
+        let a = bytes(env, png);
+        let args = [jvalue { l: a }];
+        let done = ((**env).v1_6.CallStaticBooleanMethodA)(env, java.host, java.set_image, args.as_ptr());
+        ((**env).v1_6.DeleteLocalRef)(env, a);
+        done
+    })
+    .unwrap_or(false)
 }

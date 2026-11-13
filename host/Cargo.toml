@@ -43,6 +43,8 @@ sha2 = "*"
 hmac = "*"
 getrandom = "*"
 rustc-hash = "*"
+# the pictures of the clipboard: PNG on the wire, pixels in the clipboards of the computers
+png = "*"
 
 [target.'cfg(windows)'.dependencies]
 ipconfig = "*"

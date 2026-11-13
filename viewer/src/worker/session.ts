@@ -258,6 +258,7 @@ listen(m => {
         case W.SOUND: return live.sound.sound(m.on);
         case W.MIC_OFF: return live.sound.micOff(m.tell && yours);
         case W.CLIPBOARD: return void (yours && live.clipboard.offer(m.text));
+        case W.PICTURE: return void (yours && live.clipboard.picture(m.png));
         case W.FILES: return void (yours && live.files.send(m.files));
         case W.FILE_REQUEST: return live.files.request();
         case W.FILE_CANCEL: return live.files.cancel();

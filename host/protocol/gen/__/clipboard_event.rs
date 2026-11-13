@@ -23,12 +23,14 @@ use crate::gen::__::*;
                                                             pub data: Option<Vec<u8>>, 
 
 
-                                                            
+                                                            _bits0: u8,
+
                                                         }
 
                                                         impl Default for ClipboardEvent {
                                                             fn default( ) -> Self { Self { data: None,
-  } } 
+ _bits0: 0x0,
+ } } 
                                                         }
 
                                                         impl ClipboardEvent {
@@ -37,7 +39,20 @@ use crate::gen::__::*;
                                                             /// Returns the id of this pack on the wire.
                                                             #[inline] pub fn __id( &self ) -> i32 { Self::__id_ }
                                                             
-                                                            
+                                                            //#region image
+
+
+                                            #[inline] pub fn image( &self ) -> bool { 
+
+                                                let __value = self._bits0 & 0x1;
+                                                ( __value ) != 0
+                                            }
+                                            /// Sets the field value.
+                                            #[inline] pub fn set_image( &mut self, value: bool ) { self._bits0 = ( self._bits0 as u64 & 0xFE | ( ( ( ( value ) as u8 ) ) as u64 ) ) as u8; }
+                                     
+
+//#endregion
+
                                                         }
 
                                                         
@@ -46,7 +61,7 @@ use crate::gen::__::*;
 							
 							
 							
-							pub const ARRAY_LEN_MAX: i32 = 1048576;
+							pub const ARRAY_LEN_MAX: i32 = 16777216;
 /// The smallest value of the field.
 pub const MIN: u8 = 0;
 /// The largest value of the field.
@@ -58,7 +73,8 @@ pub const MAX: u8 = 0xFF;
                                                     impl std::hash::Hash for ClipboardEvent {
                                                         fn hash<H: std::hash::Hasher>( &self, __h: &mut H ) { 
                                                             use std::hash::Hash;
-                                                            
+                                                            self._bits0.hash( __h );
+
                                                             //#region data
 self.data.hash( __h );
 
@@ -78,42 +94,56 @@ self.data.hash( __h );
                                                             return false;
                                                     } 1 => {
                                                         
+								if !__dst.init_bits( 1, 1 ) { return false; }
+								
+//#region image
+                            __dst.put_bits( ( ( ( self._bits0 ) & 0x1 ) ) as u32, 1 );
+
+//#endregion
+                             
+								{ __s = 2; continue; }
+							} 2 => {
+                         
+							__dst.end_bits();
+							{ __s = 3; continue; }
+						} 3 => {
+                     
                                                         
 						
-							 if !__dst.init_fields_nulls( if self.data.is_some() { 1 } else { 0 }, 1 ) { return false; } 
+							 if !__dst.init_fields_nulls( if self.data.is_some() { 1 } else { 0 }, 3 ) { return false; } 
                              
 						__dst.flush_fields_nulls();
-						{ __s = 2; continue; }
-					} 2 => {
+						{ __s = 4; continue; }
+					} 4 => {
 						
 //#region data
 						   
                     
-                    if __dst.is_null( 1  ) { __s = 4; continue; }
+                    if __dst.is_null( 1  ) { __s = 6; continue; }
                     
                                             let __n = ( self.data.as_ref().unwrap() ).len();
-                                            if 1048576 < __n { crate::lib::adhoc::connection::transmitter::overflow( "an array", __n as u64, 1048576 ) }
+                                            if 16777216 < __n { crate::lib::adhoc::connection::transmitter::overflow( "an array", __n as u64, 16777216 ) }
                                             let __n = __n as i32;
                                             __dst.slot().index_max_1( __n );
                                             if __n == 0 {
-                                                if __dst.put_val( 0, 3, 4 ) { __s = 4; continue; }
+                                                if __dst.put_val( 0, 4, 6 ) { __s = 6; continue; }
                                                 return false;
                                             }
-                                            if !__dst.put_val( __n as u64, 3, 3 ) { return false; }
+                                            if !__dst.put_val( __n as u64, 4, 5 ) { return false; }
                                              
-                                            { __s = 3; continue; }
-                                        } 3 => {
+                                            { __s = 5; continue; }
+                                        } 5 => {
                                             
                     {
                         let __a = self.data.as_ref().unwrap();
                         let __i = __dst.slot().index1 as usize;
                         let __m = __dst.slot().index_max1 as usize;
-                        let __n = __dst.put_slice( &__a[__i..__m], 3 ); 
+                        let __n = __dst.put_slice( &__a[__i..__m], 5 ); 
                         __dst.slot().index1 += __n as i32;
                         if __i + __n < __m { return false; }
                     }
-                    { __s = 4; continue; }
-                } 4 => {
+                    { __s = 6; continue; }
+                } 6 => {
                  
                                      
 //#endregion
@@ -132,19 +162,29 @@ self.data.hash( __h );
          
                                                     } 0 => {
                                                         
-                            if __src.get_fields_nulls( 0 ) { __s = 1; continue; }
+                                    __src.init_bits();
+                                    if __src.try_get_bits( 1, 0 ) { __s = 1; continue; }
+                                    return false;
+                                } 1 => {
+//#region image
+                            self._bits0 = ( self._bits0 as u64 & 0xFE | ( ( __src.get_bits_() ) as u64 ) ) as u8;
+//#endregion
+                                    { __s = 2; continue; }
+                                } 2 => {
+                             
+                            if __src.get_fields_nulls( 2 ) { __s = 3; continue; }
                             return false;
-                        } 1 => {
+                        } 3 => {
                              
 					    
 //#region data
 
-						if __src.is_null( 1  ) { self.data = None; __s = 4; continue; }
+						if __src.is_null( 1  ) { self.data = None; __s = 6; continue; }
                         
                                         
-                                                if __src.get_len1( data__::ARRAY_LEN_MAX, 3, 2 ) { __s = 2; continue; }
+                                                if __src.get_len1( data__::ARRAY_LEN_MAX, 4, 4 ) { __s = 4; continue; }
                                                 return false;
-                                            } 2 => {  
+                                            } 4 => {  
                                              
                                         {
                                                     let __n = __src.slot().index_max1 as usize;
@@ -152,21 +192,21 @@ self.data.hash( __h );
                                                     __vec.truncate( __n );
                                                     __vec.resize( __n, Default::default() );
                                                 } 
-                                        if __src.slot().index_max1 < 1 { __s = 4; continue; }
+                                        if __src.slot().index_max1 < 1 { __s = 6; continue; }
                                         
-                                                { __s = 3; continue; }
-                                            } 3 => { 
+                                                { __s = 5; continue; }
+                                            } 5 => { 
                                          
                     {
                         let __a = self.data.as_mut().unwrap();
                         let __i = __src.slot().index1 as usize;
                         let __m = __src.slot().index_max1 as usize;
-                        let __n = __src.get_bytes( &mut __a[__i..__m], 3 ); 
+                        let __n = __src.get_bytes( &mut __a[__i..__m], 5 ); 
                         __src.slot().index1 += __n as i32;
                         if __i + __n < __m { return false; }
                     }
-                    { __s = 4; continue; }
-                } 4 => {
+                    { __s = 6; continue; }
+                } 6 => {
                  
                                      
                         

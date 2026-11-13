@@ -6,7 +6,7 @@
 import { W, Touch, type ToWorker } from "./messages";
 import { usbOf } from "./keymap";
 
-type Post = (message: ToWorker) => void;
+type Post = (message: ToWorker, transfer?: Transferable[]) => void;
 
 const mac = /Mac|iPhone|iPad/.test(navigator.platform);
 const clamp = (v: number) => Math.max(-32768, Math.min(32767, Math.round(v)));
@@ -92,8 +92,28 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
     const onPaste = (e: ClipboardEvent) => {
         e.preventDefault(); // into the field goes nothing: the text goes to the machine
         const data = e.clipboardData?.getData("text/plain") ?? "";
-        if (data !== "") post({ t: W.CLIPBOARD, text: data.replace(/\r\n?/g, "\n") });
-        pasteGoes();
+        if (data !== "") {
+            post({ t: W.CLIPBOARD, text: data.replace(/\r\n?/g, "\n") });
+            return pasteGoes();
+        }
+        // no text: a picture, made PNG - the key waits for it, so the machine pastes it, not what it had
+        const file = [...(e.clipboardData?.files ?? [])].find(f => f.type.startsWith("image/"));
+        if (!file) return pasteGoes();
+        if (pasteKey) clearTimeout(pasteKey.timer);
+        pngOf(file)
+            .then(png => { if (!stopped) post({ t: W.PICTURE, png }, [png]); })
+            .catch(e => console.warn("the picture pasted is not sent:", e))
+            .finally(pasteGoes);
+    };
+
+    /** A picture as PNG: as it is, or drawn anew. */
+    const pngOf = async (file: Blob): Promise<ArrayBuffer> => {
+        if (file.type === "image/png") return file.arrayBuffer();
+        const bitmap = await createImageBitmap(file);
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        return (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {

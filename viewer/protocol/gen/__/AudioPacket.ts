@@ -16,7 +16,7 @@
                                                         import N from "../../lib/Network";
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
-                                                        import Uint8List from "../../lib/collections/Uint8List";
+                                                        
                                                         
                                                         /**
  * One packet of sound, 20 ms: the machine's to the viewer, 48 kHz stereo; the viewer's microphone to the machine, 48 kHz mono.

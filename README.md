@@ -413,7 +413,9 @@ The bar of the page, on your device:
 Also:
 
 - **Keyboard.** The keyboard layout of the remote computer applies, as if your keyboard were plugged into it.
-- **Clipboard.** Copied text goes both ways. The browser asks once for permission to read the clipboard.
+- **Clipboard.** Copied text and pictures go both ways: a picture as PNG, up to 16 MB. Copy a picture on your device and press
+  **Ctrl+V** on the page: it is on the clipboard of the remote computer, and pasted where its focus is. The browser asks once for
+  permission to read the clipboard.
 - **Touch.** Up to ten fingers on Windows and on Linux with Wayland.
 - **Reconnection.** When the connection breaks, the page tries again 10 times, from 1 to 30 seconds apart.
 - **Hidden tab.** While the page is in a background tab or a minimized window, the remote computer sends no video and spends
@@ -492,16 +494,17 @@ What the phone does in this version:
 | Your fingers and mouse | Taps, swipes, drags, a long press, two fingers: as you make them, not after. The left button is a finger, the right one **Back**, the middle one **Home**; the wheel scrolls |
 | The buttons of the phone | **◁ ○ □** in the bar of the page: Back, Home, Recent apps. **Esc** is Back too |
 | Your keyboard | What you type goes into the field in focus on the phone, in any language: the page sends the characters, not the keys. Enter, Backspace, Delete, the arrows, Home, End work in the field from Android 13; before it Enter, Backspace and Delete |
-| Text from the computer | **Ctrl+V** on the page pastes it into the field in focus on the phone. Without the control: it is on the clipboard of the phone, tap a field, hold, **Paste** |
-| Text to the computer | Select it in any app and pick **To the computer** in the menu of the selection, or share it to RemoteDesk, or copy it and press **Send the clipboard** in the notification. It goes to the clipboard of the computer: paste it there |
+| Your microphone | **Microphone** on the page: the phone plays it on its speaker. The app keeps its own sound out of the sound it sends, so your voice does not come back |
+| Text and pictures from the computer | **Ctrl+V** on the page pastes them into the field in focus on the phone, a picture as the app there takes one (a messenger does). Without the control: they are on the clipboard of the phone, tap a field, hold, **Paste** |
+| Text and pictures to the computer | **Ctrl+C** or **Ctrl+X** on the page copies on the phone, and what it copied goes to the clipboard of the computer at once. The user of the phone sends them too: text selected in any app, **To the computer** in the menu of the selection; text or a picture shared to RemoteDesk, from the gallery as well; or anything copied, **Send the clipboard** in the notification. Paste them on the computer |
 | Files from the computer | Into the folder of the app: `Android/data/org.unirail.RemoteDesk/files/Download` |
+| Files from the phone | **Get a file** on the page: the phone shows its picker, its user picks the file, and the page saves it |
 
 Android lets an app read the clipboard only while the app is in front, so the phone sends text when you send it, not by itself.
 
 To be controlled from the page and to show the marks, the phone asks its user once for two permissions: see
 [What to allow on the phone](#what-to-allow-on-the-phone). Until then it only shows its screen, and the bar of the page says
-**✋ The phone does not let you control it yet**; it goes as soon as the user turns the control on. The microphone of the page and
-sending files from the phone come later.
+**✋ The phone does not let you control it yet**; it goes as soon as the user turns the control on.
 
 While RemoteDesk shows the screen, the screen of the phone stays on: Android stops showing it when the phone locks. Locked
 anyway, or stopped from the bar of the system, the phone says so in a notification: open RemoteDesk and show the screen again.
@@ -649,7 +652,8 @@ What the page says, under the picture, beside its parts, or in its bar:
 - Remote computer with Linux and X11, or with macOS: touch works as the mouse.
 - The sound is not compressed: about 1.5 Mbit/s while something plays, fine in a local network. Silence is not sent.
 - The microphone is played through the speakers: programs of the remote computer do not hear it as a microphone.
-- The clipboard carries text only.
+- The clipboard carries text and pictures (PNG, up to 16 MB); files go by **Send files** and **Get a file**.
+- Remote computer with Linux: a picture copied there reaches the page within a second, as the clipboard is looked at.
 - Remote phone: the lock screen and the screens of the system that hide from accessibility take no input. A phone
   has no pointer that hovers: the mouse moves only with its button down. Way ② rarely works on mobile data: the operator gives
   the phone no public address.

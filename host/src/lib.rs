@@ -42,6 +42,8 @@ mod direct;
 mod menu;
 mod portmap;
 mod meet;
+#[cfg_attr(target_os = "android", allow(dead_code))] // the app of a phone makes its pictures itself
+mod picture;
 mod resize;
 pub mod session;
 mod video;

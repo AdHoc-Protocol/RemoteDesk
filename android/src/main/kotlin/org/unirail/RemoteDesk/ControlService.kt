@@ -206,7 +206,10 @@ class ControlService : AccessibilityService() {
                     return@post
                 }
                 if (action != 0) {
+                    // the text copied goes to the computer: the selection of the field is known here, its clipboard Android hides
+                    val picked = if (action == AccessibilityNodeInfo.ACTION_PASTE) "" else selected(node)
                     node.performAction(action)
+                    if (action != AccessibilityNodeInfo.ACTION_PASTE) copied(picked)
                     return@post
                 }
             }
@@ -216,6 +219,7 @@ class ControlService : AccessibilityService() {
                     val t = SystemClock.uptimeMillis()
                     connection.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0, meta))
                     connection.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0, meta))
+                    if (meta and KeyEvent.META_CTRL_ON != 0 && (code == KeyEvent.KEYCODE_C || code == KeyEvent.KEYCODE_X)) copied("")
                     return@post
                 }
             }
@@ -246,6 +250,25 @@ class ControlService : AccessibilityService() {
             findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.let { edit(it, text, 0) }
         }
         return true
+    }
+
+    /** The text selected in `node`: empty - none, or it tells none. */
+    private fun selected(node: AccessibilityNodeInfo): String {
+        val now = text(node)
+        val start = minOf(node.textSelectionStart, node.textSelectionEnd)
+        val end = maxOf(node.textSelectionStart, node.textSelectionEnd)
+        return if (start in 0 until end && end <= now.length) now.substring(start, end) else ""
+    }
+
+    /**
+     * The phone copied: `picked` - the text, when the field told its selection - goes to the computer; else the clipboard is read by a
+     * window of the app in front for a moment ( SendActivity ): Android lets only that read it.
+     */
+    private fun copied(picked: String) {
+        if (picked.isNotEmpty()) return Host.clip(picked.toByteArray())
+        main.postDelayed({
+            runCatching { startActivity(Intent(this, SendActivity::class.java).setAction(SendActivity.CLIPBOARD).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }, 150)
     }
 
     private fun text(node: AccessibilityNodeInfo): String =

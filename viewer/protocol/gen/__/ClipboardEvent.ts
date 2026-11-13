@@ -17,10 +17,9 @@
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
                                                         import Uint8List from "../../lib/collections/Uint8List";
-import Uint16List from "../../lib/collections/Uint16List";
                                                         
                                                         /**
- * The clipboard: the text copied on one side goes to the other. UTF-8, lines end in `\n`.
+ * The clipboard: what is copied on one side goes to the other - text, UTF-8 with lines that end in `\n`, or a picture, PNG.
  */
  export class  __ClipboardEvent implements AdHoc.Connection.Receiver.BytesDst,AdHoc.Connection.Transmitter.BytesSrc{  
 
@@ -30,23 +29,23 @@ import Uint16List from "../../lib/collections/Uint16List";
 
 /** Allocates the field collection of `size` items, sets it to the field and returns it. */ data_new ( size:number ): Uint8List.RW { return this.data = new Uint8List.RW( size ) ; }
 /**
- * The text: as the machine takes at most, 1 MiB.
+ * The text, or the picture: 16 MiB at most - a screenshot of a large display in PNG.
  */
  data: Uint8List.RW | undefined ; 
 
 /**
- * The text: as the machine takes at most, 1 MiB.
+ * The text, or the picture: 16 MiB at most - a screenshot of a large display in PNG.
  */
 dataˑ( item: number ):number { 
  const value = this.data!.get(item) ;
  return  value; }
 /**
- * The text: as the machine takes at most, 1 MiB.
+ * The text, or the picture: 16 MiB at most - a screenshot of a large display in PNG.
  */
 dataˏ(  item:number,  src:number) { this.data!.set1(item, src);} 
 
 /**
- * The text: as the machine takes at most, 1 MiB.
+ * The text, or the picture: 16 MiB at most - a screenshot of a large display in PNG.
  */
  dataˎ(  __src:Uint8List.RW    ){ 
 
@@ -67,13 +66,29 @@ dataˏ(  item:number,  src:number) { this.data!.set1(item, src);}
                                      
 
 //#endregion
+//#region image
+
+/**
+ * `data` is a picture in PNG: the clipboards of the browsers and the systems all take PNG.
+ */
+get image():boolean { 
+ const value = <any>(this.#bits0  & 0x1)
+ return ( value !== 0 );}
+/**
+ * `data` is a picture in PNG: the clipboards of the browsers and the systems all take PNG.
+ */
+set  image(  src:boolean ) { this.#bits0 = this.#bits0 & 0xFFFF_FFFE | (( src ? 1 : 0 )  ); } 
+
+
+//#endregion
 
                                                     
                                         /** Returns true if `one` and `two` are the same instance or have equal field values. */
                                         static equals( one:Viewer.ClipboardEvent | undefined,  two:Viewer.ClipboardEvent | undefined): boolean {
                                             if( one === two) return true
                                             if (one === undefined || two === undefined) return false;
-                                            
+                                            if( one.#bits0 !== two.#bits0 ) return false;
+
                                             //#region data
 
 if(   !Uint8List.RW.equals(one.data, two.data) ) return false;
@@ -88,7 +103,8 @@ if(   !Uint8List.RW.equals(one.data, two.data) ) return false;
                                         /** Mixes the field values of `src` into `hash` and returns the result; returns `hash` unchanged if `src` is undefined. */
                                         static hash(hash:number, src:Viewer.ClipboardEvent | undefined ):number { 
                                             if (!src) return hash
-                                            
+                                            hash = AdHoc.hash_number(hash, src.#bits0);
+
                                             //#region data
 
 if( src.data !== undefined )if(src.data) hash = Uint8List.RW.hash(hash, src.data);
@@ -101,7 +117,8 @@ if( src.data !== undefined )if(src.data) hash = Uint8List.RW.hash(hash, src.data
                                         static hash_array( hash: number, src: ArrayLike<Viewer.ClipboardEvent | undefined> | undefined ): number{ return AdHoc.hash_array( hash, src, Viewer.ClipboardEvent.hash );}
                                              
                                                         
-                                                        
+                                                        #bits0 = 0;
+
                                                 
                                                         get __id(): number { return Viewer.ClipboardEvent.__id; }
                                                         __get_bytes( __dst:AdHoc.Connection.Transmitter):boolean { 
@@ -117,30 +134,42 @@ if( src.data !== undefined )if(src.data) hash = Uint8List.RW.hash(hash, src.data
                                                             case 1:
                                             
                                                     
+					            if( ! __dst.init_bits( 1, 1 ) ) return false;
+								
+//#region image
+                            __dst.put_bits( (this.#bits0  & 0x1) , 1 );
+
+//#endregion
+                             
+							case 2 :
+                         
+					        __dst.end_bits();
+						case 3 : 
+                     
                                                         
-							if ( !__dst.init_fields_nulls( this.data !== undefined ?  1 : 0 ,1) ) return false;
+							if ( !__dst.init_fields_nulls( this.data !== undefined ?  1 : 0 ,3) ) return false;
                              
 						__dst.flush_fields_nulls();
-					case 2:
+					case 4:
 						
 //#region data
 
 						
-						if( __dst.is_null( 0x1, 4 ) ) continue;
+						if( __dst.is_null( 0x1, 6 ) ) continue;
 						
                                                 if( __slot.index_max_1( this.data!.size) === 0)
                                                 {
-                                                    if(! __dst.put_4_( 0, 3,  4 )) return false;
-                                                    __slot.state =  4 ;
+                                                    if(! __dst.put_4_( 0, 4,  6 )) return false;
+                                                    __slot.state =  6 ;
                                                     continue loop;
                                                 }
-                                                if( 1048576 < __slot.index_max1 ) AdHoc.Connection.Transmitter.overflow( "an array", __slot.index_max1, 1048576 );
-                                                if(! __dst.put_4_( __slot.index_max1 , 3, 3  )) return false;
+                                                if( 16777216 < __slot.index_max1 ) AdHoc.Connection.Transmitter.overflow( "an array", __slot.index_max1, 16777216 );
+                                                if(! __dst.put_4_( __slot.index_max1 , 4, 5  )) return false;
                                          
-									case 3:
+									case 5:
 										
-						if( ( __slot.index1 += __dst.put_array( this.data!.array(), __slot.index1, __slot.index_max1 - __slot.index1, 3 ) ) < __slot.index_max1 ) return false; 
-					case 4:
+						if( ( __slot.index1 += __dst.put_array( this.data!.array(), __slot.index1, __slot.index_max1 - __slot.index1, 5 ) ) < __slot.index_max1 ) return false; 
+					case 6:
                  
                                  
 //#endregion
@@ -167,25 +196,35 @@ if( src.data !== undefined )if(src.data) hash = Uint8List.RW.hash(hash, src.data
                                                     case 0:
                                             
                                                         
-								if (!__src.get_fields_nulls( 0 ) ) return false;
-							case 1:
+									__src.init_bits();
+
+									if(! __src.try_get_bits(1, 0 ) ) return false;
+								case 1:
+//#region image
+
+							this.#bits0 = this.#bits0 & 0xFFFF_FFFE | (__src.get_bits  );
+//#endregion
+								case 2:
+                             
+								if (!__src.get_fields_nulls( 2 ) ) return false;
+							case 3:
                              
 						
 //#region data
 
-							if( __src.is_null( 0x1,  4) ) return true
+							if( __src.is_null( 0x1,  6) ) return true
 										
                                 
-                                                if(!__slot.get_len1(Viewer.ClipboardEvent.data__.ARRAY_LEN_MAX, 3, 2) ) return false;
-                                            case 2 :  
+                                                if(!__slot.get_len1(Viewer.ClipboardEvent.data__.ARRAY_LEN_MAX, 4, 4) ) return false;
+                                            case 4 :  
                                          
                                 this.data_new(__slot.index_max1);
-                                if( __slot.no_index1( 4 ) ) continue loop;
+                                if( __slot.no_index1( 6 ) ) continue loop;
                                                 __slot._index1 = -1;
-                                            case 3: 
+                                            case 5: 
                                          
-                        if( ( __slot.index1 += __src.get_array( this.data!.array(), __slot.index1, __slot.index_max1 - __slot.index1, 3 ) ) < __slot.index_max1 ) return false; 
-						case 4 :
+                        if( ( __slot.index1 += __src.get_array( this.data!.array(), __slot.index1, __slot.index_max1 - __slot.index1, 5 ) ) < __slot.index_max1 ) return false; 
+						case 6 :
                      
                                  
 										

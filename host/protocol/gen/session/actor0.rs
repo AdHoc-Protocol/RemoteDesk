@@ -340,7 +340,7 @@ pub mod granting {
 //#region > OnSerializing code
 //#endregion > ÿÿĂ.OnSerializing
         match pack {
-            crate::gen::session::transmitter::Pack::Machine_Denied | crate::gen::session::transmitter::Pack::Machine_Welcome(_) => None,
+            crate::gen::session::transmitter::Pack::Machine_Welcome(_) | crate::gen::session::transmitter::Pack::Machine_Denied => None,
             _ => {
 //#region > OnSerializing Error code
 //#endregion > ÿÿĂ.OnSerializing.Error
@@ -355,7 +355,13 @@ pub mod granting {
 //#region > OnSerialized code
 //#endregion > ÿÿĂ.OnSerialized
         match pack {
-            crate::gen::session::transmitter::Pack::Machine_Denied => { 
+            crate::gen::session::transmitter::Pack::Machine_Welcome(__p) => { 
+                actor.on_new_state( State::Working );
+                
+                __p.__OnSerializedTo_Session__Actor0__Granting( conn, actor );
+                State::Working.on_activate( conn, actor );
+            }
+crate::gen::session::transmitter::Pack::Machine_Denied => { 
                 actor.on_new_state( State::CLOSE_ );
                 
                 
@@ -368,12 +374,6 @@ pub mod granting {
 
                                          
                 State::CLOSE_.on_activate( conn, actor );
-            }
-crate::gen::session::transmitter::Pack::Machine_Welcome(__p) => { 
-                actor.on_new_state( State::Working );
-                
-                __p.__OnSerializedTo_Session__Actor0__Granting( conn, actor );
-                State::Working.on_activate( conn, actor );
             }
             _ => {}
         }
@@ -527,7 +527,7 @@ pub mod working {
 //#region > OnSerializing code
 //#endregion > ÿÿă.OnSerializing
         match pack {
-            crate::gen::session::transmitter::Pack::FileTransfer_Error | crate::gen::session::transmitter::Pack::Machine_Audience(_) | crate::gen::session::transmitter::Pack::FileTransfer_Metadata(_) | crate::gen::session::transmitter::Pack::FileTransfer_Success(_) | crate::gen::session::transmitter::Pack::Machine_MicrophoneError(_) | crate::gen::session::transmitter::Pack::Machine_Elevation | crate::gen::session::transmitter::Pack::Machine_ActiveDisplay | crate::gen::session::transmitter::Pack::FileTransfer_Data(_) | crate::gen::session::transmitter::Pack::AudioPacket(_) | crate::gen::session::transmitter::Pack::Machine_VideoPacket(_) | crate::gen::session::transmitter::Pack::Machine_VideoLayout(_) | crate::gen::session::transmitter::Pack::Machine_CursorShape(_) | crate::gen::session::transmitter::Pack::FileTransfer_Done(_) | crate::gen::session::transmitter::Pack::ClipboardEvent(_) | crate::gen::session::transmitter::Pack::Machine_HostCursorPosition => None,
+            crate::gen::session::transmitter::Pack::FileTransfer_Success(_) | crate::gen::session::transmitter::Pack::AudioPacket(_) | crate::gen::session::transmitter::Pack::Machine_VideoLayout(_) | crate::gen::session::transmitter::Pack::Machine_ActiveDisplay | crate::gen::session::transmitter::Pack::Machine_VideoPacket(_) | crate::gen::session::transmitter::Pack::Machine_MicrophoneError(_) | crate::gen::session::transmitter::Pack::FileTransfer_Metadata(_) | crate::gen::session::transmitter::Pack::Machine_CursorShape(_) | crate::gen::session::transmitter::Pack::ClipboardEvent(_) | crate::gen::session::transmitter::Pack::Machine_Audience(_) | crate::gen::session::transmitter::Pack::FileTransfer_Data(_) | crate::gen::session::transmitter::Pack::FileTransfer_Error | crate::gen::session::transmitter::Pack::Machine_HostCursorPosition | crate::gen::session::transmitter::Pack::FileTransfer_Done(_) | crate::gen::session::transmitter::Pack::Machine_Elevation => None,
             _ => {
 //#region > OnSerializing Error code
 //#endregion > ÿÿă.OnSerializing.Error
@@ -542,56 +542,22 @@ pub mod working {
 //#region > OnSerialized code
 //#endregion > ÿÿă.OnSerialized
         match pack {
-            crate::gen::session::transmitter::Pack::FileTransfer_Error => { 
-                
-                
-                
-//#region > Error OnSerialized Event
-
-            //🌭<ƌǦƅŧ
-            crate::gen::session::actor0::working::on_serialize_d::FileTransfer_Error.each( |__f| __f( FileTransfer_Error::from( value ), conn, actor ) );
-            //🌭/>
-//#endregion > ÿĈÿăĈ.OnSerializedEvent
-
-                                         
-                
-            }
-crate::gen::session::transmitter::Pack::Machine_Audience(__p) => { 
+            crate::gen::session::transmitter::Pack::FileTransfer_Success(__p) => { 
                 
                 
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
                 
             }
-crate::gen::session::transmitter::Pack::FileTransfer_Metadata(__p) => { 
+crate::gen::session::transmitter::Pack::AudioPacket(__p) => { 
                 
                 
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
                 
             }
-crate::gen::session::transmitter::Pack::FileTransfer_Success(__p) => { 
+crate::gen::session::transmitter::Pack::Machine_VideoLayout(__p) => { 
                 
                 
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::transmitter::Pack::Machine_MicrophoneError(__p) => { 
-                
-                
-                __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::transmitter::Pack::Machine_Elevation => { 
-                
-                
-                
-//#region > Elevation OnSerialized Event
-
-            //🌭<ƵţĨƶ
-            crate::gen::session::actor0::working::on_serialize_d::Machine_Elevation.each( |__f| __f( Machine_Elevation::from( value ), conn, actor ) );
-            //🌭/>
-//#endregion > ÿċÿăċ.OnSerializedEvent
-
-                                         
                 
             }
 crate::gen::session::transmitter::Pack::Machine_ActiveDisplay => { 
@@ -608,25 +574,19 @@ crate::gen::session::transmitter::Pack::Machine_ActiveDisplay => {
                                          
                 
             }
-crate::gen::session::transmitter::Pack::FileTransfer_Data(__p) => { 
-                
-                
-                __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::transmitter::Pack::AudioPacket(__p) => { 
-                
-                
-                __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
-                
-            }
 crate::gen::session::transmitter::Pack::Machine_VideoPacket(__p) => { 
                 
                 
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
                 
             }
-crate::gen::session::transmitter::Pack::Machine_VideoLayout(__p) => { 
+crate::gen::session::transmitter::Pack::Machine_MicrophoneError(__p) => { 
+                
+                
+                __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::transmitter::Pack::FileTransfer_Metadata(__p) => { 
                 
                 
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
@@ -638,16 +598,36 @@ crate::gen::session::transmitter::Pack::Machine_CursorShape(__p) => {
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
                 
             }
-crate::gen::session::transmitter::Pack::FileTransfer_Done(__p) => { 
+crate::gen::session::transmitter::Pack::ClipboardEvent(__p) => { 
                 
                 
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
                 
             }
-crate::gen::session::transmitter::Pack::ClipboardEvent(__p) => { 
+crate::gen::session::transmitter::Pack::Machine_Audience(__p) => { 
                 
                 
                 __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::transmitter::Pack::FileTransfer_Data(__p) => { 
+                
+                
+                __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::transmitter::Pack::FileTransfer_Error => { 
+                
+                
+                
+//#region > Error OnSerialized Event
+
+            //🌭<ƌǦƅŧ
+            crate::gen::session::actor0::working::on_serialize_d::FileTransfer_Error.each( |__f| __f( FileTransfer_Error::from( value ), conn, actor ) );
+            //🌭/>
+//#endregion > ÿĈÿăĈ.OnSerializedEvent
+
+                                         
                 
             }
 crate::gen::session::transmitter::Pack::Machine_HostCursorPosition => { 
@@ -660,6 +640,26 @@ crate::gen::session::transmitter::Pack::Machine_HostCursorPosition => {
             crate::gen::session::actor0::working::on_serialize_d::Machine_HostCursorPosition.each( |__f| __f( Machine_HostCursorPosition::from( value ), conn, actor ) );
             //🌭/>
 //#endregion > ÿĩÿăĩ.OnSerializedEvent
+
+                                         
+                
+            }
+crate::gen::session::transmitter::Pack::FileTransfer_Done(__p) => { 
+                
+                
+                __p.__OnSerializedTo_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::transmitter::Pack::Machine_Elevation => { 
+                
+                
+                
+//#region > Elevation OnSerialized Event
+
+            //🌭<ƵţĨƶ
+            crate::gen::session::actor0::working::on_serialize_d::Machine_Elevation.each( |__f| __f( Machine_Elevation::from( value ), conn, actor ) );
+            //🌭/>
+//#endregion > ÿċÿăċ.OnSerializedEvent
 
                                          
                 
@@ -724,7 +724,7 @@ crate::gen::session::transmitter::Pack::Machine_HostCursorPosition => {
 //#region > OnReceiving code
 //#endregion > ÿÿă.OnReceiving
         match pack {
-            crate::gen::session::receiver::Pack::FileTransfer_Error(_) | crate::gen::session::receiver::Pack::Viewer_MouseDelta(_) | crate::gen::session::receiver::Pack::Viewer_MouseWheel(_) | crate::gen::session::receiver::Pack::FileTransfer_Success(_) | crate::gen::session::receiver::Pack::Viewer_MouseButton(_) | crate::gen::session::receiver::Pack::Viewer_EventTime(_) | crate::gen::session::receiver::Pack::Viewer_KeyframeRequest(_) | crate::gen::session::receiver::Pack::Viewer_Mark(_) | crate::gen::session::receiver::Pack::Viewer_AudioControl(_) | crate::gen::session::receiver::Pack::Viewer_KeyEvent(_) | crate::gen::session::receiver::Pack::Viewer_TouchEvent(_) | crate::gen::session::receiver::Pack::Viewer_VideoAck(_) | crate::gen::session::receiver::Pack::FileTransfer_Metadata(_) | crate::gen::session::receiver::Pack::Viewer_ClientResolution(_) | crate::gen::session::receiver::Pack::FileTransfer_Data(_) | crate::gen::session::receiver::Pack::AudioPacket(_) | crate::gen::session::receiver::Pack::Viewer_SelectDisplay(_) | crate::gen::session::receiver::Pack::FileTransfer_Done(_) | crate::gen::session::receiver::Pack::Viewer_MicrophoneControl(_) | crate::gen::session::receiver::Pack::Viewer_VideoControl(_) | crate::gen::session::receiver::Pack::Viewer_TakeControl(_) | crate::gen::session::receiver::Pack::Viewer_TextEvent(_) | crate::gen::session::receiver::Pack::FileTransfer_RequestTransfer(_) | crate::gen::session::receiver::Pack::Viewer_MouseMove(_) | crate::gen::session::receiver::Pack::ClipboardEvent(_) | crate::gen::session::receiver::Pack::Viewer_ElevationRequest(_) => None,
+            crate::gen::session::receiver::Pack::Viewer_MouseMove(_) | crate::gen::session::receiver::Pack::ClipboardEvent(_) | crate::gen::session::receiver::Pack::Viewer_SelectDisplay(_) | crate::gen::session::receiver::Pack::Viewer_AudioControl(_) | crate::gen::session::receiver::Pack::AudioPacket(_) | crate::gen::session::receiver::Pack::Viewer_VideoControl(_) | crate::gen::session::receiver::Pack::Viewer_TouchEvent(_) | crate::gen::session::receiver::Pack::Viewer_TextEvent(_) | crate::gen::session::receiver::Pack::Viewer_MouseWheel(_) | crate::gen::session::receiver::Pack::Viewer_KeyframeRequest(_) | crate::gen::session::receiver::Pack::Viewer_KeyEvent(_) | crate::gen::session::receiver::Pack::FileTransfer_Metadata(_) | crate::gen::session::receiver::Pack::Viewer_Mark(_) | crate::gen::session::receiver::Pack::Viewer_MouseDelta(_) | crate::gen::session::receiver::Pack::FileTransfer_Done(_) | crate::gen::session::receiver::Pack::Viewer_ElevationRequest(_) | crate::gen::session::receiver::Pack::Viewer_ClientResolution(_) | crate::gen::session::receiver::Pack::Viewer_MouseButton(_) | crate::gen::session::receiver::Pack::FileTransfer_Success(_) | crate::gen::session::receiver::Pack::Viewer_VideoAck(_) | crate::gen::session::receiver::Pack::Viewer_MicrophoneControl(_) | crate::gen::session::receiver::Pack::Viewer_TakeControl(_) | crate::gen::session::receiver::Pack::Viewer_EventTime(_) | crate::gen::session::receiver::Pack::FileTransfer_Data(_) | crate::gen::session::receiver::Pack::FileTransfer_Error(_) | crate::gen::session::receiver::Pack::FileTransfer_RequestTransfer(_) => None,
             _ => {
 //#region > OnReceiving Error code
 //#endregion > ÿÿă.OnReceiving.Error
@@ -739,241 +739,7 @@ crate::gen::session::transmitter::Pack::Machine_HostCursorPosition => {
 //#region > OnReceived code
 //#endregion > ÿÿă.OnReceived
         match pack {
-            crate::gen::session::receiver::Pack::FileTransfer_Error(__p) => { 
-                
-                
-                
-//#region > Error OnReceived Event
-
-            //🌭<ǆħĝƤ
-            crate::gen::session::actor0::working::on_receive_d::FileTransfer_Error.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĈÿăĈ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_MouseDelta(__p) => { 
-                
-                
-                
-//#region > MouseDelta OnReceived Event
-
-            //🌭<ƛŨĽć
-            crate::gen::session::actor0::working::on_receive_d::Viewer_MouseDelta.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĐÿăĐ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_MouseWheel(__p) => { 
-                
-                
-                
-//#region > MouseWheel OnReceived Event
-
-            //🌭<ŢÿǫŘ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_MouseWheel.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿđÿăđ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::FileTransfer_Success(__p) => { 
-                
-                
-                __p.__OnReceived_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_MouseButton(__p) => { 
-                
-                
-                
-//#region > MouseButton OnReceived Event
-
-            //🌭<ąĨƯŚ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_MouseButton.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿďÿăď.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_EventTime(__p) => { 
-                
-                
-                
-//#region > EventTime OnReceived Event
-
-            //🌭<ƞČǝđ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_EventTime.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĔÿăĔ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_KeyframeRequest(__p) => { 
-                
-                
-                __p.__OnReceived_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_Mark(__p) => { 
-                
-                
-                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_AudioControl(__p) => { 
-                
-                
-                
-//#region > AudioControl OnReceived Event
-
-            //🌭<ĉƴĢČ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_AudioControl.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĘÿăĘ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_KeyEvent(__p) => { 
-                
-                
-                
-//#region > KeyEvent OnReceived Event
-
-            //🌭<ǋţƗł
-            crate::gen::session::actor0::working::on_receive_d::Viewer_KeyEvent.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿČÿăČ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_TouchEvent(__p) => { 
-                
-                
-                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_VideoAck(__p) => { 
-                
-                
-                
-//#region > VideoAck OnReceived Event
-
-            //🌭<ǽċƋƲ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_VideoAck.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĜÿăĜ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::FileTransfer_Metadata(__p) => { 
-                
-                
-                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_ClientResolution(__p) => { 
-                
-                
-                
-//#region > ClientResolution OnReceived Event
-
-            //🌭<ĉĀĂǖ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_ClientResolution.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĕÿăĕ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::FileTransfer_Data(__p) => { 
-                
-                
-                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
-                
-            }
-crate::gen::session::receiver::Pack::AudioPacket(__p) => { 
-                
-                
-                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_SelectDisplay(__p) => { 
-                
-                
-                
-//#region > SelectDisplay OnReceived Event
-
-            //🌭<ęǥƚĈ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_SelectDisplay.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĚÿăĚ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::FileTransfer_Done(__p) => { 
-                
-                
-                __p.__OnReceived_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_MicrophoneControl(__p) => { 
-                
-                
-                
-//#region > MicrophoneControl OnReceived Event
-
-            //🌭<ėŀƄƥ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_MicrophoneControl.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿęÿăę.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_VideoControl(__p) => { 
-                
-                
-                
-//#region > VideoControl OnReceived Event
-
-            //🌭<ÿǦƞǳ
-            crate::gen::session::actor0::working::on_receive_d::Viewer_VideoControl.each( |__f| __f( *__p, conn, actor ) );
-            //🌭/>
-//#endregion > ÿĖÿăĖ.OnReceivedEvent
-
-                                         
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_TakeControl(__p) => { 
-                
-                
-                __p.__OnReceived_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_TextEvent(__p) => { 
-                
-                
-                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
-                
-            }
-crate::gen::session::receiver::Pack::FileTransfer_RequestTransfer(__p) => { 
-                
-                
-                __p.__OnReceived_Session__Actor0__Working( conn, actor );
-                
-            }
-crate::gen::session::receiver::Pack::Viewer_MouseMove(__p) => { 
+            crate::gen::session::receiver::Pack::Viewer_MouseMove(__p) => { 
                 
                 
                 
@@ -993,7 +759,241 @@ crate::gen::session::receiver::Pack::ClipboardEvent(__p) => {
                 if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
                 
             }
+crate::gen::session::receiver::Pack::Viewer_SelectDisplay(__p) => { 
+                
+                
+                
+//#region > SelectDisplay OnReceived Event
+
+            //🌭<ęǥƚĈ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_SelectDisplay.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĚÿăĚ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_AudioControl(__p) => { 
+                
+                
+                
+//#region > AudioControl OnReceived Event
+
+            //🌭<ĉƴĢČ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_AudioControl.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĘÿăĘ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::AudioPacket(__p) => { 
+                
+                
+                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_VideoControl(__p) => { 
+                
+                
+                
+//#region > VideoControl OnReceived Event
+
+            //🌭<ÿǦƞǳ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_VideoControl.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĖÿăĖ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_TouchEvent(__p) => { 
+                
+                
+                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_TextEvent(__p) => { 
+                
+                
+                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_MouseWheel(__p) => { 
+                
+                
+                
+//#region > MouseWheel OnReceived Event
+
+            //🌭<ŢÿǫŘ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_MouseWheel.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿđÿăđ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_KeyframeRequest(__p) => { 
+                
+                
+                __p.__OnReceived_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_KeyEvent(__p) => { 
+                
+                
+                
+//#region > KeyEvent OnReceived Event
+
+            //🌭<ǋţƗł
+            crate::gen::session::actor0::working::on_receive_d::Viewer_KeyEvent.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿČÿăČ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::FileTransfer_Metadata(__p) => { 
+                
+                
+                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_Mark(__p) => { 
+                
+                
+                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_MouseDelta(__p) => { 
+                
+                
+                
+//#region > MouseDelta OnReceived Event
+
+            //🌭<ƛŨĽć
+            crate::gen::session::actor0::working::on_receive_d::Viewer_MouseDelta.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĐÿăĐ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::FileTransfer_Done(__p) => { 
+                
+                
+                __p.__OnReceived_Session__Actor0__Working( conn, actor );
+                
+            }
 crate::gen::session::receiver::Pack::Viewer_ElevationRequest(__p) => { 
+                
+                
+                __p.__OnReceived_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_ClientResolution(__p) => { 
+                
+                
+                
+//#region > ClientResolution OnReceived Event
+
+            //🌭<ĉĀĂǖ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_ClientResolution.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĕÿăĕ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_MouseButton(__p) => { 
+                
+                
+                
+//#region > MouseButton OnReceived Event
+
+            //🌭<ąĨƯŚ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_MouseButton.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿďÿăď.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::FileTransfer_Success(__p) => { 
+                
+                
+                __p.__OnReceived_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_VideoAck(__p) => { 
+                
+                
+                
+//#region > VideoAck OnReceived Event
+
+            //🌭<ǽċƋƲ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_VideoAck.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĜÿăĜ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_MicrophoneControl(__p) => { 
+                
+                
+                
+//#region > MicrophoneControl OnReceived Event
+
+            //🌭<ėŀƄƥ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_MicrophoneControl.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿęÿăę.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_TakeControl(__p) => { 
+                
+                
+                __p.__OnReceived_Session__Actor0__Working( conn, actor );
+                
+            }
+crate::gen::session::receiver::Pack::Viewer_EventTime(__p) => { 
+                
+                
+                
+//#region > EventTime OnReceived Event
+
+            //🌭<ƞČǝđ
+            crate::gen::session::actor0::working::on_receive_d::Viewer_EventTime.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĔÿăĔ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::FileTransfer_Data(__p) => { 
+                
+                
+                if let Some( __p ) = __p.get_mut() { __p.__OnReceived_Session__Actor0__Working( conn, actor ); } // the region OnReceived may have taken it
+                
+            }
+crate::gen::session::receiver::Pack::FileTransfer_Error(__p) => { 
+                
+                
+                
+//#region > Error OnReceived Event
+
+            //🌭<ǆħĝƤ
+            crate::gen::session::actor0::working::on_receive_d::FileTransfer_Error.each( |__f| __f( *__p, conn, actor ) );
+            //🌭/>
+//#endregion > ÿĈÿăĈ.OnReceivedEvent
+
+                                         
+                
+            }
+crate::gen::session::receiver::Pack::FileTransfer_RequestTransfer(__p) => { 
                 
                 
                 __p.__OnReceived_Session__Actor0__Working( conn, actor );

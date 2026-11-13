@@ -18,6 +18,7 @@
         android:label="RemoteDesk"
         android:icon="@drawable/launcher"
         android:allowBackup="false"
+        android:allowAudioPlaybackCapture="false"
         android:theme="@android:style/Theme.DeviceDefault.DayNight">
 
         <activity
@@ -49,8 +50,24 @@
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
+
+        <!-- the pictures the computer copied, as the clipboard of the phone hands them to the apps that paste -->
+        <provider
+            android:name=".ClipProvider"
+            android:authorities="org.unirail.RemoteDesk.clip"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <!-- a file of the phone to the viewer: the picker of Android, over whatever is on the screen -->
+        <activity
+            android:name=".PickActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- the control from the page: gestures, the buttons of the phone, text into the field in focus -->
         <service

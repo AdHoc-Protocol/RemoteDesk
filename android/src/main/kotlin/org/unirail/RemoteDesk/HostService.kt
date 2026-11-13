@@ -147,6 +147,7 @@ class HostService : Service() {
         runCatching { asleep() }
         runCatching { overlayGone() }
         runCatching { soundStop() }
+        runCatching { micStop() }
         runCatching { videoStop() }
         runCatching { display?.release() }
         runCatching { projection?.stop() }
@@ -227,6 +228,16 @@ class HostService : Service() {
             .addAction(Notification.Action.Builder(null, "Send the clipboard", send).build())
             .addAction(Notification.Action.Builder(null, "Stop", stop).build())
             .build()
+    }
+
+    /** A picture, PNG, on the clipboard of the phone: a file of the app, given to the apps that paste it by ClipProvider. */
+    fun copyImage(png: ByteArray) {
+        val folder = ClipProvider.folder(this)
+        folder.listFiles()?.forEach { it.delete() }
+        val file = File(folder, "picture-${System.currentTimeMillis()}.png")
+        file.writeBytes(png)
+        val uri = android.net.Uri.parse("content://${ClipProvider.AUTHORITY}/${file.name}")
+        getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newUri(contentResolver, "picture", uri))
     }
 
     /** `text` on the clipboard of the phone. */
@@ -441,6 +452,40 @@ class HostService : Service() {
         overlay = null
         marks.clear()
         runCatching { getSystemService(WindowManager::class.java).removeView(o) }
+    }
+
+    // ── the microphone of the page, on the speaker ──
+
+    private var player: android.media.AudioTrack? = null
+
+    @Synchronized
+    fun micStart(rate: Int): Boolean {
+        micStop()
+        val format = AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(rate).setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build()
+        val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build()
+        val least = android.media.AudioTrack.getMinBufferSize(rate, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT)
+        val track = android.media.AudioTrack.Builder()
+            .setAudioAttributes(attributes)
+            .setAudioFormat(format)
+            .setBufferSizeInBytes(maxOf(least, rate * 4 / 5)) // 200 ms
+            .setTransferMode(android.media.AudioTrack.MODE_STREAM)
+            .build()
+        track.play()
+        player = track
+        return true
+    }
+
+    /** Waits while the buffer of the player is full: the host writes no faster than it plays. */
+    fun micWrite(buffer: ByteBuffer, size: Int) {
+        player?.write(buffer, size, android.media.AudioTrack.WRITE_BLOCKING)
+    }
+
+    @Synchronized
+    fun micStop() {
+        val track = player ?: return
+        player = null
+        runCatching { track.stop() }
+        track.release()
     }
 
     @Synchronized

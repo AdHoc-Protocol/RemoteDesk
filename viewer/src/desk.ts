@@ -774,6 +774,7 @@ export function open(container: HTMLElement, options: Options): Desk {
                 case M.STATS:
                     return shown?.take(m);
                 case M.CLIPBOARD: return copying?.set(m.text);
+                case M.PICTURE: return copying?.setPicture(m.png);
                 case M.FILE_STATUS: return moving?.show(fileLine(m), m.busy);
                 case M.DOWNLOAD: return moving?.save(m.blob, m.name);
                 case M.MIC_ERROR: return hearing?.micFailed();

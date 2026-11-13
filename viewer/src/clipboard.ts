@@ -2,7 +2,8 @@
 // to the worker of the session ( ./worker/clipboard.ts, which sends it when it is new ) with a paste - Ctrl ( ⌘ ) + V, the text of
 // the paste itself ( ./input.ts ), nothing asked. Read ahead, when the page gets the focus or the canvas is clicked, only where the
 // browser lets the page read the clipboard already: never asked for - a page opened from a file would be asked at each click. Of
-// several desks on a page only the one in use ( `active` ) does it: text another machine copied waits until its desk is used.
+// several desks on a page only the one in use ( `active` ) does it: text another machine copied waits until its desk is used. A picture
+// the machine copied is set as PNG - the one picture the clipboards of the browsers take.
 
 import { W, type ToWorker } from "./messages";
 
@@ -13,6 +14,8 @@ type Clipboard_ = globalThis.Clipboard;
 export interface Clipboard {
     /** Text the machine copied. */
     set(text: string): void;
+    /** A picture the machine copied, PNG. */
+    setPicture(png: ArrayBuffer): void;
     /** The desk is the one in use now: what waits goes. */
     sync(): void;
     /** The desk went into another window: the clipboard is the one of that window. */
@@ -24,8 +27,8 @@ export interface Clipboard {
 export function start(canvas: HTMLCanvasElement, active: () => boolean, post: Post): Clipboard {
     /** The clipboard of the window the desk is in: the browser lets only the window with the focus use it. */
     const board = () => (canvas.ownerDocument.defaultView ?? window).navigator.clipboard as Clipboard_ | undefined;
-    /** Text of the machine the browser did not let the page set yet: set when the page gets the focus. */
-    let pending: string | undefined;
+    /** Text or a picture of the machine the browser did not let the page set yet: set when the page gets the focus. */
+    let pending: string | Blob | undefined;
     let reading = false;
     let stopped = false; // a read that ends after the stop is not sent
     /** The browser lets the page read the clipboard, not asking: read ahead then. */
@@ -37,9 +40,11 @@ export function start(canvas: HTMLCanvasElement, active: () => boolean, post: Po
         })
         .catch(() => undefined); // a browser that does not tell: never read ahead
 
-    const write = (text: string) => {
+    const write = (what: string | Blob) => {
         pending = undefined;
-        board()?.writeText(text).catch(() => { pending = text; });
+        const b = board();
+        if (typeof what === "string") b?.writeText(what).catch(() => { pending = what; });
+        else b?.write([new ClipboardItem({ "image/png": what })]).catch(() => { pending = what; });
     };
 
     /** The text of this device goes to the worker: it knows whether it is new. */
@@ -65,6 +70,11 @@ export function start(canvas: HTMLCanvasElement, active: () => boolean, post: Po
         set(text) {
             if (active()) write(text);
             else pending = text;
+        },
+        setPicture(png) {
+            const picture = new Blob([png], { type: "image/png" });
+            if (active()) write(picture);
+            else pending = picture;
         },
         sync,
         moved() {

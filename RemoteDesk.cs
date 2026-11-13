@@ -101,12 +101,15 @@ namespace org.unirail.RemoteDesk
         }
 
         /// <summary>
-        /// The clipboard: the text copied on one side goes to the other. UTF-8, lines end in `\n`.
+        /// The clipboard: what is copied on one side goes to the other - text, UTF-8 with lines that end in `\n`, or a picture, PNG.
         /// </summary>
         public class ClipboardEvent
         {
-            /// <summary>The text: as the machine takes at most, 1 MiB.</summary>
-            [D(1_048_576)] Binary[,,] data;
+            /// <summary>The text, or the picture: 16 MiB at most - a screenshot of a large display in PNG.</summary>
+            [D(16_777_216)] Binary[,,] data;
+
+            /// <summary>`data` is a picture in PNG: the clipboards of the browsers and the systems all take PNG.</summary>
+            bool image;
         }
 
         /// <summary>

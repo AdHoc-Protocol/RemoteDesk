@@ -45,6 +45,8 @@ export const enum W {
     TAKE_CONTROL,
     /** A piece of a mark drawn over the screen of the machine: every viewer draws, not only the one that controls. */
     MARK,
+    /** A picture pasted here, PNG: to the clipboard of the machine. */
+    PICTURE,
 }
 
 /** What the worker tells the page. */
@@ -85,6 +87,8 @@ export const enum M {
     DOWNLOAD,
     /** The machine cannot play the microphone. */
     MIC_ERROR,
+    /** A picture the machine copied, PNG. */
+    PICTURE,
 }
 
 /** The kinds of a touch event. */
@@ -142,6 +146,7 @@ export type ToWorker =
     | { t: W.MIC; port: MessagePort }
     | { t: W.MIC_OFF; tell: boolean }
     | { t: W.CLIPBOARD; text: string }
+    | { t: W.PICTURE; png: ArrayBuffer }
     | { t: W.FILES; files: File[] }
     | { t: W.FILE_REQUEST }
     | { t: W.FILE_CANCEL }
@@ -174,6 +179,7 @@ export type ToMain =
     /** `latency` - from the input to the frame that shows it, ms; -1 - no input yet. */
     | { t: M.STATS; w: number; h: number; fps: number; mbps: number; capture: number; encode: number; latency: number }
     | { t: M.CLIPBOARD; text: string }
+    | { t: M.PICTURE; png: ArrayBuffer }
     /**
      * `name` - of the file, "" - not known yet; `n` - the percent ( PROGRESS ) or the bytes ( RECEIVED ); `more` - files waiting after it;
      * `code` - the error of the system of the machine, -1 - none; `busy` - a transfer goes on: it can be cancelled.

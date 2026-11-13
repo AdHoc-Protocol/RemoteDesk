@@ -16,7 +16,7 @@
                                                         import N from "../../lib/Network";
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
-                                                        
+                                                        import Uint8List from "../../lib/collections/Uint8List";
                                                         
                                                         /**
  * Who watches the machine and who controls it, as the viewer it goes to sees it: sent to every viewer when it changes. The

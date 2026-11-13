@@ -36,6 +36,9 @@ object Host {
     /** Text the user of the phone sends to the computer. */
     @JvmStatic external fun clip(text: ByteArray)
 
+    /** A picture the user of the phone sends to the computer: PNG. */
+    @JvmStatic external fun clipImage(png: ByteArray)
+
     /** What the user typed or pressed where a computer would read its console. */
     @JvmStatic external fun answer(text: ByteArray)
 
@@ -107,6 +110,13 @@ object Host {
         return true
     }
 
+    /** A picture from the viewer, PNG, on the clipboard of the phone. */
+    @JvmStatic fun setClipImage(png: ByteArray): Boolean {
+        val s = service ?: return false
+        main.post { runCatching { s.copyImage(png) } }
+        return true
+    }
+
     @JvmStatic fun soundStart(): Boolean = try {
         service?.soundStart() ?: false
     } catch (e: Throwable) {
@@ -115,6 +125,23 @@ object Host {
     }
 
     @JvmStatic fun soundStop() { runCatching { service?.soundStop() } }
+
+    // ── the microphone of the page on the speaker, the files of the phone ──
+
+    @JvmStatic fun micStart(rate: Int): Boolean = try {
+        service?.micStart(rate) ?: false
+    } catch (e: Throwable) {
+        android.util.Log.e("RemoteDesk", "the player", e)
+        false
+    }
+
+    /** Samples of the microphone of the page, 16-bit stereo: waits while the buffer of the player is full. */
+    @JvmStatic fun micWrite(buffer: ByteBuffer, size: Int) { runCatching { service?.micWrite(buffer, size) } }
+
+    @JvmStatic fun micStop() { runCatching { service?.micStop() } }
+
+    /** The picker of files on the screen of the phone: waits for its user; the path as UTF-8, empty - cancelled, null - not shown. */
+    @JvmStatic fun pickFile(): ByteArray? = service?.let { s -> runCatching { PickActivity.pick(s) }.getOrNull()?.toByteArray() }
 
     // ── the marks of the viewers, over the other apps ──
 

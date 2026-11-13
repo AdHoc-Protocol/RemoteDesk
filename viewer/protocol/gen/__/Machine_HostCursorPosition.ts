@@ -17,7 +17,6 @@
                                                 import Base_ from "../Base_";
                                                 import Viewer from "../Viewer";
                                                 import Uint8List from "../../lib/collections/Uint8List";
-import Uint16List from "../../lib/collections/Uint16List";
                                                 
                                                 export class __Machine_HostCursorPosition implements AdHoc.Connection.Receiver.BytesDst,AdHoc.Connection.Transmitter.BytesSrc { 
                                                     get __id(): number { return Viewer.Machine_.HostCursorPosition.__id; }
