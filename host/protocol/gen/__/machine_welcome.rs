@@ -52,6 +52,19 @@ use crate::gen::__::*;
                                      
 
 //#endregion
+//#region phone
+
+
+                                            #[inline] pub fn phone( &self ) -> bool { 
+
+                                                let __value = ( self._bits0 >> 1 ) & 0x1;
+                                                ( __value ) != 0
+                                            }
+                                            /// Sets the field value.
+                                            #[inline] pub fn set_phone( &mut self, value: bool ) { self._bits0 = ( self._bits0 as u64 & 0xFD | ( ( ( ( value ) as u8 ) ) as u64 ) << 1 ) as u8; }
+                                     
+
+//#endregion
 
                                                         }
 
@@ -94,6 +107,11 @@ self.host_name.hash( __h );
 								
 //#region administrator
                             __dst.put_bits( ( ( ( self._bits0 ) & 0x1 ) ) as u32, 1 );
+
+//#endregion
+                             
+//#region phone
+                            __dst.put_bits( ( ( ( self._bits0 >> 1 ) & 0x1 ) ) as u32, 1 );
 
 //#endregion
                              

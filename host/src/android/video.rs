@@ -60,6 +60,12 @@ pub fn screen_is(width: u32, height: u32) {
     }
 }
 
+/// The size of the screen in pixels: 0 × 0 before the app told it.
+pub fn size() -> (u32, u32) {
+    let size = SIZE.load(Ordering::Acquire);
+    ((size >> 32) as u32, size as u32)
+}
+
 /// The screen of the phone, once the app told its size.
 pub fn displays() -> Vec<Display> {
     let size = SIZE.load(Ordering::Acquire);

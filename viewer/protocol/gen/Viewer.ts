@@ -26,40 +26,40 @@
                      
                      
                     
-                    import { __Viewer_MicrophoneControl } from "./__/Viewer_MicrophoneControl";
-import { __Machine_Welcome } from "./__/Machine_Welcome";
-import { __Viewer_TouchPoint } from "./__/Viewer_TouchPoint";
-import { __FileTransfer_Error } from "./__/FileTransfer_Error";
-import { __Machine_VideoPacket } from "./__/Machine_VideoPacket";
-import { __Viewer_MouseMove } from "./__/Viewer_MouseMove";
-import { __Viewer_AudioControl } from "./__/Viewer_AudioControl";
-import { __Machine_CursorShape } from "./__/Machine_CursorShape";
-import { __AudioPacket } from "./__/AudioPacket";
-import { __Machine_VideoLayout } from "./__/Machine_VideoLayout";
-import { __Viewer_ClientResolution } from "./__/Viewer_ClientResolution";
-import { __FractionalCoordinate } from "./__/FractionalCoordinate";
-import { __Machine_VideoFormat } from "./__/Machine_VideoFormat";
+                    import { __Viewer_ClientResolution } from "./__/Viewer_ClientResolution";
 import { __Viewer_Hello } from "./__/Viewer_Hello";
-import { __Viewer_MouseWheel } from "./__/Viewer_MouseWheel";
-import { __Viewer_VideoAck } from "./__/Viewer_VideoAck";
-import { __Machine_Display } from "./__/Machine_Display";
-import { __Machine_ActiveDisplay } from "./__/Machine_ActiveDisplay";
-import { __Viewer_TextEvent } from "./__/Viewer_TextEvent";
+import { __Viewer_EventTime } from "./__/Viewer_EventTime";
+import { __Machine_Welcome } from "./__/Machine_Welcome";
+import { __Machine_Denied } from "./__/Machine_Denied";
+import { __Viewer_SelectDisplay } from "./__/Viewer_SelectDisplay";
+import { __Machine_VideoPacket } from "./__/Machine_VideoPacket";
 import { __ClipboardEvent } from "./__/ClipboardEvent";
 import { __FileTransfer_Data } from "./__/FileTransfer_Data";
-import { __Viewer_TouchEvent } from "./__/Viewer_TouchEvent";
-import { __Machine_Elevation } from "./__/Machine_Elevation";
-import { __Viewer_MouseDelta } from "./__/Viewer_MouseDelta";
-import { __Machine_HostCursorPosition } from "./__/Machine_HostCursorPosition";
+import { __Machine_ActiveDisplay } from "./__/Machine_ActiveDisplay";
 import { __Viewer_VideoControl } from "./__/Viewer_VideoControl";
-import { __Viewer_SelectDisplay } from "./__/Viewer_SelectDisplay";
-import { __Machine_Denied } from "./__/Machine_Denied";
-import { __Viewer_KeyEvent } from "./__/Viewer_KeyEvent";
-import { __Viewer_Mark } from "./__/Viewer_Mark";
-import { __Machine_Audience } from "./__/Machine_Audience";
-import { __Viewer_EventTime } from "./__/Viewer_EventTime";
-import { __Viewer_MouseButton } from "./__/Viewer_MouseButton";
+import { __Machine_VideoFormat } from "./__/Machine_VideoFormat";
+import { __Machine_HostCursorPosition } from "./__/Machine_HostCursorPosition";
 import { __FileTransfer_Metadata } from "./__/FileTransfer_Metadata";
+import { __Viewer_MouseButton } from "./__/Viewer_MouseButton";
+import { __Viewer_Mark } from "./__/Viewer_Mark";
+import { __FileTransfer_Error } from "./__/FileTransfer_Error";
+import { __Machine_Display } from "./__/Machine_Display";
+import { __Viewer_KeyEvent } from "./__/Viewer_KeyEvent";
+import { __FractionalCoordinate } from "./__/FractionalCoordinate";
+import { __Viewer_VideoAck } from "./__/Viewer_VideoAck";
+import { __AudioPacket } from "./__/AudioPacket";
+import { __Machine_Elevation } from "./__/Machine_Elevation";
+import { __Machine_VideoLayout } from "./__/Machine_VideoLayout";
+import { __Viewer_MouseWheel } from "./__/Viewer_MouseWheel";
+import { __Viewer_TextEvent } from "./__/Viewer_TextEvent";
+import { __Machine_Audience } from "./__/Machine_Audience";
+import { __Viewer_TouchPoint } from "./__/Viewer_TouchPoint";
+import { __Viewer_MouseDelta } from "./__/Viewer_MouseDelta";
+import { __Machine_CursorShape } from "./__/Machine_CursorShape";
+import { __Viewer_AudioControl } from "./__/Viewer_AudioControl";
+import { __Viewer_MouseMove } from "./__/Viewer_MouseMove";
+import { __Viewer_MicrophoneControl } from "./__/Viewer_MicrophoneControl";
+import { __Viewer_TouchEvent } from "./__/Viewer_TouchEvent";
 
 							
 							import Uint8List from "../lib/collections/Uint8List";
@@ -85,90 +85,90 @@ export namespace Viewer {
                                     export const _p = new AdHoc._33_53();
                                     export const _q = new AdHoc._33_53();
 						            export class  _Allocator {
-										new_Viewer_MicrophoneControl :  (src:AdHoc.Connection.Receiver) => __Viewer_MicrophoneControl = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MicrophoneControl.HANDLER
-new_Machine_Welcome :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Welcome = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.Welcome()
-new_Viewer_TouchPoint :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TouchPoint = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.TouchPoint()
-new_FileTransfer_Error :  (src:AdHoc.Connection.Receiver) => __FileTransfer_Error = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Error.HANDLER
-new_Viewer_KeyframeRequest :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.KeyframeRequest.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.KeyframeRequest.HANDLER
-new_Machine_VideoPacket :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.VideoPacket = (src:AdHoc.Connection.Receiver) => { debugger;  throw new Error("The producer of Viewer.Machine_.VideoPacket is not assigned")}
-new_Viewer_MouseMove :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseMove = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseMove.HANDLER
-new_Viewer_AudioControl :  (src:AdHoc.Connection.Receiver) => __Viewer_AudioControl = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.AudioControl.HANDLER
-new_Machine_CursorShape :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.CursorShape = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.CursorShape()
-new_AudioPacket :  (src:AdHoc.Connection.Receiver) => Viewer.AudioPacket = (src:AdHoc.Connection.Receiver) => { debugger;  throw new Error("The producer of Viewer.AudioPacket is not assigned")}
-new_Machine_VideoLayout :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.VideoLayout = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.VideoLayout()
+										new_Viewer_ElevationRequest :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.ElevationRequest.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.ElevationRequest.HANDLER
 new_Viewer_ClientResolution :  (src:AdHoc.Connection.Receiver) => __Viewer_ClientResolution = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.ClientResolution.HANDLER
-new_FractionalCoordinate :  (src:AdHoc.Connection.Receiver) => __FractionalCoordinate = (src:AdHoc.Connection.Receiver) => Viewer.FractionalCoordinate.HANDLER
-new_Machine_VideoFormat :  (src:AdHoc.Connection.Receiver) => __Machine_VideoFormat = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.VideoFormat.HANDLER
 new_Viewer_Hello :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.Hello = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.Hello()
-new_FileTransfer_Done :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Done.Handler = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Done.HANDLER
-new_Viewer_MouseWheel :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseWheel = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseWheel.HANDLER
-new_Viewer_VideoAck :  (src:AdHoc.Connection.Receiver) => __Viewer_VideoAck = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.VideoAck.HANDLER
-new_Machine_Display :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Display = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.Display()
-new_Machine_ActiveDisplay :  (src:AdHoc.Connection.Receiver) => __Machine_ActiveDisplay = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.ActiveDisplay.HANDLER
-new_Viewer_TextEvent :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TextEvent = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.TextEvent()
+new_Viewer_EventTime :  (src:AdHoc.Connection.Receiver) => __Viewer_EventTime = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.EventTime.HANDLER
+new_Machine_Welcome :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Welcome = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.Welcome()
+new_Machine_Denied :  (src:AdHoc.Connection.Receiver) => __Machine_Denied = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Denied.HANDLER
+new_Viewer_SelectDisplay :  (src:AdHoc.Connection.Receiver) => __Viewer_SelectDisplay = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.SelectDisplay.HANDLER
+new_Machine_VideoPacket :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.VideoPacket = (src:AdHoc.Connection.Receiver) => { debugger;  throw new Error("The producer of Viewer.Machine_.VideoPacket is not assigned")}
 new_ClipboardEvent :  (src:AdHoc.Connection.Receiver) => Viewer.ClipboardEvent = (src:AdHoc.Connection.Receiver) => new Viewer.ClipboardEvent()
 new_FileTransfer_Data :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Data = (src:AdHoc.Connection.Receiver) => new Viewer.FileTransfer.Data()
-new_Viewer_TakeControl :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TakeControl.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TakeControl.HANDLER
-new_Viewer_TouchEvent :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TouchEvent = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.TouchEvent()
-new_Machine_Elevation :  (src:AdHoc.Connection.Receiver) => __Machine_Elevation = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Elevation.HANDLER
-new_Viewer_MouseDelta :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseDelta = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseDelta.HANDLER
-new_FileTransfer_RequestTransfer :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.RequestTransfer.Handler = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.RequestTransfer.HANDLER
-new_Machine_HostCursorPosition :  (src:AdHoc.Connection.Receiver) => __Machine_HostCursorPosition = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.HostCursorPosition.HANDLER
+new_Machine_ActiveDisplay :  (src:AdHoc.Connection.Receiver) => __Machine_ActiveDisplay = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.ActiveDisplay.HANDLER
 new_Viewer_VideoControl :  (src:AdHoc.Connection.Receiver) => __Viewer_VideoControl = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.VideoControl.HANDLER
-new_Viewer_SelectDisplay :  (src:AdHoc.Connection.Receiver) => __Viewer_SelectDisplay = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.SelectDisplay.HANDLER
-new_Machine_MicrophoneError :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.MicrophoneError.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.MicrophoneError.HANDLER
-new_Machine_Denied :  (src:AdHoc.Connection.Receiver) => __Machine_Denied = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Denied.HANDLER
-new_Viewer_ElevationRequest :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.ElevationRequest.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.ElevationRequest.HANDLER
-new_Viewer_KeyEvent :  (src:AdHoc.Connection.Receiver) => __Viewer_KeyEvent = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.KeyEvent.HANDLER
-new_Viewer_Mark :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.Mark = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.Mark()
-new_Machine_Audience :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Audience = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.Audience()
-new_Viewer_EventTime :  (src:AdHoc.Connection.Receiver) => __Viewer_EventTime = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.EventTime.HANDLER
-new_FileTransfer_Success :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Success.Handler = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Success.HANDLER
-new_Viewer_MouseButton :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseButton = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseButton.HANDLER
+new_Machine_VideoFormat :  (src:AdHoc.Connection.Receiver) => __Machine_VideoFormat = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.VideoFormat.HANDLER
+new_Machine_HostCursorPosition :  (src:AdHoc.Connection.Receiver) => __Machine_HostCursorPosition = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.HostCursorPosition.HANDLER
 new_FileTransfer_Metadata :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Metadata = (src:AdHoc.Connection.Receiver) => new Viewer.FileTransfer.Metadata()
+new_Viewer_MouseButton :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseButton = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseButton.HANDLER
+new_Viewer_Mark :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.Mark = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.Mark()
+new_FileTransfer_Error :  (src:AdHoc.Connection.Receiver) => __FileTransfer_Error = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Error.HANDLER
+new_Machine_Display :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Display = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.Display()
+new_Viewer_KeyframeRequest :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.KeyframeRequest.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.KeyframeRequest.HANDLER
+new_Viewer_KeyEvent :  (src:AdHoc.Connection.Receiver) => __Viewer_KeyEvent = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.KeyEvent.HANDLER
+new_FractionalCoordinate :  (src:AdHoc.Connection.Receiver) => __FractionalCoordinate = (src:AdHoc.Connection.Receiver) => Viewer.FractionalCoordinate.HANDLER
+new_Viewer_VideoAck :  (src:AdHoc.Connection.Receiver) => __Viewer_VideoAck = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.VideoAck.HANDLER
+new_AudioPacket :  (src:AdHoc.Connection.Receiver) => Viewer.AudioPacket = (src:AdHoc.Connection.Receiver) => { debugger;  throw new Error("The producer of Viewer.AudioPacket is not assigned")}
+new_Machine_Elevation :  (src:AdHoc.Connection.Receiver) => __Machine_Elevation = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Elevation.HANDLER
+new_Machine_VideoLayout :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.VideoLayout = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.VideoLayout()
+new_Viewer_MouseWheel :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseWheel = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseWheel.HANDLER
+new_Viewer_TextEvent :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TextEvent = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.TextEvent()
+new_FileTransfer_Success :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Success.Handler = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Success.HANDLER
+new_Machine_Audience :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.Audience = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.Audience()
+new_Viewer_TouchPoint :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TouchPoint = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.TouchPoint()
+new_Viewer_MouseDelta :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseDelta = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseDelta.HANDLER
+new_FileTransfer_Done :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Done.Handler = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.Done.HANDLER
+new_Machine_CursorShape :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.CursorShape = (src:AdHoc.Connection.Receiver) => new Viewer.Machine_.CursorShape()
+new_Viewer_AudioControl :  (src:AdHoc.Connection.Receiver) => __Viewer_AudioControl = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.AudioControl.HANDLER
+new_FileTransfer_RequestTransfer :  (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.RequestTransfer.Handler = (src:AdHoc.Connection.Receiver) => Viewer.FileTransfer.RequestTransfer.HANDLER
+new_Machine_MicrophoneError :  (src:AdHoc.Connection.Receiver) => Viewer.Machine_.MicrophoneError.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Machine_.MicrophoneError.HANDLER
+new_Viewer_MouseMove :  (src:AdHoc.Connection.Receiver) => __Viewer_MouseMove = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MouseMove.HANDLER
+new_Viewer_TakeControl :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TakeControl.Handler = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TakeControl.HANDLER
+new_Viewer_MicrophoneControl :  (src:AdHoc.Connection.Receiver) => __Viewer_MicrophoneControl = (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.MicrophoneControl.HANDLER
+new_Viewer_TouchEvent :  (src:AdHoc.Connection.Receiver) => Viewer.Viewer_.TouchEvent = (src:AdHoc.Connection.Receiver) => new Viewer.Viewer_.TouchEvent()
 
 										CopyTo(dst:_Allocator):_Allocator{
-											dst.new_Viewer_MicrophoneControl = this.new_Viewer_MicrophoneControl;
-dst.new_Machine_Welcome = this.new_Machine_Welcome;
-dst.new_Viewer_TouchPoint = this.new_Viewer_TouchPoint;
-dst.new_FileTransfer_Error = this.new_FileTransfer_Error;
-dst.new_Viewer_KeyframeRequest = this.new_Viewer_KeyframeRequest;
-dst.new_Machine_VideoPacket = this.new_Machine_VideoPacket;
-dst.new_Viewer_MouseMove = this.new_Viewer_MouseMove;
-dst.new_Viewer_AudioControl = this.new_Viewer_AudioControl;
-dst.new_Machine_CursorShape = this.new_Machine_CursorShape;
-dst.new_AudioPacket = this.new_AudioPacket;
-dst.new_Machine_VideoLayout = this.new_Machine_VideoLayout;
+											dst.new_Viewer_ElevationRequest = this.new_Viewer_ElevationRequest;
 dst.new_Viewer_ClientResolution = this.new_Viewer_ClientResolution;
-dst.new_FractionalCoordinate = this.new_FractionalCoordinate;
-dst.new_Machine_VideoFormat = this.new_Machine_VideoFormat;
 dst.new_Viewer_Hello = this.new_Viewer_Hello;
-dst.new_FileTransfer_Done = this.new_FileTransfer_Done;
-dst.new_Viewer_MouseWheel = this.new_Viewer_MouseWheel;
-dst.new_Viewer_VideoAck = this.new_Viewer_VideoAck;
-dst.new_Machine_Display = this.new_Machine_Display;
-dst.new_Machine_ActiveDisplay = this.new_Machine_ActiveDisplay;
-dst.new_Viewer_TextEvent = this.new_Viewer_TextEvent;
+dst.new_Viewer_EventTime = this.new_Viewer_EventTime;
+dst.new_Machine_Welcome = this.new_Machine_Welcome;
+dst.new_Machine_Denied = this.new_Machine_Denied;
+dst.new_Viewer_SelectDisplay = this.new_Viewer_SelectDisplay;
+dst.new_Machine_VideoPacket = this.new_Machine_VideoPacket;
 dst.new_ClipboardEvent = this.new_ClipboardEvent;
 dst.new_FileTransfer_Data = this.new_FileTransfer_Data;
-dst.new_Viewer_TakeControl = this.new_Viewer_TakeControl;
-dst.new_Viewer_TouchEvent = this.new_Viewer_TouchEvent;
-dst.new_Machine_Elevation = this.new_Machine_Elevation;
-dst.new_Viewer_MouseDelta = this.new_Viewer_MouseDelta;
-dst.new_FileTransfer_RequestTransfer = this.new_FileTransfer_RequestTransfer;
-dst.new_Machine_HostCursorPosition = this.new_Machine_HostCursorPosition;
+dst.new_Machine_ActiveDisplay = this.new_Machine_ActiveDisplay;
 dst.new_Viewer_VideoControl = this.new_Viewer_VideoControl;
-dst.new_Viewer_SelectDisplay = this.new_Viewer_SelectDisplay;
-dst.new_Machine_MicrophoneError = this.new_Machine_MicrophoneError;
-dst.new_Machine_Denied = this.new_Machine_Denied;
-dst.new_Viewer_ElevationRequest = this.new_Viewer_ElevationRequest;
-dst.new_Viewer_KeyEvent = this.new_Viewer_KeyEvent;
-dst.new_Viewer_Mark = this.new_Viewer_Mark;
-dst.new_Machine_Audience = this.new_Machine_Audience;
-dst.new_Viewer_EventTime = this.new_Viewer_EventTime;
-dst.new_FileTransfer_Success = this.new_FileTransfer_Success;
-dst.new_Viewer_MouseButton = this.new_Viewer_MouseButton;
+dst.new_Machine_VideoFormat = this.new_Machine_VideoFormat;
+dst.new_Machine_HostCursorPosition = this.new_Machine_HostCursorPosition;
 dst.new_FileTransfer_Metadata = this.new_FileTransfer_Metadata;
+dst.new_Viewer_MouseButton = this.new_Viewer_MouseButton;
+dst.new_Viewer_Mark = this.new_Viewer_Mark;
+dst.new_FileTransfer_Error = this.new_FileTransfer_Error;
+dst.new_Machine_Display = this.new_Machine_Display;
+dst.new_Viewer_KeyframeRequest = this.new_Viewer_KeyframeRequest;
+dst.new_Viewer_KeyEvent = this.new_Viewer_KeyEvent;
+dst.new_FractionalCoordinate = this.new_FractionalCoordinate;
+dst.new_Viewer_VideoAck = this.new_Viewer_VideoAck;
+dst.new_AudioPacket = this.new_AudioPacket;
+dst.new_Machine_Elevation = this.new_Machine_Elevation;
+dst.new_Machine_VideoLayout = this.new_Machine_VideoLayout;
+dst.new_Viewer_MouseWheel = this.new_Viewer_MouseWheel;
+dst.new_Viewer_TextEvent = this.new_Viewer_TextEvent;
+dst.new_FileTransfer_Success = this.new_FileTransfer_Success;
+dst.new_Machine_Audience = this.new_Machine_Audience;
+dst.new_Viewer_TouchPoint = this.new_Viewer_TouchPoint;
+dst.new_Viewer_MouseDelta = this.new_Viewer_MouseDelta;
+dst.new_FileTransfer_Done = this.new_FileTransfer_Done;
+dst.new_Machine_CursorShape = this.new_Machine_CursorShape;
+dst.new_Viewer_AudioControl = this.new_Viewer_AudioControl;
+dst.new_FileTransfer_RequestTransfer = this.new_FileTransfer_RequestTransfer;
+dst.new_Machine_MicrophoneError = this.new_Machine_MicrophoneError;
+dst.new_Viewer_MouseMove = this.new_Viewer_MouseMove;
+dst.new_Viewer_TakeControl = this.new_Viewer_TakeControl;
+dst.new_Viewer_MicrophoneControl = this.new_Viewer_MicrophoneControl;
+dst.new_Viewer_TouchEvent = this.new_Viewer_TouchEvent;
 
 											return dst;
 										}

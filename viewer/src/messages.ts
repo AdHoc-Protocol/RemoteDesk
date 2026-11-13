@@ -156,7 +156,7 @@ export type ToMain =
     | { t: M.STATUS; error: string }
     /** `error` - why the connect failed, in the words of the browser; "" - the reason went by `STATUS`, or there is none. */
     | { t: M.DIALED; ok: boolean; error: string }
-    | { t: M.WELCOME; host: string | undefined; administrator: boolean }
+    | { t: M.WELCOME; host: string | undefined; administrator: boolean; phone: boolean }
     /** `code` - the number of the reason the machine sent; `left` - the attempts left, -1 - not told; `forget` - the token was wrong: it is not kept. */
     | { t: M.DENIED; reason: Refusal; code: number; left: number; forget: boolean }
     /** `watchers` - the viewers in, this one among them; `yours` - this one controls; `controller` - the name of the one that does. */

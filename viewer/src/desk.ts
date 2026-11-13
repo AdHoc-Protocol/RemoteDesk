@@ -104,6 +104,12 @@ export const english = {
     arrow: "➚ Arrow",
     arrowTitle: "A stroke is an arrow, from where it began to where it ends",
     colorTitle: "The colour of the marks",
+    back: "◁",
+    backTitle: "Back: the button of the phone",
+    home: "○",
+    homeTitle: "Home: the button of the phone",
+    recents: "□",
+    recentsTitle: "Recent apps: the button of the phone",
     lock: "Lock pointer",
     lockTitle: "Mouse moves go to the machine as relative moves; Esc frees the pointer",
     full: "Full screen",
@@ -309,13 +315,18 @@ export function open(container: HTMLElement, options: Options): Desk {
     const fpsButton = button("rd-s", "", t.fpsTitle);
     const lockButton = button("rd-s", t.lock, t.lockTitle);
     const drawButton = button("rd-s", t.draw, t.drawTitle);
+    // the buttons of a phone: Back, Home, Recents - the keys of the consumer page it takes for them
+    const backButton = button("rd-s", t.back, t.backTitle);
+    const homeButton = button("rd-s", t.home, t.homeTitle);
+    const recentsButton = button("rd-s", t.recents, t.recentsTitle);
+    for (const b of [backButton, homeButton, recentsButton]) b.hidden = true;
     const arrowButton = button("rd-s", t.arrow, t.arrowTitle);
     arrowButton.hidden = true;
     const colorButton = button("rd-s", "●", t.colorTitle);
     colorButton.hidden = true;
     const fullButton = button("rd-s", t.full, t.fullTitle);
     const leaveButton = button("", t.leave);
-    bar.append(who, audienceLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, drawButton, arrowButton, colorButton, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
+    bar.append(who, audienceLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, backButton, homeButton, recentsButton, drawButton, arrowButton, colorButton, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
     const screenHost = element("div", "rd-screen");
     const state = element("div", "rd-state");
     const stateLine = element("div", "");
@@ -526,7 +537,12 @@ export function open(container: HTMLElement, options: Options): Desk {
         }, port === undefined ? [next.offscreen] : [next.offscreen, port]);
     }
 
-    function welcome(host: string | undefined, administrator: boolean): void {
+    /** The machine is a phone: its buttons, and the characters typed go as text. */
+    let phone = false;
+
+    function welcome(host: string | undefined, administrator: boolean, isPhone: boolean): void {
+        phone = isPhone;
+        for (const b of [backButton, homeButton, recentsButton]) b.hidden = !phone;
         who.textContent = (host ?? t.machine) + " · " + address.replace(/^ws:\/\//, ""); // the scheme is the page's, not the user's
         stopSession();
         stage("live");
@@ -559,7 +575,7 @@ export function open(container: HTMLElement, options: Options): Desk {
         const v = shown;
         if (on && v && !typing) {
             const before = root.ownerDocument.activeElement as HTMLElement | null;
-            typing = input.start(v.canvas, root, () => v.frameWidth(), post, (phase, ratio, x, y) => v.pinch(phase, ratio, x, y));
+            typing = input.start(v.canvas, root, () => v.frameWidth(), post, (phase, ratio, x, y) => v.pinch(phase, ratio, x, y), phone);
             // the keys stay where they were - another desk, a field of the page - unless they were in this desk, or nowhere
             if (!seen) root.querySelector("textarea")?.blur(); // a hidden desk does not take the keys
             else if (before && before !== root.ownerDocument.body && !root.contains(before)) before.focus({ preventScroll: true });
@@ -609,6 +625,15 @@ export function open(container: HTMLElement, options: Options): Desk {
 
     adminButton.addEventListener("click", () => post({ t: W.ELEVATE }));
     lockButton.addEventListener("click", () => typing?.lockPointer());
+    const press = (usb: number) => () => {
+        if (!controlling) return;
+        post({ t: W.KEY, usb, pressed: true });
+        post({ t: W.KEY, usb, pressed: false });
+        typing?.focus();
+    };
+    backButton.addEventListener("click", press(0x0c0224));
+    homeButton.addEventListener("click", press(0x0c0223));
+    recentsButton.addEventListener("click", press(0x0c01a2));
 
     // ── marks over the screen of the machine: any viewer draws ──
 
@@ -721,7 +746,7 @@ export function open(container: HTMLElement, options: Options): Desk {
                     if (!bad) status(fill(t.cannotConnect, { address }), true);
                     if (retry > 0) return retryLater();
                     return end(stateLine.textContent ?? "", true, false);
-                case M.WELCOME: return welcome(m.host, m.administrator);
+                case M.WELCOME: return welcome(m.host, m.administrator, m.phone);
                 case M.DENIED: stage("refused"); return end(refusal(m), true, m.forget);
                 case M.AUDIENCE: return audience(m.watchers, m.yours, m.controller);
                 case M.CLOSED:

@@ -311,6 +311,7 @@ fn on_hello(hello: &mut Viewer_Hello, conn: &Connection, _actor: &Actor0) {
         let mut welcome = Machine_Welcome::default();
         welcome.host_name = Some(config.host_name.clone());
         welcome.set_administrator(crate::elevate::elevated_now());
+        welcome.set_phone(cfg!(target_os = "android")); // its page shows Back, Home, Recents and types text
         actor0::granting::transmitter::send_machine_welcome(welcome, conn);
         audience.push(In { conn: this.clone(), name: name.clone() });
         if CONTROLLER.load().is_none() {

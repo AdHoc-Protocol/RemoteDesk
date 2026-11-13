@@ -127,4 +127,20 @@ object Host {
     @JvmStatic fun markFade(id: Int, alpha: Float) { runCatching { service?.markFade(id, alpha) } }
 
     @JvmStatic fun markGone(id: Int) { runCatching { service?.markGone(id) } }
+
+    // ── the control from the page, by the service of accessibility: false - its user has not turned it on ──
+
+    /** 1 Back, 2 Home, 3 Recents. */
+    @JvmStatic fun action(which: Int): Boolean = ControlService.running?.global(which) ?: false
+
+    /** A key of Android with its meta state, to the field in focus. */
+    @JvmStatic fun press(code: Int, meta: Int): Boolean = ControlService.running?.press(code, meta) ?: false
+
+    @JvmStatic fun typeText(text: ByteArray): Boolean = ControlService.running?.typeText(String(text)) ?: false
+
+    /** A finger: 0 down, 1 moved, 2 up, 3 canceled, pixels of the screen; `finger` -1 - all of them up. */
+    @JvmStatic fun touch(finger: Int, phase: Int, x: Float, y: Float): Boolean = ControlService.running?.touch(finger, phase, x, y) ?: false
+
+    /** Notches of the wheel at a point of the screen. */
+    @JvmStatic fun scroll(x: Float, y: Float, dx: Float, dy: Float): Boolean = ControlService.running?.scroll(x, y, dx, dy) ?: false
 }

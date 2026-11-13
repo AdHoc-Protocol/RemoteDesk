@@ -45,6 +45,7 @@ class MainActivity : Activity(), Host.Watcher {
     private lateinit var log: TextView
     private lateinit var logScroll: ScrollView
     private lateinit var overApps: Button
+    private lateinit var control: LinearLayout
     private var way = 0
 
     override fun onCreate(saved: Bundle?) {
@@ -103,6 +104,17 @@ class MainActivity : Activity(), Host.Watcher {
             setOnClickListener { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + packageName))) }
         }
         root.addView(overApps)
+        // the control from the page: Android asks once to turn the service of accessibility of the app on
+        control = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        control.addView(Button(this).apply {
+            text = "Let the viewer control this phone"
+            setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        })
+        control.addView(TextView(this).apply {
+            text = "Turn on \"RemoteDesk: control from the page\". If Android shows the switch grey, open the info of the app, ⋮, Allow restricted settings, and come back."
+            textSize = 13f
+        })
+        root.addView(control)
 
         log = TextView(this).apply { setTextIsSelectable(true); setPadding(0, pad / 2, 0, 0) }
         logScroll = ScrollView(this).apply { addView(log) }
@@ -120,6 +132,7 @@ class MainActivity : Activity(), Host.Watcher {
         Host.line?.let { line(it) }
         waits()
         overApps.visibility = if (Settings.canDrawOverlays(this)) View.GONE else View.VISIBLE
+        control.visibility = if (ControlService.running != null) View.GONE else View.VISIBLE
     }
 
     override fun onPause() {

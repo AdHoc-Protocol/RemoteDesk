@@ -365,6 +365,13 @@ namespace org.unirail.RemoteDesk
 
                 /// <summary>The program of the machine runs as administrator.</summary>
                 bool administrator;
+
+                /// <summary>
+                /// The machine is a phone or a tablet: its input is touches, its buttons Back, Home and Recents ( `KeyEvent` of the
+                /// consumer page: AC Back 0x0C0224, AC Home 0x0C0223, AL Select Task 0x0C01A2 ) and text into the field in
+                /// focus - the page shows the buttons, and sends the characters typed as `TextEvent`: a phone has no layout of keys.
+                /// </summary>
+                bool phone;
             }
 
             /// <summary>The login is refused.</summary>

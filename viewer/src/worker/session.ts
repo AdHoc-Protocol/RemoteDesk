@@ -186,7 +186,7 @@ Actor0.State.Granting.OnReceived.Machine_Welcome.handlers.subscribe((welcome, co
     if (conn !== connection) return;
     stopSession();
     startSession(conn);
-    toPage({ t: M.WELCOME, host: welcome.host_name, administrator: welcome.administrator });
+    toPage({ t: M.WELCOME, host: welcome.host_name, administrator: welcome.administrator, phone: welcome.phone });
 });
 
 Actor0.State.Granting.OnReceived.Machine_Denied.handlers.subscribe((denied, conn) => {

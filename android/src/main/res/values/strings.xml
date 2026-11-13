@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- what the settings of accessibility say of the service of the control -->
+    <string name="control">Lets the viewer page of RemoteDesk control this phone while it shows its screen: taps and swipes, the buttons Back, Home and Recent apps, and text typed into the field in focus. It does nothing while RemoteDesk shows no screen.</string>
+</resources>

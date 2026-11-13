@@ -48,6 +48,25 @@ set  administrator(  src:boolean ) { this.#bits0 = this.#bits0 & 0xFFFF_FFFE | (
 
 
 //#endregion
+//#region phone
+
+/**
+ * The machine is a phone or a tablet: its input is touches, its buttons Back, Home and Recents (`KeyEvent` of the
+ * consumer page: AC Back 0x0C0224, AC Home 0x0C0223, AL Select Task 0x0C01A2 ) and text into the field in
+ * focus - the page shows the buttons, and sends the characters typed as `TextEvent`: a phone has no layout of keys.
+ */
+get phone():boolean { 
+ const value = <any>(this.#bits0  >>> 1 & 0x1)
+ return ( value !== 0 );}
+/**
+ * The machine is a phone or a tablet: its input is touches, its buttons Back, Home and Recents (`KeyEvent` of the
+ * consumer page: AC Back 0x0C0224, AC Home 0x0C0223, AL Select Task 0x0C01A2 ) and text into the field in
+ * focus - the page shows the buttons, and sends the characters typed as `TextEvent`: a phone has no layout of keys.
+ */
+set  phone(  src:boolean ) { this.#bits0 = this.#bits0 & 0xFFFF_FFFD | (( src ? 1 : 0 )  << 1 ); } 
+
+
+//#endregion
 
                                                     
                                         /** Returns true if `one` and `two` are the same instance or have equal field values. */
@@ -113,18 +132,27 @@ if( src.host_name !== undefined )hash = AdHoc.hash_string(hash, src.host_name);
 //#endregion
 								case 2:
                              
-								if (!__src.get_fields_nulls( 2 ) ) return false;
-							case 3:
+									
+									if(! __src.try_get_bits(1, 2 ) ) return false;
+								case 3:
+//#region phone
+
+							this.#bits0 = this.#bits0 & 0xFFFF_FFFD | (__src.get_bits  << 1 );
+//#endregion
+								case 4:
+                             
+								if (!__src.get_fields_nulls( 4 ) ) return false;
+							case 5:
                              
 						
 //#region host_name
 
-							if( __src.is_null( 0x1,  5) ) return true
+							if( __src.is_null( 0x1,  7) ) return true
 										
-                        if( !__src.try_get_string( Viewer.Machine_.Welcome.host_name__.STR_LEN_MAX, 4 ) ) return false; 
-                    case 4:
+                        if( !__src.try_get_string( Viewer.Machine_.Welcome.host_name__.STR_LEN_MAX, 6 ) ) return false; 
+                    case 6:
                         this.host_name = __src.get_string()
-                    case 5 : 
+                    case 7 : 
                  
 										
 //#endregion

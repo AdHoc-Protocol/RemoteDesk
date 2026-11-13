@@ -27,7 +27,7 @@ export interface Input {
  * is in ( full screen shows only it ): the field the keys come to is there.
  */
 export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth: () => number, post: Post,
-    pinch: (phase: "start" | "move" | "end", ratio: number, x: number, y: number) => void = () => undefined): Input {
+    pinch: (phase: "start" | "move" | "end", ratio: number, x: number, y: number) => void = () => undefined, phone = false): Input {
     // the keys come to an invisible field over the canvas: input methods and soft keyboards type into a field
     const field = document.createElement("textarea");
     /** The window the desk is in: the page's, or one of its own ( src/app.ts ). */
@@ -107,6 +107,8 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
         }
         e.preventDefault();
         stamp();
+        // a phone has no layout of keys: a character typed goes as it is; its keys of editing and shortcuts go as keys
+        if (phone && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) return text(e.key);
         if (usb !== undefined) key(usb, true, e);
         else if (e.key.length === 1) text(e.key);
     };

@@ -489,16 +489,22 @@ What the phone does in this version:
 | --- | --- |
 | The screen | Encoded by the hardware of the phone, of the size the encoder takes. Turned, the phone is shown turned |
 | The sound | What the apps play, when they let it be captured: music, video, games. Calls never. Android asks for the permission of the microphone for it |
-| Text from the computer | **Ctrl+V** on the page puts the text on the clipboard of the phone: tap a field on the phone, hold, **Paste** |
+| Your fingers and mouse | Taps, swipes, drags, a long press, two fingers: as you make them, not after. The left button is a finger, the right one **Back**, the middle one **Home**; the wheel scrolls |
+| The buttons of the phone | **◁ ○ □** in the bar of the page: Back, Home, Recent apps. **Esc** is Back too |
+| Your keyboard | What you type goes into the field in focus on the phone, in any language: the page sends the characters, not the keys. Enter, Backspace, Delete, the arrows, Home, End work in the field from Android 13; before it Enter, Backspace and Delete |
+| Text from the computer | **Ctrl+V** on the page pastes it into the field in focus on the phone. Without the control: it is on the clipboard of the phone, tap a field, hold, **Paste** |
 | Text to the computer | Select it in any app and pick **To the computer** in the menu of the selection, or share it to RemoteDesk, or copy it and press **Send the clipboard** in the notification. It goes to the clipboard of the computer: paste it there |
 | Files from the computer | Into the folder of the app: `Android/data/org.unirail.RemoteDesk/files/Download` |
 
 Android lets an app read the clipboard only while the app is in front, so the phone sends text when you send it, not by itself.
 
-The viewer only watches the phone for now: the taps and keys of the page come in the next version (the service of accessibility
-of Android). The microphone of the page and sending files from the phone come with them. To show the user where to tap, draw
-over the screen: **Let the viewer draw over the screen** in the app allows it once, see
-[Drawing over the screen](#drawing-over-the-screen).
+To control the phone from the page, its user allows it once: **Let the viewer control this phone** in the app opens the settings
+of accessibility, where **RemoteDesk: control from the page** is turned on. Android lets an app control the others only so.
+Android 13 and later show the switch grey for an app installed from a file: then open the info of the app, ⋮, **Allow
+restricted settings**, and turn it on. Until then the phone only shows its screen, and the page says so.
+
+To show the user where to tap, draw over the screen: **Let the viewer draw over the screen** in the app allows it once, see
+[Drawing over the screen](#drawing-over-the-screen). The microphone of the page and sending files from the phone come later.
 
 ## The first start
 
@@ -510,7 +516,7 @@ On some systems the user of the remote computer allows screen sharing once:
 | Linux with X11 | Nothing |
 | Linux with Wayland | Allows sharing the screen and the input in the dialog of the desktop. The answer is remembered |
 | macOS | Turns on **Screen Recording** and **Accessibility** for the program in System Settings > Privacy & Security, then starts it again |
-| Android | Allows showing the screen at each start: Android asks every time |
+| Android | Allows showing the screen at each start: Android asks every time. Once: turns on the control in the settings of accessibility, and lets the app display over the others for the marks |
 
 ## Options of the program
 
@@ -593,7 +599,9 @@ What the page says, under the picture, beside its parts, or in its bar:
 - The sound is not compressed: about 1.5 Mbit/s while something plays, fine in a local network. Silence is not sent.
 - The microphone is played through the speakers: programs of the remote computer do not hear it as a microphone.
 - The clipboard carries text only.
-- Remote phone: watched only, no input yet. Way ② rarely works on mobile data: the operator gives the phone no public address.
+- Remote phone: the lock screen and the screens of the system that hide from accessibility take no input. A phone
+  has no pointer that hovers: the mouse moves only with its button down. Way ② rarely works on mobile data: the operator gives
+  the phone no public address.
 - Way ③: IPv4 only, as SYN Mirror.
 - Way ④ with one line: IPv4 and TCP only, the port of `--listen`; a router asked by UPnP may give another port outside, the line
   shows it.

@@ -385,8 +385,8 @@ export class Actor0 implements Connection.Actor{
 //#endregion > ÿÿĂ.OnReceiving
                                                                     
                                                             switch(pack.__id) {
-                                                                                case Viewer.Machine_.Welcome.__id:
-case Viewer.Machine_.Denied.__id:
+                                                                                case Viewer.Machine_.Denied.__id:
+case Viewer.Machine_.Welcome.__id:
 
                                                                     return undefined;
                                                                 default:
@@ -404,17 +404,7 @@ case Viewer.Machine_.Denied.__id:
                                                                          
                                                                                     switch(pack.__id)
                                                                                     {
-                                                                                        case Viewer.Machine_.Welcome.__id:
-                                                                                              actor.OnNewState(conn, Working.ONE);
-//#region > Welcome OnReceived Event
-                                                                                    
-//#endregion > ÿĠÿĂĠ.OnReceivedEvent
-                                                                                                (< Viewer.Machine_.Welcome > pack).__OnReceived_Session__Actor0__Granting(  conn, actor  , Working.ONE.transmitter  );
-                                                                                             
-                                                                                        
-                                                                                        Working.ONE.OnActivate(conn, actor, this,  undefined,  pack );
-                                                                                        return;
-                                                                                     case Viewer.Machine_.Denied.__id:
+                                                                                        case Viewer.Machine_.Denied.__id:
                                                                                               actor.OnNewState(conn, CLOSE_.ONE);
 //#region > Denied OnReceived Event
                                                                                     
@@ -426,6 +416,16 @@ case Viewer.Machine_.Denied.__id:
                                                                                              
                                                                                         
                                                                                         CLOSE_.ONE.OnActivate(conn, actor, this,  undefined,  pack );
+                                                                                        return;
+                                                                                     case Viewer.Machine_.Welcome.__id:
+                                                                                              actor.OnNewState(conn, Working.ONE);
+//#region > Welcome OnReceived Event
+                                                                                    
+//#endregion > ÿĠÿĂĠ.OnReceivedEvent
+                                                                                                (< Viewer.Machine_.Welcome > pack).__OnReceived_Session__Actor0__Granting(  conn, actor  , Working.ONE.transmitter  );
+                                                                                             
+                                                                                        
+                                                                                        Working.ONE.OnActivate(conn, actor, this,  undefined,  pack );
                                                                                         return;
                                                                                      
                                                                                     }
@@ -1158,35 +1158,11 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         state:Working
                                                                                         constructor(state:Working){this.state = state;}
                                                                                         
-                                                                                 send_Viewer_ClientResolution(src:Viewer.Viewer_.ClientResolution,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.ClientResolution.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_Viewer_VideoAck(src:Viewer.Viewer_.VideoAck,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.VideoAck.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_Viewer_MicrophoneControl(src:Viewer.Viewer_.MicrophoneControl,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MicrophoneControl.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_FileTransfer_Error(src:Viewer.FileTransfer.Error,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.FileTransfer.Error.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_Viewer_KeyframeRequest(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.Viewer_.KeyframeRequest.HANDLER, 0 ); }
+                                                                                 send_Viewer_ElevationRequest(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.Viewer_.ElevationRequest.HANDLER, 0 ); }
 
                                                                                 
                                                                             
-                                                                                 send_Viewer_VideoControl(src:Viewer.Viewer_.VideoControl,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.VideoControl.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_Viewer_MouseMove(src:Viewer.Viewer_.MouseMove,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseMove.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_Viewer_AudioControl(src:Viewer.Viewer_.AudioControl,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.AudioControl.HANDLER, src);}
+                                                                                 send_Viewer_ClientResolution(src:Viewer.Viewer_.ClientResolution,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.ClientResolution.HANDLER, src);}
 
                                                                                
                                                                             
@@ -1194,23 +1170,21 @@ case Viewer.FileTransfer.Error.__id:
 
                                                                                
                                                                             
-                                                                                 send_AudioPacket(src: Viewer.AudioPacket,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
-
-                                                                                
-                                                                                
-                                                                            
-                                                                                 send_FileTransfer_Done(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.FileTransfer.Done.HANDLER, 0 ); }
-
-                                                                                
-                                                                            
-                                                                                 send_Viewer_MouseWheel(src:Viewer.Viewer_.MouseWheel,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseWheel.HANDLER, src);}
+                                                                                 send_Viewer_VideoControl(src:Viewer.Viewer_.VideoControl,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.VideoControl.HANDLER, src);}
 
                                                                                
                                                                             
-                                                                                 send_Viewer_TextEvent(src: Viewer.Viewer_.TextEvent,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
+                                                                                 send_Viewer_SelectDisplay(src:Viewer.Viewer_.SelectDisplay,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.SelectDisplay.HANDLER, src);}
+
+                                                                               
+                                                                            
+                                                                                 send_Viewer_KeyframeRequest(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.Viewer_.KeyframeRequest.HANDLER, 0 ); }
 
                                                                                 
-                                                                                
+                                                                            
+                                                                                 send_Viewer_KeyEvent(src:Viewer.Viewer_.KeyEvent,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.KeyEvent.HANDLER, src);}
+
+                                                                               
                                                                             
                                                                                  send_ClipboardEvent(src: Viewer.ClipboardEvent,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
 
@@ -1222,32 +1196,12 @@ case Viewer.FileTransfer.Error.__id:
                                                                                 
                                                                                 
                                                                             
-                                                                                 send_Viewer_TakeControl(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.Viewer_.TakeControl.HANDLER, 0 ); }
-
-                                                                                
-                                                                            
-                                                                                 send_Viewer_TouchEvent(src: Viewer.Viewer_.TouchEvent,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
+                                                                                 send_FileTransfer_Metadata(src: Viewer.FileTransfer.Metadata,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
 
                                                                                 
                                                                                 
                                                                             
-                                                                                 send_Viewer_MouseDelta(src:Viewer.Viewer_.MouseDelta,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseDelta.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_FileTransfer_RequestTransfer(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.FileTransfer.RequestTransfer.HANDLER, 0 ); }
-
-                                                                                
-                                                                            
-                                                                                 send_Viewer_SelectDisplay(src:Viewer.Viewer_.SelectDisplay,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.SelectDisplay.HANDLER, src);}
-
-                                                                               
-                                                                            
-                                                                                 send_Viewer_ElevationRequest(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.Viewer_.ElevationRequest.HANDLER, 0 ); }
-
-                                                                                
-                                                                            
-                                                                                 send_Viewer_KeyEvent(src:Viewer.Viewer_.KeyEvent,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.KeyEvent.HANDLER, src);}
+                                                                                 send_Viewer_MouseButton(src:Viewer.Viewer_.MouseButton,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseButton.HANDLER, src);}
 
                                                                                
                                                                             
@@ -1256,15 +1210,61 @@ case Viewer.FileTransfer.Error.__id:
                                                                                 
                                                                                 
                                                                             
+                                                                                 send_FileTransfer_Error(src:Viewer.FileTransfer.Error,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.FileTransfer.Error.HANDLER, src);}
+
+                                                                               
+                                                                            
+                                                                                 send_Viewer_VideoAck(src:Viewer.Viewer_.VideoAck,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.VideoAck.HANDLER, src);}
+
+                                                                               
+                                                                            
+                                                                                 send_AudioPacket(src: Viewer.AudioPacket,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
+
+                                                                                
+                                                                                
+                                                                            
+                                                                                 send_Viewer_MouseWheel(src:Viewer.Viewer_.MouseWheel,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseWheel.HANDLER, src);}
+
+                                                                               
+                                                                            
+                                                                                 send_Viewer_TextEvent(src: Viewer.Viewer_.TextEvent,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
+
+                                                                                
+                                                                                
+                                                                            
                                                                                  send_FileTransfer_Success(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.FileTransfer.Success.HANDLER, 0 ); }
 
                                                                                 
                                                                             
-                                                                                 send_Viewer_MouseButton(src:Viewer.Viewer_.MouseButton,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseButton.HANDLER, src);}
+                                                                                 send_Viewer_MouseDelta(src:Viewer.Viewer_.MouseDelta,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseDelta.HANDLER, src);}
 
                                                                                
                                                                             
-                                                                                 send_FileTransfer_Metadata(src: Viewer.FileTransfer.Metadata,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
+                                                                                 send_FileTransfer_Done(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.FileTransfer.Done.HANDLER, 0 ); }
+
+                                                                                
+                                                                            
+                                                                                 send_Viewer_AudioControl(src:Viewer.Viewer_.AudioControl,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.AudioControl.HANDLER, src);}
+
+                                                                               
+                                                                            
+                                                                                 send_FileTransfer_RequestTransfer(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.FileTransfer.RequestTransfer.HANDLER, 0 ); }
+
+                                                                                
+                                                                            
+                                                                                 send_Viewer_MouseMove(src:Viewer.Viewer_.MouseMove,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MouseMove.HANDLER, src);}
+
+                                                                               
+                                                                            
+                                                                                 send_Viewer_TakeControl(  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   Viewer.Viewer_.TakeControl.HANDLER, 0 ); }
+
+                                                                                
+                                                                            
+                                                                                 send_Viewer_MicrophoneControl(src:Viewer.Viewer_.MicrophoneControl,   conn:Connection ):boolean { return  conn.ext_connection.isOpen && conn.transmitter.sending_put(    Viewer.Viewer_.MicrophoneControl.HANDLER, src);}
+
+                                                                               
+                                                                            
+                                                                                 send_Viewer_TouchEvent(src: Viewer.Viewer_.TouchEvent,  conn:Connection ): boolean { return conn.ext_connection.isOpen && conn.transmitter.sending_put(   src, 0 ); }
 
                                                                                 
                                                                                 
@@ -1284,31 +1284,6 @@ case Viewer.FileTransfer.Error.__id:
                                                                                  export namespace OnReceived{
                                                                                     
                                                                                         /**
- * The transfer is aborted: by an error or by the user.
- */
-
-                                                                                        export namespace FileTransfer_Error{
-                                                                                            export type fn = ( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                                            export interface Handler{
-                                                                                                received( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                            }
-                                                                                            
-                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                    this.beginDispatch();
-                                                                                                    try {
-                                                                                                        for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
-                                                                                                        for( const handler of this.interfaces ) handler.received( pack,   conn, actor   , transmitter_ );
-                                                                                                    } finally { this.endDispatch();}
-                                                                                                }
-                                                                                            }
-                                                                                            export const handlers = new Event_();
-                                                                                            export const notify: fn = handlers.received.bind(handlers);
-                                                                                        
-                                                                                        }
-                                                                                        
-                                                                                        /**
  * ── video ──
  *
  * A frame of a display, as the encoder made it. `format` comes with the first frame of a display and whenever it changes.
@@ -1327,132 +1302,6 @@ case Viewer.FileTransfer.Error.__id:
                                                                                                     try {
                                                                                                         for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
                                                                                                         for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
-                                                                                                    } finally { this.endDispatch();}
-                                                                                                }
-                                                                                            }
-                                                                                            export const handlers = new Event_();
-                                                                                            export const notify: fn = handlers.received.bind(handlers);
-                                                                                        
-                                                                                        }
-                                                                                        
-                                                                                        /**
- * The shape of the pointer: the viewer draws it itself, so the pointer moves without waiting for video.
- */
-
-                                                                                        export namespace Machine_CursorShape{
-                                                                                            export type fn = (  pack:Viewer.Machine_.CursorShape,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                                            export interface Handler{
-                                                                                                received(  pack:Viewer.Machine_.CursorShape,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                            }
-                                                                                            
-                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received(  pack:Viewer.Machine_.CursorShape,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                    this.beginDispatch();
-                                                                                                    try {
-                                                                                                        for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
-                                                                                                        for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
-                                                                                                    } finally { this.endDispatch();}
-                                                                                                }
-                                                                                            }
-                                                                                            export const handlers = new Event_();
-                                                                                            export const notify: fn = handlers.received.bind(handlers);
-                                                                                        
-                                                                                        }
-                                                                                        
-                                                                                        /**
- * One packet of sound, 20 ms: the machine's to the viewer, 48 kHz stereo; the viewer's microphone to the machine, 48 kHz mono.
- * 16-bit signed samples, little endian, the channels interleaved.
- */
-
-                                                                                        export namespace AudioPacket{
-                                                                                            export type fn = (  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                                            export interface Handler{
-                                                                                                received(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                            }
-                                                                                            
-                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                    this.beginDispatch();
-                                                                                                    try {
-                                                                                                        for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
-                                                                                                        for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
-                                                                                                    } finally { this.endDispatch();}
-                                                                                                }
-                                                                                            }
-                                                                                            export const handlers = new Event_();
-                                                                                            export const notify: fn = handlers.received.bind(handlers);
-                                                                                        
-                                                                                        }
-                                                                                        
-                                                                                        /**
- * The displays of the machine to choose from.
- */
-
-                                                                                        export namespace Machine_VideoLayout{
-                                                                                            export type fn = (  pack:Viewer.Machine_.VideoLayout,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                                            export interface Handler{
-                                                                                                received(  pack:Viewer.Machine_.VideoLayout,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                            }
-                                                                                            
-                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received(  pack:Viewer.Machine_.VideoLayout,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                    this.beginDispatch();
-                                                                                                    try {
-                                                                                                        for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
-                                                                                                        for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
-                                                                                                    } finally { this.endDispatch();}
-                                                                                                }
-                                                                                            }
-                                                                                            export const handlers = new Event_();
-                                                                                            export const notify: fn = handlers.received.bind(handlers);
-                                                                                        
-                                                                                        }
-                                                                                        
-                                                                                        /**
- * After the last chunk: the file is complete.
- */
-
-                                                                                        export namespace FileTransfer_Done{
-                                                                                            export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                                            export interface Handler{
-                                                                                                received(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                            }
-                                                                                            
-                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                    this.beginDispatch();
-                                                                                                    try {
-                                                                                                        for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
-                                                                                                        for( const handler of this.interfaces ) handler.received(   conn, actor   , transmitter_ );
-                                                                                                    } finally { this.endDispatch();}
-                                                                                                }
-                                                                                            }
-                                                                                            export const handlers = new Event_();
-                                                                                            export const notify: fn = handlers.received.bind(handlers);
-                                                                                        
-                                                                                        }
-                                                                                        
-                                                                                        /**
- * The display the user of the machine works on now.
- */
-
-                                                                                        export namespace Machine_ActiveDisplay{
-                                                                                            export type fn = ( pack:Viewer.Machine_.ActiveDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                                            export interface Handler{
-                                                                                                received( pack:Viewer.Machine_.ActiveDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                            }
-                                                                                            
-                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received( pack:Viewer.Machine_.ActiveDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                    this.beginDispatch();
-                                                                                                    try {
-                                                                                                        for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
-                                                                                                        for( const handler of this.interfaces ) handler.received( pack,   conn, actor   , transmitter_ );
                                                                                                     } finally { this.endDispatch();}
                                                                                                 }
                                                                                             }
@@ -1512,17 +1361,17 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         }
                                                                                         
                                                                                         /**
- * What became of `ElevationRequest`.
+ * The display the user of the machine works on now.
  */
 
-                                                                                        export namespace Machine_Elevation{
-                                                                                            export type fn = ( pack:Viewer.Machine_.Elevation,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export namespace Machine_ActiveDisplay{
+                                                                                            export type fn = ( pack:Viewer.Machine_.ActiveDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                                             export interface Handler{
-                                                                                                received( pack:Viewer.Machine_.Elevation,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                                received( pack:Viewer.Machine_.ActiveDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                             }
                                                                                             
                                                                                             export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received( pack:Viewer.Machine_.Elevation,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                received( pack:Viewer.Machine_.ActiveDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                     if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                     this.beginDispatch();
                                                                                                     try {
@@ -1563,10 +1412,136 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         }
                                                                                         
                                                                                         /**
- * The viewer's microphone cannot be played on the machine: its sound device failed.
+ * Always before any `Data`.
  */
 
-                                                                                        export namespace Machine_MicrophoneError{
+                                                                                        export namespace FileTransfer_Metadata{
+                                                                                            export type fn = (  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                            export interface Handler{
+                                                                                                received(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                            }
+                                                                                            
+                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                                received(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                    this.beginDispatch();
+                                                                                                    try {
+                                                                                                        for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
+                                                                                                        for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
+                                                                                                    } finally { this.endDispatch();}
+                                                                                                }
+                                                                                            }
+                                                                                            export const handlers = new Event_();
+                                                                                            export const notify: fn = handlers.received.bind(handlers);
+                                                                                        
+                                                                                        }
+                                                                                        
+                                                                                        /**
+ * The transfer is aborted: by an error or by the user.
+ */
+
+                                                                                        export namespace FileTransfer_Error{
+                                                                                            export type fn = ( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                            export interface Handler{
+                                                                                                received( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                            }
+                                                                                            
+                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                                received( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                    this.beginDispatch();
+                                                                                                    try {
+                                                                                                        for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
+                                                                                                        for( const handler of this.interfaces ) handler.received( pack,   conn, actor   , transmitter_ );
+                                                                                                    } finally { this.endDispatch();}
+                                                                                                }
+                                                                                            }
+                                                                                            export const handlers = new Event_();
+                                                                                            export const notify: fn = handlers.received.bind(handlers);
+                                                                                        
+                                                                                        }
+                                                                                        
+                                                                                        /**
+ * One packet of sound, 20 ms: the machine's to the viewer, 48 kHz stereo; the viewer's microphone to the machine, 48 kHz mono.
+ * 16-bit signed samples, little endian, the channels interleaved.
+ */
+
+                                                                                        export namespace AudioPacket{
+                                                                                            export type fn = (  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                            export interface Handler{
+                                                                                                received(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                            }
+                                                                                            
+                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                                received(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                    this.beginDispatch();
+                                                                                                    try {
+                                                                                                        for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
+                                                                                                        for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
+                                                                                                    } finally { this.endDispatch();}
+                                                                                                }
+                                                                                            }
+                                                                                            export const handlers = new Event_();
+                                                                                            export const notify: fn = handlers.received.bind(handlers);
+                                                                                        
+                                                                                        }
+                                                                                        
+                                                                                        /**
+ * What became of `ElevationRequest`.
+ */
+
+                                                                                        export namespace Machine_Elevation{
+                                                                                            export type fn = ( pack:Viewer.Machine_.Elevation,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                            export interface Handler{
+                                                                                                received( pack:Viewer.Machine_.Elevation,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                            }
+                                                                                            
+                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                                received( pack:Viewer.Machine_.Elevation,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                    this.beginDispatch();
+                                                                                                    try {
+                                                                                                        for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
+                                                                                                        for( const handler of this.interfaces ) handler.received( pack,   conn, actor   , transmitter_ );
+                                                                                                    } finally { this.endDispatch();}
+                                                                                                }
+                                                                                            }
+                                                                                            export const handlers = new Event_();
+                                                                                            export const notify: fn = handlers.received.bind(handlers);
+                                                                                        
+                                                                                        }
+                                                                                        
+                                                                                        /**
+ * The displays of the machine to choose from.
+ */
+
+                                                                                        export namespace Machine_VideoLayout{
+                                                                                            export type fn = (  pack:Viewer.Machine_.VideoLayout,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                            export interface Handler{
+                                                                                                received(  pack:Viewer.Machine_.VideoLayout,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                            }
+                                                                                            
+                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                                received(  pack:Viewer.Machine_.VideoLayout,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                    this.beginDispatch();
+                                                                                                    try {
+                                                                                                        for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
+                                                                                                        for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
+                                                                                                    } finally { this.endDispatch();}
+                                                                                                }
+                                                                                            }
+                                                                                            export const handlers = new Event_();
+                                                                                            export const notify: fn = handlers.received.bind(handlers);
+                                                                                        
+                                                                                        }
+                                                                                        
+                                                                                        /**
+ * The receiver has saved the file.
+ */
+
+                                                                                        export namespace FileTransfer_Success{
                                                                                             export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                                             export interface Handler{
                                                                                                 received(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
@@ -1614,10 +1589,10 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         }
                                                                                         
                                                                                         /**
- * The receiver has saved the file.
+ * After the last chunk: the file is complete.
  */
 
-                                                                                        export namespace FileTransfer_Success{
+                                                                                        export namespace FileTransfer_Done{
                                                                                             export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                                             export interface Handler{
                                                                                                 received(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
@@ -1639,22 +1614,47 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         }
                                                                                         
                                                                                         /**
- * Always before any `Data`.
+ * The shape of the pointer: the viewer draws it itself, so the pointer moves without waiting for video.
  */
 
-                                                                                        export namespace FileTransfer_Metadata{
-                                                                                            export type fn = (  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export namespace Machine_CursorShape{
+                                                                                            export type fn = (  pack:Viewer.Machine_.CursorShape,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                                             export interface Handler{
-                                                                                                received(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                                received(  pack:Viewer.Machine_.CursorShape,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                             }
                                                                                             
                                                                                             export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                                received(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                received(  pack:Viewer.Machine_.CursorShape,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                     if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                     this.beginDispatch();
                                                                                                     try {
                                                                                                         for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
                                                                                                         for( const handler of this.interfaces ) handler.received( pack,    conn, actor   , transmitter_ );
+                                                                                                    } finally { this.endDispatch();}
+                                                                                                }
+                                                                                            }
+                                                                                            export const handlers = new Event_();
+                                                                                            export const notify: fn = handlers.received.bind(handlers);
+                                                                                        
+                                                                                        }
+                                                                                        
+                                                                                        /**
+ * The viewer's microphone cannot be played on the machine: its sound device failed.
+ */
+
+                                                                                        export namespace Machine_MicrophoneError{
+                                                                                            export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                            export interface Handler{
+                                                                                                received(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                            }
+                                                                                            
+                                                                                            export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                                received(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                    if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                    this.beginDispatch();
+                                                                                                    try {
+                                                                                                        for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
+                                                                                                        for( const handler of this.interfaces ) handler.received(   conn, actor   , transmitter_ );
                                                                                                     } finally { this.endDispatch();}
                                                                                                 }
                                                                                             }
@@ -1670,65 +1670,14 @@ case Viewer.FileTransfer.Error.__id:
                                                                                     
     
                                                                                     /**
- * The viewer's microphone played on the machine, or not. The newest request holds; when the machine cannot play it, it
- * answers `MicrophoneError`.
+ * ── rights ──
+ *
+ * The operator asks for the rights of an administrator: the user of the machine confirms in the prompt of UAC, and the
+ * program of the machine starts again as administrator - its input then reaches the windows of programs run as
+ * administrator. The machine answers `Elevation`.
  */
 
-                                                                                    export namespace Viewer_MicrophoneControl{
-                                                                                        export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.MicrophoneControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.MicrophoneControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.MicrophoneControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * The transfer is aborted: by an error or by the user.
- */
-
-                                                                                    export namespace FileTransfer_Error{
-                                                                                        export interface Handler{ 
-                                                                                             serialized( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = ( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * The decoder of the viewer needs a key frame: it starts, or lost its state.
- */
-
-                                                                                    export namespace Viewer_KeyframeRequest{
+                                                                                    export namespace Viewer_ElevationRequest{
                                                                                         export interface Handler{ 
                                                                                              serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
@@ -1741,88 +1690,6 @@ case Viewer.FileTransfer.Error.__id:
                                                                                                 try {
                                                                                                     for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
                                                                                                     for( const handler of this.interfaces ) handler.serialized(   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * The pointer moved: a point on a display.
- */
-
-                                                                                    export namespace Viewer_MouseMove{
-                                                                                        export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.MouseMove,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseMove,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.MouseMove,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * The machine's sound on or off.
- */
-
-                                                                                    export namespace Viewer_AudioControl{
-                                                                                        export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.AudioControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.AudioControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.AudioControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * One packet of sound, 20 ms: the machine's to the viewer, 48 kHz stereo; the viewer's microphone to the machine, 48 kHz mono.
- * 16-bit signed samples, little endian, the channels interleaved.
- */
-
-                                                                                    export namespace AudioPacket{
-                                                                                        export interface Handler{ 
-                                                                                             serialized(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = (  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,    conn, actor   , transmitter_ );
                                                                                                 } finally { this.endDispatch();}
                                                                                             }
                                                                                         }
@@ -1864,44 +1731,18 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * After the last chunk: the file is complete.
+ * Milliseconds of the viewer's clock, sent before a burst of input: the machine returns the last one in
+ * `VideoPacket.latest_event_ms` of the first frame captured after it - the viewer sees how long input takes to show.
  */
 
-                                                                                    export namespace FileTransfer_Done{
+                                                                                    export namespace Viewer_EventTime{
                                                                                         export interface Handler{ 
-                                                                                             serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                             serialized( pack:Viewer.Viewer_.EventTime,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
-                                                                                        export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export type fn = ( pack:Viewer.Viewer_.EventTime,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                             
                                                                                         export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized(   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * The wheel, in 120ths of a notch, as the event would scroll on the viewer: positive - away from the user, up or right.
- */
-
-                                                                                    export namespace Viewer_MouseWheel{
-                                                                                        export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.MouseWheel,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseWheel,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.MouseWheel,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                            serialized( pack:Viewer.Viewer_.EventTime,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                 if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                 this.beginDispatch();
                                                                                                 try {
@@ -1918,50 +1759,22 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * A frame was shown. Sent for every frame, in the order the frames came: the machine sends the next frames as the
- * earlier ones are acknowledged.
+ * Which display to show.
  */
 
-                                                                                    export namespace Viewer_VideoAck{
+                                                                                    export namespace Viewer_SelectDisplay{
                                                                                         export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.VideoAck,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                             serialized( pack:Viewer.Viewer_.SelectDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.VideoAck,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export type fn = ( pack:Viewer.Viewer_.SelectDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                             
                                                                                         export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.VideoAck,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                            serialized( pack:Viewer.Viewer_.SelectDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                 if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                 this.beginDispatch();
                                                                                                 try {
                                                                                                     for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
                                                                                                     for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * Text of an input method other than a physical keyboard: a soft keyboard, gesture typing, voice input.
- */
-
-                                                                                    export namespace Viewer_TextEvent{
-                                                                                        export interface Handler{ 
-                                                                                             serialized(  pack:Viewer.Viewer_.TextEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = (  pack:Viewer.Viewer_.TextEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(  pack:Viewer.Viewer_.TextEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,    conn, actor   , transmitter_ );
                                                                                                 } finally { this.endDispatch();}
                                                                                             }
                                                                                         }
@@ -2027,112 +1840,6 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * The viewer takes the control of the machine: from now on its input goes there, and the input of the other viewers does
- * not. Every viewer sees the screen; one controls it. The machine answers every viewer with `Audience`.
- */
-
-                                                                                    export namespace Viewer_TakeControl{
-                                                                                        export interface Handler{ 
-                                                                                             serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized(   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    
-                                                                                    export namespace Viewer_TouchEvent{
-                                                                                        export interface Handler{ 
-                                                                                             serialized(  pack:Viewer.Viewer_.TouchEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = (  pack:Viewer.Viewer_.TouchEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(  pack:Viewer.Viewer_.TouchEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,    conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * The pointer moved by this much, in pixels of the viewer: the pointer is locked in the page.
- */
-
-                                                                                    export namespace Viewer_MouseDelta{
-                                                                                        export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.MouseDelta,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseDelta,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.MouseDelta,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
- * The viewer asks for a file of the machine: the user of the machine picks it.
- */
-
-                                                                                    export namespace FileTransfer_RequestTransfer{
-                                                                                        export interface Handler{ 
-                                                                                             serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
-                                                                                        }
-                                                                                        export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
-                                                                            
-                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
-                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
-                                                                                                this.beginDispatch();
-                                                                                                try {
-                                                                                                    for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
-                                                                                                    for( const handler of this.interfaces ) handler.serialized(   conn, actor   , transmitter_ );
-                                                                                                } finally { this.endDispatch();}
-                                                                                            }
-                                                                                        }
-                                                                                        export const handlers = new Event_();
-                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
-                                                                                        
-                                                                                        
-                                                                                        }
-                                                                                        
-    
-                                                                                    /**
  * Video on or off - off while the viewer's page is not seen - and the most frames a second. A field left out stays as it is.
  */
 
@@ -2160,17 +1867,41 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * Which display to show.
+ * Always before any `Data`.
  */
 
-                                                                                    export namespace Viewer_SelectDisplay{
+                                                                                    export namespace FileTransfer_Metadata{
                                                                                         export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.SelectDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                             serialized(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.SelectDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export type fn = (  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                             
                                                                                         export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.SelectDisplay,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                            serialized(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,    conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    
+                                                                                    export namespace Viewer_MouseButton{
+                                                                                        export interface Handler{ 
+                                                                                             serialized( pack:Viewer.Viewer_.MouseButton,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseButton,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized( pack:Viewer.Viewer_.MouseButton,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                 if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                 this.beginDispatch();
                                                                                                 try {
@@ -2187,14 +1918,68 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * ── rights ──
+ * ── marks ──
  *
- * The operator asks for the rights of an administrator: the user of the machine confirms in the prompt of UAC, and the
- * program of the machine starts again as administrator - its input then reaches the windows of programs run as
- * administrator. The machine answers `Elevation`.
+ * A mark the viewer draws over the screen of the machine for its user - where to tap, which field: it shows at once and
+ * fades by itself. Sent as it is drawn: each pack carries the points added to its stroke since the last one. Any viewer
+ * draws, not only the one that controls.
  */
 
-                                                                                    export namespace Viewer_ElevationRequest{
+                                                                                    export namespace Viewer_Mark{
+                                                                                        export interface Handler{ 
+                                                                                             serialized(  pack:Viewer.Viewer_.Mark,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = (  pack:Viewer.Viewer_.Mark,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized(  pack:Viewer.Viewer_.Mark,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,    conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * The transfer is aborted: by an error or by the user.
+ */
+
+                                                                                    export namespace FileTransfer_Error{
+                                                                                        export interface Handler{ 
+                                                                                             serialized( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = ( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized( pack:Viewer.FileTransfer.Error,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * The decoder of the viewer needs a key frame: it starts, or lost its state.
+ */
+
+                                                                                    export namespace Viewer_KeyframeRequest{
                                                                                         export interface Handler{ 
                                                                                              serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
@@ -2248,21 +2033,46 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * ── marks ──
- *
- * A mark the viewer draws over the screen of the machine for its user - where to tap, which field: it shows at once and
- * fades by itself. Sent as it is drawn: each pack carries the points added to its stroke since the last one. Any viewer
- * draws, not only the one that controls.
+ * A frame was shown. Sent for every frame, in the order the frames came: the machine sends the next frames as the
+ * earlier ones are acknowledged.
  */
 
-                                                                                    export namespace Viewer_Mark{
+                                                                                    export namespace Viewer_VideoAck{
                                                                                         export interface Handler{ 
-                                                                                             serialized(  pack:Viewer.Viewer_.Mark,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                             serialized( pack:Viewer.Viewer_.VideoAck,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
-                                                                                        export type fn = (  pack:Viewer.Viewer_.Mark,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export type fn = ( pack:Viewer.Viewer_.VideoAck,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                             
                                                                                         export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(  pack:Viewer.Viewer_.Mark,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                            serialized( pack:Viewer.Viewer_.VideoAck,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * One packet of sound, 20 ms: the machine's to the viewer, 48 kHz stereo; the viewer's microphone to the machine, 48 kHz mono.
+ * 16-bit signed samples, little endian, the channels interleaved.
+ */
+
+                                                                                    export namespace AudioPacket{
+                                                                                        export interface Handler{ 
+                                                                                             serialized(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = (  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized(  pack:Viewer.AudioPacket,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                 if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                 this.beginDispatch();
                                                                                                 try {
@@ -2279,23 +2089,49 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * Milliseconds of the viewer's clock, sent before a burst of input: the machine returns the last one in
- * `VideoPacket.latest_event_ms` of the first frame captured after it - the viewer sees how long input takes to show.
+ * The wheel, in 120ths of a notch, as the event would scroll on the viewer: positive - away from the user, up or right.
  */
 
-                                                                                    export namespace Viewer_EventTime{
+                                                                                    export namespace Viewer_MouseWheel{
                                                                                         export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.EventTime,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                             serialized( pack:Viewer.Viewer_.MouseWheel,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.EventTime,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseWheel,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                             
                                                                                         export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.EventTime,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                            serialized( pack:Viewer.Viewer_.MouseWheel,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                 if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                 this.beginDispatch();
                                                                                                 try {
                                                                                                     for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
                                                                                                     for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * Text of an input method other than a physical keyboard: a soft keyboard, gesture typing, voice input.
+ */
+
+                                                                                    export namespace Viewer_TextEvent{
+                                                                                        export interface Handler{ 
+                                                                                             serialized(  pack:Viewer.Viewer_.TextEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = (  pack:Viewer.Viewer_.TextEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized(  pack:Viewer.Viewer_.TextEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,    conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,    conn, actor   , transmitter_ );
                                                                                                 } finally { this.endDispatch();}
                                                                                             }
                                                                                         }
@@ -2333,15 +2169,18 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         }
                                                                                         
     
-                                                                                    
-                                                                                    export namespace Viewer_MouseButton{
+                                                                                    /**
+ * The pointer moved by this much, in pixels of the viewer: the pointer is locked in the page.
+ */
+
+                                                                                    export namespace Viewer_MouseDelta{
                                                                                         export interface Handler{ 
-                                                                                             serialized( pack:Viewer.Viewer_.MouseButton,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                             serialized( pack:Viewer.Viewer_.MouseDelta,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
-                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseButton,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseDelta,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                             
                                                                                         export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized( pack:Viewer.Viewer_.MouseButton,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                            serialized( pack:Viewer.Viewer_.MouseDelta,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                 if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                 this.beginDispatch();
                                                                                                 try {
@@ -2358,17 +2197,178 @@ case Viewer.FileTransfer.Error.__id:
                                                                                         
     
                                                                                     /**
- * Always before any `Data`.
+ * After the last chunk: the file is complete.
  */
 
-                                                                                    export namespace FileTransfer_Metadata{
+                                                                                    export namespace FileTransfer_Done{
                                                                                         export interface Handler{ 
-                                                                                             serialized(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                             serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
                                                                                         }
-                                                                                        export type fn = (  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                                        export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
                                                                             
                                                                                         export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
-                                                                                            serialized(  pack:Viewer.FileTransfer.Metadata,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                            serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized(   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * The machine's sound on or off.
+ */
+
+                                                                                    export namespace Viewer_AudioControl{
+                                                                                        export interface Handler{ 
+                                                                                             serialized( pack:Viewer.Viewer_.AudioControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = ( pack:Viewer.Viewer_.AudioControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized( pack:Viewer.Viewer_.AudioControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * The viewer asks for a file of the machine: the user of the machine picks it.
+ */
+
+                                                                                    export namespace FileTransfer_RequestTransfer{
+                                                                                        export interface Handler{ 
+                                                                                             serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized(   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * The pointer moved: a point on a display.
+ */
+
+                                                                                    export namespace Viewer_MouseMove{
+                                                                                        export interface Handler{ 
+                                                                                             serialized( pack:Viewer.Viewer_.MouseMove,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = ( pack:Viewer.Viewer_.MouseMove,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized( pack:Viewer.Viewer_.MouseMove,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * The viewer takes the control of the machine: from now on its input goes there, and the input of the other viewers does
+ * not. Every viewer sees the screen; one controls it. The machine answers every viewer with `Audience`.
+ */
+
+                                                                                    export namespace Viewer_TakeControl{
+                                                                                        export interface Handler{ 
+                                                                                             serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = (   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized(   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler(   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized(   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    /**
+ * The viewer's microphone played on the machine, or not. The newest request holds; when the machine cannot play it, it
+ * answers `MicrophoneError`.
+ */
+
+                                                                                    export namespace Viewer_MicrophoneControl{
+                                                                                        export interface Handler{ 
+                                                                                             serialized( pack:Viewer.Viewer_.MicrophoneControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = ( pack:Viewer.Viewer_.MicrophoneControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized( pack:Viewer.Viewer_.MicrophoneControl,   conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
+                                                                                                if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
+                                                                                                this.beginDispatch();
+                                                                                                try {
+                                                                                                    for( const handler of this.functions )  handler( pack,   conn, actor   , transmitter_ );
+                                                                                                    for( const handler of this.interfaces ) handler.serialized( pack,   conn, actor   , transmitter_ );
+                                                                                                } finally { this.endDispatch();}
+                                                                                            }
+                                                                                        }
+                                                                                        export const handlers = new Event_();
+                                                                                        export const notify: fn = handlers.serialized.bind(handlers);
+                                                                                        
+                                                                                        
+                                                                                        }
+                                                                                        
+    
+                                                                                    
+                                                                                    export namespace Viewer_TouchEvent{
+                                                                                        export interface Handler{ 
+                                                                                             serialized(  pack:Viewer.Viewer_.TouchEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter  ):void;
+                                                                                        }
+                                                                                        export type fn = (  pack:Viewer.Viewer_.TouchEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ) => void;
+                                                                            
+                                                                                        export class Event_ extends AdHoc.Event< fn, Handler> implements Handler{
+                                                                                            serialized(  pack:Viewer.Viewer_.TouchEvent,  conn:Connection, actor:Actor0   , transmitter_:State.Working.Transmitter ): void{
                                                                                                 if( this.functions.size === 0 && this.interfaces.size === 0 ) return;
                                                                                                 this.beginDispatch();
                                                                                                 try {

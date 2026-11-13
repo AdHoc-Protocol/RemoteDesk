@@ -44,6 +44,11 @@ struct Java {
     mark_show:   jmethodID,
     mark_fade:   jmethodID,
     mark_gone:   jmethodID,
+    action:      jmethodID,
+    press:       jmethodID,
+    type_text:   jmethodID,
+    touch:       jmethodID,
+    scroll:      jmethodID,
 }
 
 // SAFETY: the VM, a global reference and the ids of methods are for every thread
@@ -223,6 +228,11 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_start(env: *mut J
         mark_show: method(env, class, "markShow", "(IIIIILjava/nio/ByteBuffer;F)V"),
         mark_fade: method(env, class, "markFade", "(IF)V"),
         mark_gone: method(env, class, "markGone", "(I)V"),
+        action: method(env, class, "action", "(I)Z"),
+        press: method(env, class, "press", "(II)Z"),
+        type_text: method(env, class, "typeText", "([B)Z"),
+        touch: method(env, class, "touch", "(IIFF)Z"),
+        scroll: method(env, class, "scroll", "(FFFF)Z"),
     });
     let mut args = Vec::new();
     let n = ((**env).v1_6.GetArrayLength)(env, arguments);
@@ -349,3 +359,38 @@ fn mark_show(id: jint, x: i32, y: i32, width: u32, height: u32, pixels: &[u8], a
 fn mark_fade(id: jint, alpha: f32) { void(|j| j.mark_fade, &[jvalue { i: id }, jvalue { f: alpha }]); }
 
 fn mark_gone(id: jint) { void(|j| j.mark_gone, &[jvalue { i: id }]); }
+
+// ── the input, by the service of accessibility of the app: false - it is not on ──
+
+/// A static boolean method of Host with these arguments: false - it did not take it.
+fn boolean(method: impl Fn(&Java) -> jmethodID, args: &[jvalue]) -> bool {
+    with(|env, java| unsafe { ((**env).v1_6.CallStaticBooleanMethodA)(env, java.host, method(java), args.as_ptr()) }).unwrap_or(false)
+}
+
+/// `Host.action( which )`: Back, Home or Recents.
+fn action(which: jint) -> bool { boolean(|j| j.action, &[jvalue { i: which }]) }
+
+/// `Host.press( keycode, meta )`: a key of Android to the field in focus.
+fn press(code: jint, meta: jint) -> bool { boolean(|j| j.press, &[jvalue { i: code }, jvalue { i: meta }]) }
+
+/// `Host.typeText( text )`: into the field in focus.
+fn type_text(text: &str) -> bool {
+    with(|env, java| unsafe {
+        let a = bytes(env, text.as_bytes());
+        let args = [jvalue { l: a }];
+        let done = ((**env).v1_6.CallStaticBooleanMethodA)(env, java.host, java.type_text, args.as_ptr());
+        ((**env).v1_6.DeleteLocalRef)(env, a);
+        done
+    })
+    .unwrap_or(false)
+}
+
+/// `Host.touch( finger, phase, x, y )`: a finger down, moved, up or canceled, pixels of the screen; finger -1 - all of them up.
+fn touch(finger: jint, phase: jint, x: f32, y: f32) -> bool {
+    boolean(|j| j.touch, &[jvalue { i: finger }, jvalue { i: phase }, jvalue { f: x }, jvalue { f: y }])
+}
+
+/// `Host.scroll( x, y, dx, dy )`: notches of the wheel at a point of the screen.
+fn scroll(x: f32, y: f32, dx: f32, dy: f32) -> bool {
+    boolean(|j| j.scroll, &[jvalue { f: x }, jvalue { f: y }, jvalue { f: dx }, jvalue { f: dy }])
+}
