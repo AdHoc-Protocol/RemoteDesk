@@ -4,7 +4,9 @@
 // it on Enter.
 //
 // Typed is only what cannot be chosen: the meeting point and its password, the first time. Started with arguments, or without a
-// console to ask in ( a service, a script ), the program does as it is told and asks nothing.
+// console to ask in ( a service, a script ), the program does as it is told and asks nothing. On a phone the app is the menu
+// ( `given` ): the questions below are of a computer only.
+#![cfg_attr(target_os = "android", allow(dead_code, unused_imports))]
 
 use crate::console::paint;
 use crossterm::style::Color;

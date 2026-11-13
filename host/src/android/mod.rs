@@ -57,7 +57,7 @@ impl Drop for Attached {
     fn drop(&mut self) {
         if self.ours {
             if let Some(java) = JAVA.get() {
-                unsafe { ((**java.vm).DetachCurrentThread)(java.vm) };
+                unsafe { ((**java.vm).v1_4.DetachCurrentThread)(java.vm) };
             }
         }
     }
@@ -71,10 +71,10 @@ fn attach() -> Attached {
     let Some(java) = JAVA.get() else { return Attached { env: null_mut(), ours: false } };
     let mut env: *mut c_void = null_mut();
     unsafe {
-        if ((**java.vm).GetEnv)(java.vm, &mut env, JNI_VERSION_1_6) == JNI_OK {
+        if ((**java.vm).v1_4.GetEnv)(java.vm, &mut env, JNI_VERSION_1_6) == JNI_OK {
             return Attached { env: env as *mut JNIEnv, ours: false }; // a thread of the app
         }
-        if ((**java.vm).AttachCurrentThread)(java.vm, &mut env, null_mut()) == JNI_OK {
+        if ((**java.vm).v1_4.AttachCurrentThread)(java.vm, &mut env, null_mut()) == JNI_OK {
             return Attached { env: env as *mut JNIEnv, ours: true };
         }
     }
@@ -91,9 +91,9 @@ fn with<T>(f: impl FnOnce(*mut JNIEnv, &Java) -> T) -> Option<T> {
     let result = f(env, java);
     unsafe {
         // what the app threw is its own: written to its log, the host goes on
-        if ((**env).ExceptionCheck)(env) {
-            ((**env).ExceptionDescribe)(env);
-            ((**env).ExceptionClear)(env);
+        if ((**env).v1_6.ExceptionCheck)(env) {
+            ((**env).v1_6.ExceptionDescribe)(env);
+            ((**env).v1_6.ExceptionClear)(env);
         }
     }
     Some(result)
@@ -101,9 +101,9 @@ fn with<T>(f: impl FnOnce(*mut JNIEnv, &Java) -> T) -> Option<T> {
 
 /// `data` as a byte[] of Java: a local reference, let go by the caller.
 unsafe fn bytes(env: *mut JNIEnv, data: &[u8]) -> jbyteArray {
-    let array = ((**env).NewByteArray)(env, data.len() as jint);
+    let array = ((**env).v1_6.NewByteArray)(env, data.len() as jint);
     if !array.is_null() {
-        ((**env).SetByteArrayRegion)(env, array, 0, data.len() as jint, data.as_ptr() as *const i8);
+        ((**env).v1_6.SetByteArrayRegion)(env, array, 0, data.len() as jint, data.as_ptr() as *const i8);
     }
     array
 }
@@ -113,15 +113,15 @@ unsafe fn text(env: *mut JNIEnv, array: jbyteArray) -> String {
     if array.is_null() {
         return String::new();
     }
-    let n = ((**env).GetArrayLength)(env, array).max(0) as usize;
+    let n = ((**env).v1_6.GetArrayLength)(env, array).max(0) as usize;
     let mut data = vec![0u8; n];
-    ((**env).GetByteArrayRegion)(env, array, 0, n as jint, data.as_mut_ptr() as *mut i8);
+    ((**env).v1_6.GetByteArrayRegion)(env, array, 0, n as jint, data.as_mut_ptr() as *mut i8);
     String::from_utf8(data).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
 }
 
 /// A static void method of Host with these arguments.
 fn void(method: impl Fn(&Java) -> jmethodID, args: &[jvalue]) {
-    with(|env, java| unsafe { ((**env).CallStaticVoidMethodA)(env, java.host, method(java), args.as_ptr()) });
+    with(|env, java| unsafe { ((**env).v1_6.CallStaticVoidMethodA)(env, java.host, method(java), args.as_ptr()) });
 }
 
 /// A static method of Host with text arguments, the byte[] let go after.
@@ -136,10 +136,10 @@ fn void_texts(method: impl Fn(&Java) -> jmethodID, first: &str, tone: Option<jin
         if second.is_some() {
             args.push(jvalue { l: b });
         }
-        ((**env).CallStaticVoidMethodA)(env, java.host, method(java), args.as_ptr());
-        ((**env).DeleteLocalRef)(env, a);
+        ((**env).v1_6.CallStaticVoidMethodA)(env, java.host, method(java), args.as_ptr());
+        ((**env).v1_6.DeleteLocalRef)(env, a);
         if !b.is_null() {
-            ((**env).DeleteLocalRef)(env, b);
+            ((**env).v1_6.DeleteLocalRef)(env, b);
         }
     });
 }
@@ -187,7 +187,7 @@ fn guarded(what: &str, f: impl FnOnce()) {
 unsafe fn method(env: *mut JNIEnv, class: jclass, name: &str, signature: &str) -> jmethodID {
     let n = CString::new(name).unwrap();
     let s = CString::new(signature).unwrap();
-    ((**env).GetStaticMethodID)(env, class, n.as_ptr(), s.as_ptr())
+    ((**env).v1_6.GetStaticMethodID)(env, class, n.as_ptr(), s.as_ptr())
 }
 
 /// `Host.start( way, arguments, name, crypto, downloads )`: the way chosen in the app ( 0 - this network … 3 - directly ), the arguments of
@@ -198,10 +198,10 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_start(env: *mut J
         return; // one host a process
     }
     let mut vm: *mut JavaVM = null_mut();
-    if ((**env).GetJavaVM)(env, &mut vm) != JNI_OK {
+    if ((**env).v1_6.GetJavaVM)(env, &mut vm) != JNI_OK {
         return;
     }
-    let host = ((**env).NewGlobalRef)(env, class);
+    let host = ((**env).v1_6.NewGlobalRef)(env, class);
     let _ = JAVA.set(Java {
         vm,
         host,
@@ -216,11 +216,11 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_start(env: *mut J
         sound_stop: method(env, class, "soundStop", "()V"),
     });
     let mut args = Vec::new();
-    let n = ((**env).GetArrayLength)(env, arguments);
+    let n = ((**env).v1_6.GetArrayLength)(env, arguments);
     for i in 0..n {
-        let a = ((**env).GetObjectArrayElement)(env, arguments, i);
+        let a = ((**env).v1_6.GetObjectArrayElement)(env, arguments, i);
         args.push(text(env, a));
-        ((**env).DeleteLocalRef)(env, a);
+        ((**env).v1_6.DeleteLocalRef)(env, a);
     }
     // the name the viewers see, and where the library of encryption lies: as a computer has them in its environment
     std::env::set_var("COMPUTERNAME", text(env, name));
@@ -249,7 +249,7 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_screen(_env: *mut
 /// `Host.unit( buffer, offset, size, flags )`: what the encoder gave - a direct ByteBuffer of MediaCodec, its flags.
 #[no_mangle]
 pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_unit(env: *mut JNIEnv, _class: jclass, buffer: jobject, offset: jint, size: jint, flags: jint) {
-    let at = ((**env).GetDirectBufferAddress)(env, buffer) as *const u8;
+    let at = ((**env).v1_6.GetDirectBufferAddress)(env, buffer) as *const u8;
     if at.is_null() || offset < 0 || size <= 0 {
         return;
     }
@@ -266,7 +266,7 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_ended(_env: *mut 
 /// `Host.sound( buffer, size )`: what the phone played - a direct ByteBuffer, 48 kHz stereo, 16-bit little endian.
 #[no_mangle]
 pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_sound(env: *mut JNIEnv, _class: jclass, buffer: jobject, size: jint) {
-    let at = ((**env).GetDirectBufferAddress)(env, buffer) as *const u8;
+    let at = ((**env).v1_6.GetDirectBufferAddress)(env, buffer) as *const u8;
     if at.is_null() || size <= 0 {
         return;
     }
@@ -294,7 +294,7 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_answer(env: *mut 
 fn video_start(fps: u32, bitrate: u32) -> Option<(u32, u32)> {
     let packed = with(|env, java| unsafe {
         let args = [jvalue { i: fps as jint }, jvalue { i: bitrate.min(i32::MAX as u32) as jint }];
-        ((**env).CallStaticLongMethodA)(env, java.host, java.video_start, args.as_ptr())
+        ((**env).v1_6.CallStaticLongMethodA)(env, java.host, java.video_start, args.as_ptr())
     })?;
     let packed = packed as u64; // width << 32 | height
     (packed != 0).then_some(((packed >> 32) as u32, packed as u32))
@@ -308,15 +308,15 @@ fn set_clip(text: &str) -> bool {
     with(|env, java| unsafe {
         let a = bytes(env, text.as_bytes());
         let args = [jvalue { l: a }];
-        let done = ((**env).CallStaticBooleanMethodA)(env, java.host, java.set_clip, args.as_ptr());
-        ((**env).DeleteLocalRef)(env, a);
+        let done = ((**env).v1_6.CallStaticBooleanMethodA)(env, java.host, java.set_clip, args.as_ptr());
+        ((**env).v1_6.DeleteLocalRef)(env, a);
         done
     })
     .unwrap_or(false)
 }
 
 fn sound_start() -> bool {
-    with(|env, java| unsafe { ((**env).CallStaticBooleanMethodA)(env, java.host, java.sound_start, [].as_ptr()) }).unwrap_or(false)
+    with(|env, java| unsafe { ((**env).v1_6.CallStaticBooleanMethodA)(env, java.host, java.sound_start, [].as_ptr()) }).unwrap_or(false)
 }
 
 fn sound_stop() { void(|j| j.sound_stop, &[]); }
