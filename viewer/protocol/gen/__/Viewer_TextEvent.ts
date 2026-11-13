@@ -17,7 +17,6 @@
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
                                                         import Uint8List from "../../lib/collections/Uint8List";
-import Uint16List from "../../lib/collections/Uint16List";
                                                         
                                                         /**
  * Text of an input method other than a physical keyboard: a soft keyboard, gesture typing, voice input.

@@ -65,6 +65,19 @@ use crate::gen::__::*;
                                      
 
 //#endregion
+//#region no_input
+
+
+                                            #[inline] pub fn no_input( &self ) -> bool { 
+
+                                                let __value = ( self._bits0 >> 5 ) & 0x1;
+                                                ( __value ) != 0
+                                            }
+                                            /// Sets the field value.
+                                            #[inline] pub fn set_no_input( &mut self, value: bool ) { self._bits0 = ( self._bits0 as u64 & 0xDF | ( ( ( ( value ) as u8 ) ) as u64 ) << 5 ) as u8; }
+                                     
+
+//#endregion
 
                                                         }
 
@@ -124,6 +137,11 @@ self.controller.hash( __h );
                              
 //#region yours
                             __dst.put_bits( ( ( ( self._bits0 >> 4 ) & 0x1 ) ) as u32, 1 );
+
+//#endregion
+                             
+//#region no_input
+                            __dst.put_bits( ( ( ( self._bits0 >> 5 ) & 0x1 ) ) as u32, 1 );
 
 //#endregion
                              

@@ -109,6 +109,7 @@ class HostService : Service() {
             File(applicationInfo.nativeLibraryDir, "libadhoc-crypto-0.1.so").path.toByteArray(),
             downloads.path.toByteArray(),
         )
+        Host.control(ControlService.running != null)
         return START_NOT_STICKY
     }
 

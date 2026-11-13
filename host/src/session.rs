@@ -379,9 +379,14 @@ fn announce(audience: &[In]) {
         told.set_watchers(audience.len() as u8);
         told.set_yours(is_controller(v));
         told.controller = Some(name.to_owned());
+        told.set_no_input(!crate::os::input::taken());
         actor0::working::transmitter::send_machine_audience(told, &v.conn);
     }
 }
+
+/// The machine began or stopped taking input ( a phone: its user turned the control on or off ): every viewer is told.
+#[allow(dead_code)] // of a phone only: a computer always takes it
+pub fn input_changed() { announce(&AUDIENCE.lock().unwrap()); }
 
 /// The `Arc` of a connection a handler sees by reference: it was seated by `on_connect`.
 fn arc_of(conn: &Connection) -> Option<Arc<Connection>> {

@@ -390,6 +390,12 @@ namespace org.unirail.RemoteDesk
                 [MinMax(1, 16)] byte watchers;   // the viewers in, this one among them
                 bool                 yours;      // this viewer controls the machine
                 [D(+64)] string      controller; // the name of the viewer that controls
+
+                /// <summary>
+                /// The machine takes no input now: a phone whose user has not let RemoteDesk control it yet ( its service of accessibility
+                /// is off ). Sent again when that changes; the viewer that controls only watches until then.
+                /// </summary>
+                bool                 no_input;
             }
 
             // ── video ──

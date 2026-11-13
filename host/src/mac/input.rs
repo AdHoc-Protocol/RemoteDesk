@@ -31,6 +31,9 @@ struct State {
 
 static STATE: Mutex<State> = Mutex::new(State { flags: 0, buttons: [false; 3], at: CGPoint { x: 0.0, y: 0.0 }, click: (None, CGPoint { x: 0.0, y: 0.0 }, 0, 0), wheel: (0.0, 0.0), touch: None });
 
+/// A computer takes the input always.
+pub fn taken() -> bool { true }
+
 pub fn set_displays(displays: &[Display]) { *DISPLAYS.lock().unwrap() = displays.to_vec(); }
 
 fn post(event: Option<CFRetained<CGEvent>>, flags: u64) {

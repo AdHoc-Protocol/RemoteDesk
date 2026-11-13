@@ -16,7 +16,7 @@
                                                         import N from "../../lib/Network";
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
-                                                        
+                                                        import Uint8List from "../../lib/collections/Uint8List";
                                                         
                                                         /**
  * ── login ──

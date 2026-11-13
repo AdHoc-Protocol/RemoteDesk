@@ -44,10 +44,22 @@ fn pixels(at: FractionalCoordinate) -> (f32, f32) {
 }
 
 /// The service of accessibility did not take it: the viewer is told once.
-fn taken(done: bool) {
+fn tried(done: bool) {
     static TOLD: std::sync::Once = std::sync::Once::new();
     if !done {
         TOLD.call_once(|| say!("✋", Warn, "The phone takes no input until its user lets RemoteDesk control it: the app shows the way"));
+    }
+}
+
+/// The service of accessibility is on: the phone takes the input ( `Host.control` ).
+static TAKEN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn taken() -> bool { TAKEN.load(std::sync::atomic::Ordering::Relaxed) }
+
+/// The user of the phone turned the control on or off: the viewers are told.
+pub fn control(on: bool) {
+    if TAKEN.swap(on, std::sync::atomic::Ordering::Relaxed) != on {
+        crate::session::input_changed();
     }
 }
 
@@ -77,7 +89,7 @@ pub fn key(k: &Key, down: bool) {
             None => return,
         },
     };
-    taken(done);
+    tried(done);
 }
 
 /// The KeyEvent of Android of a USB HID usage: the keys of editing, and letters and digits for the shortcuts.
@@ -103,7 +115,7 @@ fn keycode(usb: u32) -> Option<i32> {
     })
 }
 
-pub fn text(text: &str) { taken(super::type_text(text)); }
+pub fn text(text: &str) { tried(super::type_text(text)); }
 
 /// The mouse moves: a finger, while its button is down - a phone has no pointer that hovers.
 pub fn move_to(at: FractionalCoordinate) {
@@ -133,15 +145,15 @@ pub fn button(b: Viewer_MouseButton_Button, down: bool) {
             s.down = down;
             let at = s.at;
             drop(s);
-            taken(super::touch(MOUSE, if down { DOWN } else { UP }, at.0, at.1));
+            tried(super::touch(MOUSE, if down { DOWN } else { UP }, at.0, at.1));
         }
         Viewer_MouseButton_Button::RIGHT | Viewer_MouseButton_Button::BACK if down => {
             drop(s);
-            taken(super::action(BACK));
+            tried(super::action(BACK));
         }
         Viewer_MouseButton_Button::MIDDLE if down => {
             drop(s);
-            taken(super::action(HOME));
+            tried(super::action(HOME));
         }
         _ => {}
     }
@@ -153,7 +165,7 @@ pub fn delta(_dx: i32, _dy: i32) {}
 /// The wheel, notches: a short swipe where the mouse is - up, the content goes down, as a finger moves it.
 pub fn wheel(x: f32, y: f32) {
     let at = STATE.lock().unwrap().at;
-    taken(super::scroll(at.0, at.1, x, y));
+    tried(super::scroll(at.0, at.1, x, y));
 }
 
 pub fn touch(event: &Viewer_TouchEvent) {
@@ -165,7 +177,7 @@ pub fn touch(event: &Viewer_TouchEvent) {
     };
     for p in event.points.iter().flatten() {
         let (x, y) = pixels(p.at);
-        taken(super::touch(1 + p.id() as i32, phase, x, y));
+        tried(super::touch(1 + p.id() as i32, phase, x, y));
     }
 }
 

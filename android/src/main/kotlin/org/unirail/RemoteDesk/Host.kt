@@ -24,6 +24,9 @@ object Host {
     /** What the encoder gave: a direct buffer of MediaCodec, its flags. */
     @JvmStatic external fun unit(buffer: ByteBuffer, offset: Int, size: Int, flags: Int)
 
+    /** The service of the control is on, or off: the phone takes the input of the page, or not. */
+    @JvmStatic external fun control(on: Boolean)
+
     /** The phone stopped showing the screen. */
     @JvmStatic external fun ended()
 

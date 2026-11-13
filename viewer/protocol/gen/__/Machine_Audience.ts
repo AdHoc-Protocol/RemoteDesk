@@ -16,8 +16,7 @@
                                                         import N from "../../lib/Network";
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
-                                                        import Uint8List from "../../lib/collections/Uint8List";
-import Uint16List from "../../lib/collections/Uint16List";
+                                                        
                                                         
                                                         /**
  * Who watches the machine and who controls it, as the viewer it goes to sees it: sent to every viewer when it changes. The
@@ -48,6 +47,23 @@ set  yours(  src:boolean ) { this.#bits0 = this.#bits0 & 0xFFFF_FFEF | (( src ? 
 //#region controller
 
   controller:(string | undefined) = undefined //the name of the viewer that controls
+
+
+//#endregion
+//#region no_input
+
+/**
+ * The machine takes no input now: a phone whose user has not let RemoteDesk control it yet ( its service of accessibility
+ * is off ). Sent again when that changes; the viewer that controls only watches until then.
+ */
+get no_input():boolean { 
+ const value = <any>(this.#bits0  >>> 5 & 0x1)
+ return ( value !== 0 );}
+/**
+ * The machine takes no input now: a phone whose user has not let RemoteDesk control it yet ( its service of accessibility
+ * is off ). Sent again when that changes; the viewer that controls only watches until then.
+ */
+set  no_input(  src:boolean ) { this.#bits0 = this.#bits0 & 0xFFFF_FFDF | (( src ? 1 : 0 )  << 5 ); } 
 
 
 //#endregion
@@ -125,18 +141,27 @@ if( src.controller !== undefined )hash = AdHoc.hash_string(hash, src.controller)
 //#endregion
 								case 4:
                              
-								if (!__src.get_fields_nulls( 4 ) ) return false;
-							case 5:
+									
+									if(! __src.try_get_bits(1, 4 ) ) return false;
+								case 5:
+//#region no_input
+
+							this.#bits0 = this.#bits0 & 0xFFFF_FFDF | (__src.get_bits  << 5 );
+//#endregion
+								case 6:
+                             
+								if (!__src.get_fields_nulls( 6 ) ) return false;
+							case 7:
                              
 						
 //#region controller
 
-							if( __src.is_null( 0x1,  7) ) return true
+							if( __src.is_null( 0x1,  9) ) return true
 										
-                        if( !__src.try_get_string( Viewer.Machine_.Audience.controller__.STR_LEN_MAX, 6 ) ) return false; 
-                    case 6:
+                        if( !__src.try_get_string( Viewer.Machine_.Audience.controller__.STR_LEN_MAX, 8 ) ) return false; 
+                    case 8:
                         this.controller = __src.get_string()
-                    case 7 : 
+                    case 9 : 
                  
 										
 //#endregion

@@ -27,6 +27,9 @@ static WHEEL: Mutex<(f32, f32)> = Mutex::new((0.0, 0.0));
 /// Touch emulated by the mouse on X11: the point that holds the button.
 static TOUCH: Mutex<Option<u8>> = Mutex::new(None);
 
+/// A computer takes the input always.
+pub fn taken() -> bool { true }
+
 pub fn set_displays(displays: &[Display]) { *DISPLAYS.lock().unwrap() = displays.to_vec(); }
 
 /// The display of `at` and the point on it: ( the node of its stream, x, y in pixels of the display, the display's x and y ).

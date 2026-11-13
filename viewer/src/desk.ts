@@ -119,6 +119,8 @@ export const english = {
     controls: "controls: {name}",
     youControl: "you control",
     aViewer: "a viewer",
+    noInput: "✋ The phone does not let you control it yet",
+    noInputTitle: "Its user turns it on once in the app RemoteDesk: Let the viewer control this phone. Until then you watch, and you can draw over its screen",
     takeControl: "Take control",
     takeControlTitle: "Your keys, mouse, microphone, clipboard and files go to the machine; the viewer that controls it now only watches",
     fileProgress: "{name}: {n}%",
@@ -230,6 +232,7 @@ const STYLE = `
 .rd-notice{color:var(--rd-bad)}
 .rd-transfer{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rd-audience{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rd-noinput{color:var(--rd-bad);font-weight:600;white-space:nowrap}
 .rd-screen{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;position:relative}
 .rd-draw{position:absolute;inset:0;display:none;z-index:3;cursor:crosshair;touch-action:none}
 .rd-draw.rd-drawing{display:block}
@@ -291,6 +294,9 @@ export function open(container: HTMLElement, options: Options): Desk {
     const bar = element("div", "rd-bar");
     const who = element("span", "rd-who", options.title || address);
     const audienceLine = element("span", "rd-s rd-audience");
+    // the machine takes no input: a phone whose user has not let RemoteDesk control it
+    const noInputLine = element("span", "rd-s rd-noinput", t.noInput, t.noInputTitle);
+    noInputLine.hidden = true;
     const takeButton = button("rd-s", t.takeControl, t.takeControlTitle);
     takeButton.hidden = true;
     const displaySelect = element("select", "rd-s", "", t.displayTitle);
@@ -326,7 +332,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     colorButton.hidden = true;
     const fullButton = button("rd-s", t.full, t.fullTitle);
     const leaveButton = button("", t.leave);
-    bar.append(who, audienceLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, backButton, homeButton, recentsButton, drawButton, arrowButton, colorButton, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
+    bar.append(who, audienceLine, noInputLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, backButton, homeButton, recentsButton, drawButton, arrowButton, colorButton, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
     const screenHost = element("div", "rd-screen");
     const state = element("div", "rd-state");
     const stateLine = element("div", "");
@@ -591,8 +597,9 @@ export function open(container: HTMLElement, options: Options): Desk {
         }
     }
 
-    const audience = (watchers: number, yours: boolean, controller: string) => {
+    const audience = (watchers: number, yours: boolean, controller: string, noInput: boolean) => {
         audienceLine.textContent = fill(t.watching, { n: watchers }) + " · " + (yours ? t.youControl : fill(t.controls, { name: controller || t.aViewer }));
+        noInputLine.hidden = !noInput;
         control(yours);
     };
 
@@ -749,7 +756,7 @@ export function open(container: HTMLElement, options: Options): Desk {
                     return end(stateLine.textContent ?? "", true, false);
                 case M.WELCOME: return welcome(m.host, m.administrator, m.phone);
                 case M.DENIED: stage("refused"); return end(refusal(m), true, m.forget);
-                case M.AUDIENCE: return audience(m.watchers, m.yours, m.controller);
+                case M.AUDIENCE: return audience(m.watchers, m.yours, m.controller, m.noInput);
                 case M.CLOSED:
                     if (live) {
                         stopSession();

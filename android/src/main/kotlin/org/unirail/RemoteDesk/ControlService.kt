@@ -35,16 +35,24 @@ class ControlService : AccessibilityService() {
 
     override fun onServiceConnected() {
         running = this
+        told(true)
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         running = null
+        told(false)
         return super.onUnbind(intent)
     }
 
     override fun onDestroy() {
         running = null
+        told(false)
         super.onDestroy()
+    }
+
+    /** The host, when it runs, tells the viewers whether the phone takes their input. */
+    private fun told(on: Boolean) {
+        if (Host.running) Host.control(on)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}

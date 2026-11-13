@@ -17,6 +17,7 @@
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
                                                         import Uint8List from "../../lib/collections/Uint8List";
+import Uint16List from "../../lib/collections/Uint16List";
                                                         
                                                         /**
  * The clipboard: the text copied on one side goes to the other. UTF-8, lines end in `\n`.

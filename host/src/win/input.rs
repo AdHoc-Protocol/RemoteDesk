@@ -32,6 +32,9 @@ struct Layout {
 static LAYOUT: Mutex<Layout> = Mutex::new(Layout { displays: [(0, 0, 0, 0, 0); 16], count: 0, screen: (0, 0, 1, 1) });
 
 /// The capture enumerated the displays: the fractional coordinates of the page are of these.
+/// A computer takes the input always.
+pub fn taken() -> bool { true }
+
 pub fn set_displays(displays: &[Display]) {
     let mut layout = LAYOUT.lock().unwrap();
     layout.count = displays.len().min(16);

@@ -221,7 +221,7 @@ Actor0.State.Working.OnReceived.Machine_Audience.handlers.subscribe((audience, c
         live.sound.micOff(false); // the machine stopped it
         live.video.control(false);
     } else if (yours) live.video.control(true);
-    toPage({ t: M.AUDIENCE, watchers: audience.watchers, yours, controller: audience.controller ?? "" });
+    toPage({ t: M.AUDIENCE, watchers: audience.watchers, yours, controller: audience.controller ?? "", noInput: audience.no_input });
 });
 
 // ── the end of the session ──

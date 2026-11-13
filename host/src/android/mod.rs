@@ -277,6 +277,12 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_unit(env: *mut JN
     guarded("a frame", || video::unit(data, flags));
 }
 
+/// `Host.control( on )`: the service of accessibility of the app is on, or off - the phone takes the input of the page, or not.
+#[no_mangle]
+pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_control(_env: *mut JNIEnv, _class: jclass, on: jni_sys::jboolean) {
+    guarded("the control", || input::control(on));
+}
+
 /// `Host.ended()`: the phone stopped showing the screen - its user did, or the system.
 #[no_mangle]
 pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_ended(_env: *mut JNIEnv, _class: jclass) {

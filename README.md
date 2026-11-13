@@ -499,7 +499,8 @@ What the phone does in this version:
 Android lets an app read the clipboard only while the app is in front, so the phone sends text when you send it, not by itself.
 
 To be controlled from the page and to show the marks, the phone asks its user once for two permissions: see
-[What to allow on the phone](#what-to-allow-on-the-phone). Until then it only shows its screen. The microphone of the page and
+[What to allow on the phone](#what-to-allow-on-the-phone). Until then it only shows its screen, and the bar of the page says
+**✋ The phone does not let you control it yet**; it goes as soon as the user turns the control on. The microphone of the page and
 sending files from the phone come later.
 
 While RemoteDesk shows the screen, the screen of the phone stays on: Android stops showing it when the phone locks. Locked

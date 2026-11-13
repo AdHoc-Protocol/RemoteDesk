@@ -160,7 +160,7 @@ export type ToMain =
     /** `code` - the number of the reason the machine sent; `left` - the attempts left, -1 - not told; `forget` - the token was wrong: it is not kept. */
     | { t: M.DENIED; reason: Refusal; code: number; left: number; forget: boolean }
     /** `watchers` - the viewers in, this one among them; `yours` - this one controls; `controller` - the name of the one that does. */
-    | { t: M.AUDIENCE; watchers: number; yours: boolean; controller: string }
+    | { t: M.AUDIENCE; watchers: number; yours: boolean; controller: string; noInput: boolean }
     | { t: M.CLOSED }
     | { t: M.NOTICE; elevation: Elevation }
     | { t: M.ADMIN; admin: Admin }
