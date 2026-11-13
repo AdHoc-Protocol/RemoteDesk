@@ -314,10 +314,12 @@ fn on_hello(hello: &mut Viewer_Hello, conn: &Connection, _actor: &Actor0) {
         welcome.set_phone(cfg!(target_os = "android")); // its page shows Back, Home, Recents and types text
         actor0::granting::transmitter::send_machine_welcome(welcome, conn);
         audience.push(In { conn: this.clone(), name: name.clone() });
-        if CONTROLLER.load().is_none() {
-            CONTROLLER.store(Some(this.clone()));
+        // the viewer that comes in controls: it came to work - the one that controlled watches, and takes it back with a press
+        if CONTROLLER.swap(Some(this.clone())).is_some() {
+            crate::input::release_all();
+            crate::audio::mic_off();
         }
-        say!("✅", Good, "{name} from {from} is in · {} watching", audience.len());
+        say!("✅", Good, "{name} from {from} is in and controls · {} watching", audience.len());
         announce(&audience);
     }
     crate::video::start(this.clone(), name);

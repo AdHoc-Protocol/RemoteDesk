@@ -16,7 +16,7 @@
                                                         import N from "../../lib/Network";
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
-                                                        import Uint8List from "../../lib/collections/Uint8List";
+                                                        
                                                         
                                                          export class  __Machine_Display implements AdHoc.Connection.Receiver.BytesDst{  
 

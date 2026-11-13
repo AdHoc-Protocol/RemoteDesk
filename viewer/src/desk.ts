@@ -92,9 +92,9 @@ export const english = {
     fitOn: "Fit: on",
     fitOff: "Fit: off",
     fitTitle: "The resolution of the machine follows the size of this window; off restores it",
-    viewWhole: "View: whole",
-    viewOne: "View: 1:1",
-    viewZoom: "View: {percent}%",
+    viewWhole: "Whole",
+    viewOne: "1:1",
+    viewZoom: "{percent}%",
     viewTitle: "Whole: the screen of the machine fits this window. 1:1: a pixel of it is a pixel here, as large as there - the pointer or a finger at an edge moves the view. Two fingers apart or together zoom it",
     fps: "{n} fps",
     fpsTitle: "The most frames a second the machine sends: 60 is smoother, and takes more of the link and of the machine",
@@ -110,6 +110,8 @@ export const english = {
     homeTitle: "Home: the button of the phone",
     recents: "□",
     recentsTitle: "Recent apps: the button of the phone",
+    handleTitle: "The bar: pull it down or press it, push it up to hide it",
+    moreTitle: "More: the size, the frames, the pointer, the display",
     lock: "Lock pointer",
     lockTitle: "Mouse moves go to the machine as relative moves; Esc frees the pointer",
     full: "Full screen",
@@ -217,20 +219,69 @@ const hex = (bytes: Uint8Array) => Array.from(bytes, b => b.toString(16).padStar
 const unhex = (text: string) => Uint8Array.from({ length: text.length / 2 }, (_, i) => parseInt(text.slice(i * 2, i * 2 + 2), 16));
 const fingerprint = (key: Uint8Array) => hex(key).replace(/(.{4})(?!$)/g, "$1 ");
 
+// ── the icons of the bar: strokes of 24 × 24, the colour of the text ──
+
+const ICONS: Record<string, string> = {
+    back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    home: '<circle cx="12" cy="12" r="8"/>',
+    recents: '<rect x="5" y="5" width="14" height="14" rx="2"/>',
+    draw: '<path d="M21.17 6.81a2.83 2.83 0 0 0-4-4L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/>',
+    arrow: '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+    sound: '<path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path class="rd-on-only" d="M16 9a5 5 0 0 1 0 6"/><path class="rd-on-only" d="M19.4 18.4a9 9 0 0 0 0-12.8"/><path class="rd-off-only" d="m22 9-6 6"/><path class="rd-off-only" d="m16 9 6 6"/>',
+    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path class="rd-off-only" d="M2 2l20 20"/>',
+    send: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+    get: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+    full: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+    more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+    leave: '<path d="m19 5 3-3"/><path d="m2 22 3-3"/><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"/><path d="M7.5 13.5 10 11"/><path d="M10.5 16.5 13 14"/><path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z"/>',
+};
+
+/** The SVG of an icon of `ICONS`. */
+const svg = (name: string) =>
+    `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] ?? ""}</svg>`;
+
 // ── the style, once a page ──
 
 const STYLE = `
-.rd-desk{--rd-bg:#f6f7f9;--rd-fg:#1d2330;--rd-muted:#5b6475;--rd-line:#d5d9e0;--rd-accent:#2f6fde;--rd-bad:#c4352b;display:flex;flex-direction:column;height:100%;min-height:0;box-sizing:border-box;background:var(--rd-bg);color:var(--rd-fg);font:14px/1.45 system-ui,sans-serif}
-@media (prefers-color-scheme:dark){.rd-desk{--rd-bg:#15181e;--rd-fg:#e4e7ec;--rd-muted:#98a0ae;--rd-line:#2c323c;--rd-accent:#6b9bf2;--rd-bad:#ef6a5f}}
+.rd-desk{--rd-bg:#f6f7f9;--rd-fg:#1d2330;--rd-muted:#5b6475;--rd-line:#d5d9e0;--rd-accent:#2f6fde;--rd-bad:#c4352b;--rd-good:#2a9d4b;--rd-wait:#c98a00;--rd-panel:#ffffff;--rd-hover:#e9ecf1;position:relative;display:flex;flex-direction:column;height:100%;min-height:0;box-sizing:border-box;background:var(--rd-bg);color:var(--rd-fg);font:14px/1.45 system-ui,sans-serif}
+@media (prefers-color-scheme:dark){.rd-desk{--rd-bg:#15181e;--rd-fg:#e4e7ec;--rd-muted:#98a0ae;--rd-line:#2c323c;--rd-accent:#6b9bf2;--rd-bad:#ef6a5f;--rd-good:#3fb950;--rd-wait:#d8a32a;--rd-panel:#111317;--rd-hover:#262b33}}
 .rd-desk *{box-sizing:border-box}
-.rd-bar{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--rd-line);color:var(--rd-muted)}
-.rd-bar button{margin:0;padding:0;border:0;background:transparent;color:var(--rd-accent);font:inherit;cursor:pointer;white-space:nowrap}
-.rd-bar button:disabled{color:var(--rd-muted);cursor:default}
-.rd-bar select{padding:2px 6px;border:1px solid var(--rd-line);border-radius:4px;background:transparent;color:inherit;font:inherit}
+.rd-desk{container-type:inline-size}
+.rd-narrow{display:none!important}
+@container (max-width:560px){.rd-who,.rd-audience,.rd-sep,.rd-wide{display:none!important}.rd-narrow:not([hidden]){display:block!important}}
+.rd-drawer{position:absolute;left:0;right:0;top:0;z-index:5;transition:transform .18s ease}
+.rd-drawer.rd-dragging{transition:none}
+.rd-bar{display:flex;align-items:center;gap:2px;height:40px;padding:0 8px;background:var(--rd-panel);border-bottom:1px solid var(--rd-line);color:var(--rd-muted);white-space:nowrap;overflow-x:auto;scrollbar-width:none}
+.rd-bar::-webkit-scrollbar{display:none}
+.rd-bar button,.rd-menu button{margin:0;padding:0 8px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--rd-accent);font:inherit;cursor:pointer;white-space:nowrap;flex:none}
+.rd-bar button:hover:not(:disabled),.rd-menu button:hover:not(:disabled){background:var(--rd-hover)}
+.rd-bar button:disabled,.rd-menu button:disabled{color:var(--rd-muted);cursor:default}
+.rd-ib{width:32px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;color:var(--rd-fg)!important}
+.rd-ib[aria-pressed="true"]{background:var(--rd-accent)!important;color:#fff!important}
+.rd-ib.rd-leave{color:var(--rd-bad)!important}
+.rd-ib[data-on="false"] .rd-on-only,.rd-ib[data-on="true"] .rd-off-only,.rd-ib:not([data-on]) .rd-off-only{display:none}
+.rd-ib[data-on="false"]{color:var(--rd-muted)!important}
+.rd-sep{flex:none;width:1px;height:18px;margin:0 6px;background:var(--rd-line)}
+.rd-dot{flex:none;width:9px;height:9px;margin:0 8px 0 4px;border-radius:50%;background:var(--rd-wait)}
+.rd-desk.rd-on .rd-dot{background:var(--rd-good)}
+.rd-desk.rd-on.rd-watching .rd-dot{background:var(--rd-accent)}
+.rd-who{color:var(--rd-fg);font-weight:600;overflow:hidden;text-overflow:ellipsis;max-width:28ch}
+.rd-audience{margin-left:8px}
+.rd-swatch{width:14px;height:14px;border-radius:50%;background:currentColor}
+.rd-view{font:12px ui-monospace,monospace!important;color:var(--rd-fg)!important}
+.rd-handle{display:flex;align-items:center;justify-content:center;width:64px;height:16px;margin:0 auto;background:var(--rd-panel);border:1px solid var(--rd-line);border-top:0;border-radius:0 0 10px 10px;cursor:grab;touch-action:none}
+.rd-handle:active{cursor:grabbing}
+.rd-grip{width:26px;height:7px;background:repeating-linear-gradient(to bottom,var(--rd-muted) 0 1.5px,transparent 1.5px 3px)}
+.rd-desk:not(.rd-on) .rd-handle{display:none}
+.rd-menu{position:absolute;right:8px;top:44px;z-index:6;display:flex;flex-direction:column;align-items:stretch;min-width:220px;max-width:min(320px,calc(100% - 16px));padding:6px;border:1px solid var(--rd-line);border-radius:10px;background:var(--rd-panel);color:var(--rd-muted)}
+.rd-menu[hidden]{display:none}
+.rd-menu button{text-align:left}
+.rd-menu select{margin:4px 8px;padding:2px 6px;border:1px solid var(--rd-line);border-radius:6px;background:transparent;color:var(--rd-fg);font:inherit}
+.rd-menu .rd-stats{padding:4px 8px 6px;border-bottom:1px solid var(--rd-line);margin-bottom:4px;white-space:normal}
 .rd-grow{flex:1}
 .rd-stats{min-width:0;font:12px ui-monospace,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rd-notice{color:var(--rd-bad)}
-.rd-transfer{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rd-transfer{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 8px}
 .rd-audience{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rd-noinput{color:var(--rd-bad);font-weight:600;white-space:nowrap}
 .rd-screen{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;position:relative}
@@ -240,10 +291,11 @@ const STYLE = `
 .rd-screen canvas{max-width:100%;max-height:100%;outline:none}
 .rd-screen.rd-one{display:block;position:relative;overflow:hidden}
 .rd-screen.rd-one canvas{max-width:none;max-height:none;position:absolute;left:0;top:0}
-.rd-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center}
+.rd-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:64px 24px 24px;text-align:center}
 .rd-state .rd-bad{color:var(--rd-bad)}
 .rd-key{max-width:60ch;color:var(--rd-muted);font:12px/1.4 ui-monospace,monospace;word-break:break-all}
-.rd-desk:not(.rd-on) .rd-s,.rd-desk:not(.rd-on) .rd-screen,.rd-desk.rd-on .rd-state,.rd-desk.rd-on .rd-gap{display:none}
+.rd-desk:not(.rd-on) .rd-s,.rd-desk:not(.rd-on) .rd-screen,.rd-desk.rd-on .rd-state{display:none}
+.rd-bar [hidden],.rd-menu [hidden]{display:none!important}
 `;
 
 /** The style of the desks, once a page: the page itself tells whether it has it. */
@@ -291,7 +343,17 @@ export function open(container: HTMLElement, options: Options): Desk {
         if (transfer === undefined) worker.postMessage(message);
         else worker.postMessage(message, transfer);
     };
+    /** A button of the bar showing an icon of `ICONS`: what it does in its title. */
+    const iconButton = (className: string, icon: string, title: string) => {
+        const b = button("rd-s rd-ib " + className, "", title);
+        b.innerHTML = svg(icon);
+        b.setAttribute("aria-label", title);
+        b.dataset["help"] = title;
+        return b;
+    };
+    const separator = () => element("span", "rd-s rd-sep");
     const bar = element("div", "rd-bar");
+    const dot = element("span", "rd-dot");
     const who = element("span", "rd-who", options.title || address);
     const audienceLine = element("span", "rd-s rd-audience");
     // the machine takes no input: a phone whose user has not let RemoteDesk control it
@@ -301,44 +363,66 @@ export function open(container: HTMLElement, options: Options): Desk {
     takeButton.hidden = true;
     const displaySelect = element("select", "rd-s", "", t.displayTitle);
     displaySelect.hidden = true;
-    const stats = element("span", "rd-s rd-stats rd-grow");
-    const gap = element("span", "rd-grow rd-gap"); // the place of the stats while there are none
+    const stats = element("div", "rd-stats");
     const transfer = element("span", "rd-s rd-transfer");
     const cancelButton = button("rd-s", t.cancel, t.cancelTitle);
     cancelButton.hidden = true;
     const notice = element("span", "rd-s rd-notice");
-    const soundButton = button("rd-s", t.soundOn, t.soundTitle);
-    const micButton = button("rd-s", t.micOff, t.micTitle);
-    const sendButton = button("rd-s", t.send, t.sendTitle);
-    const getButton = button("rd-s", t.get, t.getTitle);
+    const soundButton = iconButton("", "sound", t.soundTitle);
+    const micButton = iconButton("", "mic", t.micTitle);
+    const sendButton = iconButton("rd-wide", "send", t.send + ": " + t.sendTitle);
+    const getButton = iconButton("rd-wide", "get", t.get + ": " + t.getTitle);
     const pick = element("input", "");
     pick.type = "file";
     pick.multiple = true;
     pick.hidden = true;
     const adminButton = button("rd-s", t.adminAsk, t.adminAskTitle);
     const fitButton = button("rd-s", "", t.fitTitle);
-    const viewButton = button("rd-s", "", t.viewTitle);
+    const viewButton = button("rd-s rd-view", "", t.viewTitle);
     const fpsButton = button("rd-s", "", t.fpsTitle);
     const lockButton = button("rd-s", t.lock, t.lockTitle);
-    const drawButton = button("rd-s", t.draw, t.drawTitle);
+    const drawButton = iconButton("", "draw", t.drawTitle);
     // the buttons of a phone: Back, Home, Recents - the keys of the consumer page it takes for them
-    const backButton = button("rd-s", t.back, t.backTitle);
-    const homeButton = button("rd-s", t.home, t.homeTitle);
-    const recentsButton = button("rd-s", t.recents, t.recentsTitle);
-    for (const b of [backButton, homeButton, recentsButton]) b.hidden = true;
-    const arrowButton = button("rd-s", t.arrow, t.arrowTitle);
+    const backButton = iconButton("", "back", t.backTitle);
+    const homeButton = iconButton("", "home", t.homeTitle);
+    const recentsButton = iconButton("", "recents", t.recentsTitle);
+    const phoneSeparator = separator();
+    for (const b of [backButton, homeButton, recentsButton, phoneSeparator]) b.hidden = true;
+    const arrowButton = iconButton("", "arrow", t.arrowTitle);
     arrowButton.hidden = true;
-    const colorButton = button("rd-s", "●", t.colorTitle);
+    const colorButton = button("rd-s rd-ib", "", t.colorTitle);
+    colorButton.append(element("span", "rd-swatch"));
     colorButton.hidden = true;
-    const fullButton = button("rd-s", t.full, t.fullTitle);
-    const leaveButton = button("", t.leave);
-    bar.append(who, audienceLine, noInputLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, backButton, homeButton, recentsButton, drawButton, arrowButton, colorButton, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
+    const fullButton = iconButton("rd-wide", "full", t.full + ": " + t.fullTitle);
+    const moreButton = iconButton("", "more", t.moreTitle);
+    const leaveButton = iconButton("rd-leave", "leave", t.leave);
+    leaveButton.classList.remove("rd-s"); // shown before the machine lets the page in, too
+    // ── the bar: who and how, the buttons by what they are for; what is rare in the menu of ⋯ ──
+    bar.append(dot, who, audienceLine, noInputLine, takeButton, transfer, cancelButton, notice, element("span", "rd-grow"),
+        backButton, homeButton, recentsButton, phoneSeparator,
+        drawButton, arrowButton, colorButton, soundButton, micButton, separator(),
+        sendButton, getButton, pick, separator(),
+        viewButton, fullButton, moreButton, separator(), leaveButton);
+    const menu = element("div", "rd-menu");
+    menu.hidden = true;
+    // on a narrow screen ( a phone ) the files and the full screen are in the menu: the bar has no room for them
+    const inMenu = (of: HTMLButtonElement, text: string) => {
+        const b = button("rd-narrow", text, of.dataset["help"] ?? "");
+        b.addEventListener("click", () => of.click());
+        return b;
+    };
+    menu.append(stats, displaySelect, inMenu(sendButton, t.send), inMenu(getButton, t.get), inMenu(fullButton, t.full), fitButton, fpsButton, lockButton, adminButton);
+    // the drawer: the bar over the top of the screen, pulled down by its handle and pushed up again
+    const drawer = element("div", "rd-drawer");
+    const handle = element("div", "rd-handle", "", t.handleTitle);
+    handle.append(element("span", "rd-grip"));
+    drawer.append(bar, handle, menu);
     const screenHost = element("div", "rd-screen");
     const state = element("div", "rd-state");
     const stateLine = element("div", "");
     const keyLine = element("div", "rd-key");
     state.append(stateLine, keyLine);
-    root.append(bar, screenHost, state);
+    root.append(screenHost, state, drawer);
     container.appendChild(root);
 
     // ── how it goes ──
@@ -482,6 +566,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     const setLive = (on: boolean, host = "") => {
         live = on;
         root.classList.toggle("rd-on", on);
+        placeDrawer();
         options.onLive?.(on, host);
     };
 
@@ -548,7 +633,7 @@ export function open(container: HTMLElement, options: Options): Desk {
 
     function welcome(host: string | undefined, administrator: boolean, isPhone: boolean): void {
         phone = isPhone;
-        for (const b of [backButton, homeButton, recentsButton]) b.hidden = !phone;
+        for (const b of [backButton, homeButton, recentsButton, phoneSeparator]) b.hidden = !phone;
         adminButton.hidden = phone; // a phone has no administrator to become
         who.textContent = (host ?? t.machine) + " · " + address.replace(/^ws:\/\//, ""); // the scheme is the page's, not the user's
         stopSession();
@@ -575,6 +660,7 @@ export function open(container: HTMLElement, options: Options): Desk {
      *  the one that controls does are on, or off. */
     function control(on: boolean): void {
         controlling = on;
+        root.classList.toggle("rd-watching", !on);
         takeButton.hidden = on;
         for (const b of [sendButton, fitButton, lockButton]) b.disabled = !on;
         admin(rights);
@@ -600,6 +686,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     const audience = (watchers: number, yours: boolean, controller: string, noInput: boolean) => {
         audienceLine.textContent = fill(t.watching, { n: watchers }) + " · " + (yours ? t.youControl : fill(t.controls, { name: controller || t.aViewer }));
         noInputLine.hidden = !noInput;
+        dot.title = audienceLine.textContent ?? "";
         control(yours);
     };
 
@@ -643,17 +730,63 @@ export function open(container: HTMLElement, options: Options): Desk {
     homeButton.addEventListener("click", press(0x0c0223));
     recentsButton.addEventListener("click", press(0x0c01a2));
 
+    // ── the drawer of the bar: down by its handle, a press, or a pull; up the same way - the screen of the machine under it ──
+
+    let barOpen = store.get("bar.open") !== "0";
+    /** The drawer where it is to be, or `offset` pixels down from closed while it is pulled. */
+    const placeDrawer = (offset?: number) => {
+        const height = bar.offsetHeight || 40;
+        if (offset !== undefined) drawer.style.transform = `translateY(${offset}px)`;
+        else drawer.style.transform = barOpen || !live ? "" : `translateY(${-height}px)`;
+        if (!barOpen && live) closeMenu();
+    };
+    let pull: { y: number; from: number; moved: boolean } | undefined;
+    const pulled = (e: PointerEvent) => Math.min(0, Math.max(-(bar.offsetHeight || 40), pull!.from + e.clientY - pull!.y));
+    handle.addEventListener("pointerdown", e => {
+        handle.setPointerCapture(e.pointerId);
+        pull = { y: e.clientY, from: barOpen ? 0 : -(bar.offsetHeight || 40), moved: false };
+        drawer.classList.add("rd-dragging");
+    });
+    handle.addEventListener("pointermove", e => {
+        if (!pull) return;
+        if (Math.abs(e.clientY - pull.y) > 4) pull.moved = true;
+        if (pull.moved) placeDrawer(pulled(e));
+    });
+    const letGo = (e: PointerEvent) => {
+        if (!pull) return;
+        barOpen = pull.moved ? pulled(e) > -(bar.offsetHeight || 40) / 2 : !barOpen; // a press: the other way
+        pull = undefined;
+        drawer.classList.remove("rd-dragging");
+        store.set("bar.open", barOpen ? "1" : "0");
+        placeDrawer();
+    };
+    handle.addEventListener("pointerup", letGo);
+    handle.addEventListener("pointercancel", letGo);
+
+    // the menu of ⋯: what is set once in a while
+    const closeMenu = () => {
+        menu.hidden = true;
+        moreButton.setAttribute("aria-pressed", "false");
+    };
+    moreButton.addEventListener("click", () => {
+        menu.hidden = !menu.hidden;
+        moreButton.setAttribute("aria-pressed", String(!menu.hidden));
+    });
+    root.addEventListener("pointerdown", e => {
+        const at = e.target as Node;
+        if (!menu.hidden && !menu.contains(at) && !moreButton.contains(at)) closeMenu();
+    }, true);
+
     // ── marks over the screen of the machine: any viewer draws ──
 
     const MARK_COLORS = ["#f03e3e", "#ffc41a", "#2ec25a", "#3b82f6"];
     let drawing = false, markArrow = false;
     let markColor = Math.min(3, Math.max(0, Number(store.get("mark.color") ?? 0) | 0));
     const markLabels = () => {
-        drawButton.textContent = drawing ? t.drawOn : t.draw;
+        drawButton.title = drawing ? t.drawOn : t.drawTitle;
         drawButton.setAttribute("aria-pressed", String(drawing));
         arrowButton.hidden = colorButton.hidden = !drawing;
         arrowButton.setAttribute("aria-pressed", String(markArrow));
-        arrowButton.style.fontWeight = markArrow ? "700" : "";
         colorButton.style.color = MARK_COLORS[markColor];
     };
     markLabels();

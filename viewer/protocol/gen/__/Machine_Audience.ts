@@ -16,11 +16,11 @@
                                                         import N from "../../lib/Network";
                                                         import Base_ from "../Base_";
                                                         import Viewer from "../Viewer";
-                                                        import Uint8List from "../../lib/collections/Uint8List";
+                                                        import Uint16List from "../../lib/collections/Uint16List";
                                                         
                                                         /**
  * Who watches the machine and who controls it, as the viewer it goes to sees it: sent to every viewer when it changes. The
- * first viewer in controls; when the one that controls leaves, the one that watches longest does.
+ * viewer that comes in last controls; when the one that controls leaves, the one that watches longest does.
  */
  export class  __Machine_Audience implements AdHoc.Connection.Receiver.BytesDst{  
 

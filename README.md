@@ -391,24 +391,40 @@ check needs none of that, it tells the new key.
 
 ## In a session
 
-The bar of the page, on your device:
+The bar of the page, on your device, lies over the top of the screen of the remote computer. Pull it up by its handle, the
+short tab with three lines under it, or press the handle: the bar hides, and the whole screen is yours; pull or press it again to
+bring the bar back. The page remembers where you left it.
+
+On the left: a dot (green, you control; blue, you watch; yellow, the connection is dialed again), the name of the computer, and who
+watches and who controls. **Take control** shows there when you only watch. On the right the buttons, an icon each, what it does
+in the hint of the mouse:
 
 | Button | What it does |
 |:--|:--|
+| ◁ ○ □ | A phone only: its buttons Back, Home and Recent apps |
+| ✏️ | Your mouse or finger draws over the screen of the remote computer instead of controlling it: see [Drawing over the screen](#drawing-over-the-screen). While it is on, ➚ draws arrows and the round button changes the colour |
+| 🔊 | Turns the sound of the remote computer on or off on your device |
+| 🎤 | Plays your microphone through the speakers of the remote computer |
+| ⬆ | Sends files from your device to the Downloads folder of the remote computer. You can also drop them on the screen |
+| ⬇ | The user of the remote computer picks a file, and the page saves it on your device |
+| **Whole / 1:1 / %** | Whole: the screen of the remote computer fits your window. 1:1: a pixel of it is a pixel of your screen, its text as large as there - for a large screen seen from a small one. Bring the pointer, or a finger, to an edge of the window: the view goes that way. Two fingers apart or together zoom the view about the point between them, as in AnyDesk; two fingers that move together still scroll on the remote computer. Pressed after a zoom: the whole screen again. Whole and 1:1 are kept for the next time |
+| ⛶ | Full screen: Alt+Tab, the Windows key and other keys of the system go to the remote computer too |
+| ⋯ | The menu of what is set once in a while, below |
+| Red plug | Disconnects |
+
+The menu of ⋯:
+
+| Item | What it does |
+|:--|:--|
+| The numbers at the top | The size of the frames, frames a second, the speed of the network, how long the capture and the encoding take |
 | The list of displays | Shows another display of the remote computer. The display its user works on is marked |
-| **View: whole / 1:1** | Whole: the screen of the remote computer fits your window. 1:1: a pixel of it is a pixel of your screen, its text as large as there - for a large screen seen from a small one. Bring the pointer, or a finger, to an edge of the window: the view goes that way. Two fingers apart or together zoom the view about the point between them, as in AnyDesk; two fingers that move together still scroll on the remote computer. Pressed after a zoom: the whole screen again. Whole and 1:1 are kept for the next time |
 | **Fit** | The resolution of the remote computer follows the size of your window. Turning it off, or leaving, restores it |
 | **30 fps** | Switches to 60 frames a second and back: 60 is smoother, and takes twice the network and more of the remote computer. The page remembers the choice |
 | **Lock pointer** | Your mouse moves the pointer of the remote computer without limits, for games and 3D. **Esc** frees it |
-| **Full screen** | Alt+Tab, the Windows key and other keys of the system go to the remote computer too |
-| **Sound** | Turns the sound of the remote computer on or off on your device |
-| **Microphone** | Plays your microphone through the speakers of the remote computer |
-| **Send files** | Sends files from your device to the Downloads folder of the remote computer. You can also drop them on the screen |
-| **Get a file** | The user of the remote computer picks a file, and the page saves it on your device |
 | **Ask for admin rights** | Windows: the user of the remote computer is asked to confirm. Then you can work in programs run as administrator too |
-| **✏️ Draw** | Your mouse or finger draws over the screen of the remote computer instead of controlling it: see [Drawing over the screen](#drawing-over-the-screen) |
-| **Take control** | Shown to a viewer who only watches: the control passes to you at once |
-| **Disconnect** | Ends the session |
+
+On a narrow screen, a phone, the bar has no room for the files and the full screen: they are in the menu of ⋯ as well, and the
+name of the computer is in the hint of the dot.
 
 Also:
 
@@ -426,7 +442,7 @@ Also:
 ### Drawing over the screen
 
 To show the user of the remote computer where to tap or which field to fill, draw on its screen instead of explaining. Press
-**✏️ Draw**: while it is on, your mouse or finger draws, and the remote computer gets no input.
+**✏️** in the bar: while it is on, your mouse or finger draws, and the remote computer gets no input.
 
 | You | The user of the remote computer sees |
 | --- | --- |
@@ -454,8 +470,9 @@ Up to 8 devices with the token are in at once, each with the display it chose. A
 
 ![Several viewers: all see, one controls](docs/viewers.svg)
 
-The bar shows how many watch and who controls. The keyboard, the mouse, **Fit**, the microphone, the clipboard and the files
-reach the remote computer only from the one who controls. The remote computer prints who comes in and who leaves.
+The bar shows how many watch and who controls. The one who comes in controls at once; the others watch, and take the control back
+with **Take control**. The keyboard, the mouse, **Fit**, the microphone, the clipboard and the files reach the remote computer only
+from the one who controls. The remote computer prints who comes in and who leaves.
 
 ### Several computers at once
 

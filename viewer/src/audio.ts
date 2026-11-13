@@ -135,9 +135,15 @@ export function start(soundButton: HTMLButtonElement, micButton: HTMLButtonEleme
     document.addEventListener("pointerdown", wake, true);
     document.addEventListener("keydown", wake, true);
 
+    /** The state of a button: its icon shows it ( on or off ), its title says it. */
+    const mark = (b: HTMLButtonElement, on: boolean, text: string) => {
+        b.dataset["on"] = String(on);
+        b.title = b.dataset["help"] ? text + " · " + b.dataset["help"] : text;
+        if (!b.querySelector("svg")) b.textContent = text; // a button of words, not of an icon
+    };
     const label = () => {
-        soundButton.textContent = words.sound(sound);
-        micButton.textContent = words.mic(micWanted);
+        mark(soundButton, sound, words.sound(sound));
+        mark(micButton, micWanted, words.mic(micWanted));
     };
     label();
 

@@ -16,7 +16,7 @@
                                                 import N from "../../lib/Network";
                                                 import Base_ from "../Base_";
                                                 import Viewer from "../Viewer";
-                                                
+                                                import Uint16List from "../../lib/collections/Uint16List";
                                                 
                                                 export class __Viewer_MouseMove implements AdHoc.Connection.Receiver.BytesDst,AdHoc.Connection.Transmitter.BytesSrc { 
                                                     get __id(): number { return Viewer.Viewer_.MouseMove.__id; }
