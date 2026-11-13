@@ -36,7 +36,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 /** The moments: the way, the state of each part as the page sets it, and what is typed, said and pressed then. */
 const PICTURES = [
     {
-        file: "page-1-ready", way: 1, parts: { me: "ok", back: "ok" }, connect: true,
+        file: "page-1-ready", way: 1, parts: { me: "try", back: "ok", wa: "try", wb: "try", rem: "try" }, rem: ["reaching it…", ""],
         back: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE",
     },
     {
@@ -52,7 +52,7 @@ const PICTURES = [
         back: "rd1a.EQh6cTJmY1M2dFZ4…", mid: ["the way through both routers is found", "ok"], rem: ["let you in", "ok"],
     },
     {
-        file: "page-2-broken", way: 2, parts: { me: "ok", back: "ok", wa: "up", wb: "cut", rem: "bad" }, connect: true,
+        file: "page-2-broken", way: 2, parts: { me: "ok", back: "ok", wa: "up", wb: "cut", rem: "bad" },
         back: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE", mid: ["straight to the address of its router: the router lets you in", ""],
         rem: ["not reached: is the port forwarded on its router, and its address public?", "bad"],
     },
@@ -129,22 +129,20 @@ async function pictures() {
             lines.forEach((line, i) => text(scene, cx, y + 20 + i * 22, line, { class: "hand", "text-anchor": "middle", style: `font-size: 21px; fill: ${COLOR[kind]}` }));
         };
 
-        // this computer: the name, Connect
-        text(scene, 75, 338, "Your name", { class: "hand", style: "font-size: 20px; fill: var(--ink)" });
-        field(scene, 75, 346, 155, "Anna", "");
-        button(scene, 75, 388, 155, "Connect", false, !p.connect);
         if (p.mid) say(500, p.way === 1 ? 360 : 333, 320, p.mid);
         if (p.rem) say(827, 337, 215, p.rem);
 
         // by chat or mail: the line there ( way 4 ), the line or the answer back
         if (p.way === 4) {
-            const out = tag(240, 388, 520, 82, p.parts.out, "1", "Your line flies there, by chat or mail");
-            button(out, 254, 424, 150, p.made ? "Make a new line" : "Make the line", p.made, false);
-            if (p.made) text(out, 418, 446, "✓ It is in your clipboard: send it.", { style: "font: 13px system-ui, sans-serif; fill: var(--ok)" });
+            const out = tag(200, 388, 600, 82, p.parts.out, "1", "Your line flies there, by chat or mail");
+            button(out, 214, 424, 150, p.made ? "Make a new line" : "Make the line", p.made, false);
+            if (p.made) text(out, 378, 446, "✓ It is in your clipboard: send it.", { style: "font: 13px system-ui, sans-serif; fill: var(--ok)" });
         }
         const y = p.way === 4 ? 554 : 503;
-        const back = tag(240, y, 520, 86, p.parts.back, p.way === 4 ? "2" : "1", p.way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here");
-        field(back, 254, y + 44, 492, p.back, "rd1a.EQh6cTJmY1M2dFZ4b0pXa3RnU2xh…");
+        // the line: Enter connects
+        const back = tag(200, y, 600, 86, p.parts.back, p.way === 4 ? "2" : "1", p.way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here");
+        field(back, 214, y + 44, 572, p.back, "rd1a.EQh6cTJmY1M2dFZ4b0pXa3RnU2xh…");
+        field(scene, 114, 94, 152, "Anna", "your name"); // beside "You", over the laptop
 
         writeFileSync(`../docs/${p.file}.svg`, svg.outerHTML + "\n");
         svg.remove();
@@ -189,6 +187,7 @@ async function pictures() {
             { "data-way": 2, "data-me": "ok", "data-wa": "up", "data-wb": "up", "data-mid": "ok", "data-rem": "ok" });
         drawScene(scene, 2);
         scene.querySelector("#chat").remove();
+        scene.querySelector("#n-me text").setAttribute("x", 158); // no name beside it here: over the middle of the laptop
         scene.querySelector("#pressed").textContent = "Pressed: 2";
         hand(scene, 500, 352, "← the screen, the sound, the clipboard, files", 22, "var(--ok)");
         hand(scene, 500, 384, "your keys, mouse, touch, the microphone →", 22, "var(--accent)");
@@ -209,7 +208,7 @@ async function pictures() {
             + "        @keyframes lit-num { 0%, 24% { fill: var(--ok); } 26%, 100% { fill: var(--ink); } }\n"
             + "        #steps .num { stroke: none !important; }\n"
             + "        #steps .dot { opacity: 1; fill: var(--ok); }\n";
-        const { svg, scene, rc } = frame("RemoteDesk: what happens when you press Connect", 0, 360, {}, more);
+        const { svg, scene, rc } = frame("RemoteDesk: what happens when you connect", 0, 360, {}, more);
         const g = el("g", { id: "steps" }, scene);
         const track = "M 130 110 L 870 110";
         el("path", { id: "track", d: track, fill: "none" }, g);

@@ -60,9 +60,9 @@ again after that. What it remembers is in `rdp-host.settings` beside the program
 closing it stops the program.
 
 **2. On your device**, open `RemoteDesk.html` in Chrome or Edge. Press the number the remote computer pressed, paste the line
-into the field on the arrow that comes from it, as it came, and press **Connect**.
+into the field on the arrow that comes from it, as it came: the page connects at once, nothing to press.
 
-![The page, way 1: the line pasted, Connect to press](docs/page-1-ready.svg)
+![The page, way 1: the line pasted, and the page connects](docs/page-1-ready.svg)
 
 The page draws what happens, for the way chosen: your computer, the remote one, their routers, and what is between them, a house
 for one network or the cloud of the internet. What it waits for is orange; what is on its way is blue, light running along the
@@ -96,7 +96,7 @@ ways, and a picture to choose.
 |:--|:--|
 | [Words used here](#words-used-here) | Remote computer, your device, token, key, meeting point |
 | [How to connect](#how-to-connect) | Which way is yours; each way step by step, with pictures |
-| [When you press Connect](#when-you-press-connect) | Encryption, the key, the token |
+| [When you connect](#when-you-connect) | Encryption, the key, the token |
 | [In a session](#in-a-session) | The buttons; several viewers |
 | [The first start](#the-first-start), [Options of the program](#options-of-the-program) | |
 | [Safety](#safety), [When something goes wrong](#when-something-goes-wrong), [Limits](#limits) | |
@@ -137,7 +137,7 @@ page, as the program printed it. On way ④ with two lines the answer of the pro
 1. **The user of the remote computer** starts `rdp-host` and presses **1**. It prints the line for this network, and puts it in the
    clipboard: `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE`.
 2. **They send you the line**, the token in it.
-3. **You** press **1** on the page, paste the line on its arrow and press **Connect**.
+3. **You** press **1** on the page and paste the line on its arrow: the page connects.
 
 When the computer is in several networks (a cable and Wi-Fi, a VPN), the program prints the address of one of them. The address
 in the others:
@@ -163,7 +163,7 @@ The remote computer is reached at a public address: its own, as a rented server 
    asks a STUN server the public address, prints the line with it and puts the line in the clipboard. Without an answer it prints the line for the
    internet with `<public address>` in it: they put the address from step 2 there, `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE`,
    and send you the line.
-4. **You** press **2** on the page, paste the line on its arrow and press **Connect**.
+4. **You** press **2** on the page and paste the line on its arrow: the page connects.
 
 ✓ A server with a public address needs no router: only port 8765 open in its firewall.
 ✗ When the provider gives the router no public address of its own (CGNAT: the address on the router's page differs from the one
@@ -214,9 +214,9 @@ Enter: grant access to this computer
 | ③ | The user of the remote computer | Sends you the line, the token in it, by chat or mail: the program has put it in the clipboard |
 | ④ | The user of the remote computer | Presses **Enter** |
 | ⑤ | The program | Knocks at the port, the password once more, and dials it, every second. It dials out, so its own NAT lets the answer in |
-| ⑥ | You | Press **3** on the page and paste the whole line on its arrow, as it came. Press **Connect** |
+| ⑥ | You | Press **3** on the page and paste the whole line on its arrow, as it came: the page connects |
 | ⑦ | The meeting point | Joins the two attempts into one connection, in its kernel. From then on it passes the data like a forwarded port |
-| ⑧ | The page and the program | The key, the token, then the screen: see [When you press Connect](#when-you-press-connect). The meeting point reads nothing: the data is encrypted between the two |
+| ⑧ | The page and the program | The key, the token, then the screen: see [When you connect](#when-you-connect). The meeting point reads nothing: the data is encrypted between the two |
 
 After each meeting the program knocks again and waits at the same port, while it runs. If the connection breaks, the page dials
 the same line again and meets the remote computer there; a second viewer uses the same line too. A new start of the program gets
@@ -271,7 +271,7 @@ Direct: where that line does not connect: paste here the line the page sends ( r
 
 1. **The user of the remote computer** sends you the line from the internet, the token in it: the program has put it in the
    clipboard.
-2. **You** press **4** on the page and paste it on the arrow ②, where the answer would come. Press **Connect**. That is all: the
+2. **You** press **4** on the page and paste it on the arrow ②, where the answer would come: the page connects. That is all: the
    rest is as on way ②.
 
 The router keeps the port for an hour, and the program asks for it again every half hour while it runs. When the program is
@@ -348,9 +348,9 @@ Direct: paste here the line the page sends ( rd1o.… ), then Enter - Make the l
 | ③ | The user of the remote computer | Pastes it into the window of the program and presses **Enter**. The program asks the STUN servers that answered at its start, and prints its answer `rd1a.…`, the token in it, and puts it in the clipboard |
 | ④ | The program | From then on sends a short packet to the addresses of the page every second: its own NAT opens for them, and lets the page in |
 | ⑤ | The user of the remote computer | Sends the answer back to you from the clipboard, in a private message. Within 15 minutes: the program waits for the page that long |
-| ⑥ | You | Paste the answer on the arrow ② and press **Connect**, on the same page: reloaded, it forgets what the answer goes with. The page waits for the meeting a minute |
+| ⑥ | You | Paste the answer on the arrow ②, on the same page: the page connects; reloaded, it forgets what the answer goes with. The page waits for the meeting a minute |
 | ⑦ | The page and the program | Meet: ICE tries the addresses of both lines, pair by pair, and finds a way through both NATs; DTLS encrypts it; a data channel opens |
-| ⑧ | The page and the program | The key, the token, then the screen: see [When you press Connect](#when-you-press-connect) |
+| ⑧ | The page and the program | The key, the token, then the screen: see [When you connect](#when-you-connect) |
 
 ```text
 Direct: send this line to whoever connects, it has the token in it:
@@ -370,11 +370,11 @@ With `--direct` the program waits at `--listen` for ways ① and ② all along: 
 ✗ Two NATs that are both symmetric (mobile networks, the CGNAT of some providers) leave no straight way: the page says
 `no direct path between the two`. Use way ③.
 
-## When you press Connect
+## When you connect
 
 The same on every way:
 
-![What happens when you press Connect](docs/connect.svg)
+![What happens when you connect](docs/connect.svg)
 
 The page keeps the key of each address it connected to. The first time it shows the key under the picture: compare it with the line
 `key` that `rdp-host` printed. If the remote computer got a new key on purpose (a new `host.key`), press **Forget the key of

@@ -8,7 +8,7 @@
                background: var(--paper) radial-gradient(var(--dot) 1px, transparent 1.3px) 0 0 / 20px 20px; border: 1px solid var(--line); }
         @media (prefers-color-scheme: dark) { #map { --ink: #c9d0dc; --paper: #171b22; --hatch: #3c5576; --dot: #262c36; } }
         #scene { display: block; width: 100%; height: auto; overflow: visible; }
-        .hand, .say, .tag .head, #ways b, header h1, .me-spot label { font-family: "RD Hand", "Segoe Print", "Bradley Hand", cursive; }
+        .hand, .say, .tag .head, #ways b, header h1 { font-family: "RD Hand", "Segoe Print", "Bradley Hand", cursive; }
         header h1 { font-size: 36px; font-weight: 700; line-height: 1.1; }
         #ways b { font-size: 20px; line-height: 1.05; }
         #scene text.hand { fill: var(--ink); }
@@ -75,16 +75,13 @@
 
         /* what is typed and pressed, on the scene where it happens: placed in the units of the scene, 1000 × 680 */
         .spot { position: absolute; margin: 0; }
-        .me-spot { left: 7.5%; top: 47%; width: 15.5%; }
-        .me-spot label { margin: 0 0 2px; font-size: 19px; color: var(--ink); }
-        .me-spot button { width: 100%; margin-top: 8px; }
         .say { font-size: 20px; line-height: 1.1; color: var(--ink); }
         .say:empty { display: none; }
         .mid-say { left: 34%; top: 49%; width: 32%; text-align: center; }
         .rem-say { left: 72%; top: 49.5%; width: 21.5%; text-align: center; }
         #map[data-way="1"] .mid-say { top: 53%; }
         .say.ok { color: var(--ok); } .say.bad { color: var(--bad); } .say.wait { color: var(--warn); }
-        .tag { left: 24%; width: 52%; padding: 10px 14px; background: var(--paper); border: 2px solid var(--pen, var(--ink)); border-radius: 16px 10px 18px 12px / 12px 18px 10px 16px; transition: border-color .3s; }
+        .tag { left: 20%; width: 60%; padding: 10px 14px; background: var(--paper); border: 2px solid var(--pen, var(--ink)); border-radius: 16px 10px 18px 12px / 12px 18px 10px 16px; transition: border-color .3s; }
         .tag-out { top: 57%; rotate: -.5deg; }
         .tag-back { top: 81.5%; rotate: .4deg; }
         .tag-out .said { display: inline; margin-left: 8px; }
@@ -94,7 +91,8 @@
         #map:not([data-way="4"]) .tag-out { display: none; }
         .tag .head { margin: 0 0 6px; font-size: 21px; font-weight: 700; display: flex; align-items: center; gap: 8px; line-height: 1.1; }
         .tag .head label { margin: 0; color: inherit; font-size: inherit; }
-        .tag input + input { margin-top: 6px; }
+        /* the name: right of "You", the two of them centred over the laptop */
+        #map .me-spot { left: 11.4%; top: 13.4%; width: 15.2%; padding: 6px 9px; }
         .tag .n { width: 24px; height: 24px; border-radius: 50%; background: var(--pen, var(--ink)); color: var(--paper); text-align: center; line-height: 24px; font: 700 14px system-ui, sans-serif; flex: none; }
         .said { margin: 6px 0 0; color: var(--ok); font-size: 13px; }
         .said.bad { color: var(--bad); }

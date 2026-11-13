@@ -138,9 +138,9 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
     // ── the middle: one house for one network; else the cloud of the internet: whatever goes between the two goes through it ──
     const mid = el("g", { id: "n-mid", class: "node" }, svg);
     if (way === 1) {
-        o(mid, rc.polygon([[22, 100], [500, 8], [978, 100]], { ...pen, strokeWidth: 2.4, seed: 31 }));
-        o(mid, rc.rectangle(40, 100, 920, 238, { ...pen, strokeWidth: 2.4, seed: 32 }));
-        write(mid, 500, 76, "one home, one office: one network", 26, "label");
+        o(mid, rc.polygon([[22, 84], [500, 6], [978, 84]], { ...pen, strokeWidth: 2.4, seed: 31 }));
+        o(mid, rc.rectangle(40, 84, 920, 254, { ...pen, strokeWidth: 2.4, seed: 32 }));
+        write(mid, 500, 62, "one home, one office: one network", 26, "label");
     } else {
         o(mid, rc.path(cloudPath(500, 222, 250, 150), { ...pen, strokeWidth: 2.4, fill: "#9cc4f0", fillStyle: "hachure", hachureGap: 9, hachureAngle: -30, seed: 33 }), "o cloud");
         write(mid, 500, way === 3 ? 274 : 214, "Internet", way === 3 ? 30 : 34, "label big"); // way 3: under the lines that go up
@@ -205,7 +205,7 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
 
     // ── this computer: a laptop, this page on its screen ──
     const me = el("g", { id: "n-me", class: "node" }, svg);
-    write(me, 160, 136, "You", 30, "label big");
+    write(me, 88, 126, "You", 30, "label big"); // the name of the user to its right, the two over the middle of the laptop
     laptop(rc, me, "RemoteDesk");
 
     // ── the remote computer: a monitor, its keyboard and mouse; the window of rdp-host on the screen, the number pressed ──

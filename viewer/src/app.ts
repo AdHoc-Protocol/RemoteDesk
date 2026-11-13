@@ -17,7 +17,6 @@ document.head.append(hand);
 const form = $<HTMLFormElement>("login");
 const address = $<HTMLInputElement>("address");
 const yourName = $<HTMLInputElement>("name");
-const connectButton = $<HTMLButtonElement>("connect");
 const statusLine = $<HTMLDivElement>("status");
 const keyLine = $<HTMLDivElement>("key");
 const forget = $<HTMLButtonElement>("forget");
@@ -71,8 +70,8 @@ function note(text: string, kind: Kind = ""): void {
 //
 // One way at a time, its fields only, on the arrows of what goes from person to person: ways 1, 2 and 3 - the line of the machine
 // address:port#token comes here; way 4 - the line of this page goes there, its answer comes back ( or a line address:port#token, when the router of the
-// machine opened a port ). Each part of the diagram shows its state: waited for, on its way, done, or where it broke. Connect is
-// pressable only when the way has all it needs, and nothing is on its way already.
+// machine opened a port ). Each part of the diagram shows its state: waited for, on its way, done, or where it broke. Enter
+// connects only when the way has all it needs, and nothing is on its way already.
 
 type Way = 1 | 2 | 3 | 4;
 /** Where the connection is: the stage the desk told, or the meeting of way 4. */
@@ -89,7 +88,7 @@ const MIDDLE: Record<Way, string> = {
 let way: Way = 1;
 /** The way the scene is drawn for. */
 let drawn: Way | undefined;
-/** Connecting, or meeting: Connect waits. */
+/** Connecting, or meeting: Enter waits. */
 let busy = false;
 /** The offer of this page waiting for its answer: way 4. */
 let pending: Offer | undefined;
@@ -181,7 +180,6 @@ function draw(): void {
     backLabel.textContent = way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here";
     address.placeholder = EXAMPLE[way]; // what such a line looks like: the user sees what to paste
     for (const e of [address, yourName, directStart, ...wayButtons]) e.disabled = busy || (e === directStart && making);
-    connectButton.disabled = busy || !ready();
     directStart.textContent = making ? "Asking the STUN servers…" : pending !== undefined ? "Make a new line" : "Make the line";
     directStart.classList.toggle("second", pending !== undefined); // made: what is pressed now is on the other arrow
     offerSaid.hidden = pending === undefined;
@@ -277,7 +275,7 @@ function hint(b: ReturnType<typeof back>): [string, Kind] {
     if (b === "answer" && way !== 4) return ["That is the answer of a direct connection: choose 4 above.", "bad"];
     if (b === "answer" && pending === undefined)
         return ["This answer is to a line made before: make a new line in 1, send it, and paste the answer that comes back.", "bad"];
-    if (ready()) return ["All is here: press Connect.", "ok"];
+    if (ready()) return ["All is here: press Enter.", "ok"];
     if (way !== 4) return ["Waiting for the line of the remote computer: when it comes by chat or mail, paste it on the arrow.", "wait"];
     if (making) return ["Asking the STUN servers the address of this computer…", ""];
     if (pending === undefined) return ["Start with 1: make the line of this page. A line address:port#token came from the remote computer already? Paste it in 2.", "wait"];
@@ -291,13 +289,21 @@ let desk: Desk | undefined;
 /** The number of the desk opened last: what an earlier one tells is not heard. */
 let opened = 0;
 
-form.addEventListener("submit", e => {
-    e.preventDefault();
+/** Connects, when all is there: as soon as the line is pasted; a line typed by hand at Enter, in its field or the one of the name. */
+function go(): void {
     if (busy || !ready()) return;
     const answer = card(address.value, true);
     if (answer !== undefined) return void meet(answer);
     const line = theLine()!;
     openDesk(line.at, line.token);
+}
+
+form.addEventListener("submit", e => { e.preventDefault(); go(); });
+// two fields and no button: a browser does not submit the form on Enter by itself then
+for (const field of [address, yourName]) field.addEventListener("keydown", e => {
+    if (e.key !== "Enter" || e.isComposing) return;
+    e.preventDefault();
+    go();
 });
 
 /** What the desk tells of each stage, in the log. */
@@ -478,10 +484,12 @@ forget.addEventListener("click", () => {
     keyLine.textContent = english.keyForgotten;
 });
 
-address.addEventListener("input", () => {
+address.addEventListener("input", e => {
     where = ""; // something new typed: what broke before is not this attempt's
     if (card(address.value, true) !== undefined && way !== 4) choose(4); // the answer of way 4: only way 4 takes it
     draw();
+    // pasted, and all is there: it connects at once - nothing more to press; a line typed by hand waits for Enter
+    if ((e as InputEvent).inputType === "insertFromPaste" || (e as InputEvent).inputType === "insertFromDrop") go();
 });
 
 // what the page knew last time: the name and the way; not the line - its token is new at each start of the program
