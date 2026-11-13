@@ -51,15 +51,11 @@ impl<K> Hash for ByteSet<K> {
 impl<K> ByteSet<K> {
     /// First unsigned key token; see [`super::token`].
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        self.next_from(0).map(|b| b as usize)
-    }
+    pub fn token(&self) -> Option<Token> { self.next_from(0).map(|b| b as usize) }
 
     #[inline(always)]
     pub fn next_token(&self, token: Token) -> Option<Token> {
-        if !self.contains_token(token) {
-            return None;
-        }
+        if !self.contains_token(token) { return None; }
         self.next_from(token + 1).map(|b| b as usize)
     }
 
@@ -77,10 +73,7 @@ impl<K> ByteSet<K> {
     /// byte value.
     #[inline(always)]
     pub const fn full() -> Self {
-        Self {
-            bits: [u64::MAX; 4],
-            _key: PhantomData,
-        }
+        Self { bits: [u64::MAX; 4], _key: PhantomData }
     }
 
     #[inline]
@@ -137,15 +130,7 @@ impl<K> ByteSet<K> {
     #[inline(always)]
     pub(crate) fn none_from(&self, b: u8) -> bool {
         let s = b as u32;
-        let m = |j: u32| {
-            if s < j << 6 {
-                u64::MAX
-            } else if s < j + 1 << 6 {
-                u64::MAX << (s & 63)
-            } else {
-                0
-            }
-        };
+        let m = |j: u32| if s < j << 6 { u64::MAX } else if s < j + 1 << 6 { u64::MAX << (s & 63) } else { 0 };
         self.bits[0] & m(0) | self.bits[1] & m(1) | self.bits[2] & m(2) | self.bits[3] & m(3) == 0
     }
 
@@ -245,12 +230,7 @@ impl<K> ByteSet<K> {
     /// Ascending keys.
     #[inline]
     pub fn iter(&self) -> Iter<K> {
-        Iter {
-            bits: self.bits,
-            word: 0,
-            cur: self.bits[0],
-            _key: PhantomData,
-        }
+        Iter { bits: self.bits, word: 0, cur: self.bits[0], _key: PhantomData }
     }
 }
 

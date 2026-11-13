@@ -18,8 +18,8 @@ use std::io;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::Arc;
 
-use crate::lib::adhoc::{BytesDst, BytesSrc};
 use crate::lib::noise::{ByteSink, ByteSource, NoiseStream, Pull, KEY};
+use crate::lib::adhoc::{BytesDst, BytesSrc};
 
 // Bridges between transport byte traits and Noise source and sink traits.
 
@@ -56,13 +56,7 @@ impl<'a> ByteSource for dyn BytesSrc + 'a {
         // 0 - a pack waits; -1 - nothing to send now: the stream is drained, a graceful close goes
         // on (FIN, CLOSE frame) - as "a pack waits" it would hold the transport and the close would
         // never come
-        Ok(if 0 < n {
-            Pull::Bytes(n as usize)
-        } else if n == 0 {
-            Pull::Pending
-        } else {
-            Pull::Eof
-        })
+        Ok(if 0 < n { Pull::Bytes(n as usize) } else if n == 0 { Pull::Pending } else { Pull::Eof })
     }
 
     #[inline]
@@ -105,8 +99,7 @@ impl<'a> ByteSink for dyn BytesDst + 'a {
 
     /// The bytes of a record in the clear: the protocol sink takes apart what may be there.
     fn write_clear(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.on_clear(bytes)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "a record in the clear carried what may not be there"))
+        self.on_clear(bytes).ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "a record in the clear carried what may not be there"))
     }
 
     fn broken(&self) -> bool {
@@ -136,12 +129,7 @@ unsafe impl Sync for Shared {}
 
 impl Shared {
     fn new(ns: NoiseStream) -> Arc<Self> {
-        Arc::new(Self {
-            ns: std::cell::UnsafeCell::new(ns),
-            ready: AtomicBool::new(false),
-            failed: AtomicBool::new(false),
-            forged: AtomicI64::new(0),
-        })
+        Arc::new(Self { ns: std::cell::UnsafeCell::new(ns), ready: AtomicBool::new(false), failed: AtomicBool::new(false), forged: AtomicI64::new(0) })
     }
 
     /// The stream.
@@ -193,11 +181,7 @@ impl NoiseHandle {
     }
     /// Records that did not open: the stream ended at the first.
     pub fn forged(&self) -> i64 {
-        if self.failed() {
-            self.0.forged.load(Ordering::Relaxed)
-        } else {
-            0
-        }
+        if self.failed() { self.0.forged.load(Ordering::Relaxed) } else { 0 }
     }
     /// The key of the other side, proved by the handshake: for a pattern that brings it.
     pub fn peer_key(&self) -> Option<[u8; KEY]> {
@@ -292,7 +276,10 @@ pub(crate) fn wrap_chain(
             ns: ns.clone(),
             inner: SinkBridge(sink),
         }),
-        Box::new(NoiseSource { ns, inner: SourceBridge::new(source) }),
+        Box::new(NoiseSource {
+            ns,
+            inner: SourceBridge::new(source),
+        }),
         handle,
     )
 }

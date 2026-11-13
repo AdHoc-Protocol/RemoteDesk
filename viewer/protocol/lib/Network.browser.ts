@@ -69,7 +69,7 @@
  * - Offer collisions ("glare"): https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Perfect_negotiation
  */
 import AdHoc from "./AdHoc";
-import {Chain as NoiseChain} from "./Crypto";
+import { Chain as NoiseChain } from "./Crypto";
 import Core from "./Network";
 
 // The browser API this module uses, declared structurally and only as far as it is used. The typings of a Node project
@@ -77,17 +77,9 @@ import Core from "./Network";
 // in a browser project; with these it builds wherever the delivered project is deployed. They are module-local
 // declarations: at run time every name below is the browser's global, looked up when the code runs.
 // The shapes follow MDN: https://developer.mozilla.org/en-US/docs/Web/API/WebSocket, .../RTCPeerConnection, .../RTCDataChannel
-interface Event {
-    readonly type?: string | undefined;
-}
-interface MessageEvent extends Event {
-    readonly data: unknown;
-}
-interface CloseEvent extends Event {
-    readonly code: number;
-    readonly reason: string;
-    readonly wasClean: boolean;
-}
+interface Event { readonly type?: string | undefined }
+interface MessageEvent extends Event { readonly data: unknown }
+interface CloseEvent extends Event { readonly code: number; readonly reason: string; readonly wasClean: boolean }
 interface WebSocket {
     binaryType: string;
     readonly readyState: number;
@@ -101,35 +93,19 @@ interface WebSocket {
     removeEventListener(type: string, listener: (event: any) => void): void;
 }
 declare const WebSocket: {
-    new (url: string | URL): WebSocket;
+    new(url: string | URL): WebSocket;
     readonly CONNECTING: number;
     readonly OPEN: number;
     readonly CLOSING: number;
     readonly CLOSED: number;
 };
-interface RTCIceCandidateInit {
-    readonly candidate?: string | undefined;
-    readonly sdpMid?: string | null | undefined;
-    readonly sdpMLineIndex?: number | null | undefined;
-    readonly usernameFragment?: string | null | undefined;
-}
-interface RTCSessionDescriptionInit {
-    readonly type?: string | undefined;
-    readonly sdp?: string | undefined;
-}
-interface RTCSessionDescription extends RTCSessionDescriptionInit {
-    readonly type: string;
-    toJSON(): RTCSessionDescriptionInit;
-}
+interface RTCIceCandidateInit { readonly candidate?: string | undefined; readonly sdpMid?: string | null | undefined; readonly sdpMLineIndex?: number | null | undefined; readonly usernameFragment?: string | null | undefined }
+interface RTCSessionDescriptionInit { readonly type?: string | undefined; readonly sdp?: string | undefined }
+interface RTCSessionDescription extends RTCSessionDescriptionInit { readonly type: string; toJSON(): RTCSessionDescriptionInit }
 declare const RTCSessionDescription: new (init: RTCSessionDescriptionInit) => RTCSessionDescription;
-interface RTCIceCandidate {
-    readonly candidate: string;
-    toJSON(): RTCIceCandidateInit;
-}
+interface RTCIceCandidate { readonly candidate: string; toJSON(): RTCIceCandidateInit }
 declare const RTCIceCandidate: new (init: RTCIceCandidateInit) => RTCIceCandidate;
-interface RTCErrorEvent extends Event {
-    readonly error?: Error | undefined;
-}
+interface RTCErrorEvent extends Event { readonly error?: Error | undefined }
 interface RTCDataChannel {
     binaryType: string;
     readonly readyState: string;
@@ -141,15 +117,15 @@ interface RTCDataChannel {
     close(): void;
 }
 interface RTCPeerConnection {
-    ondatachannel: ((event: {readonly channel: RTCDataChannel}) => void) | null;
-    onicecandidate: ((event: {readonly candidate: RTCIceCandidate | null}) => void) | null;
+    ondatachannel: ((event: { readonly channel: RTCDataChannel }) => void) | null;
+    onicecandidate: ((event: { readonly candidate: RTCIceCandidate | null }) => void) | null;
     oniceconnectionstatechange: (() => void) | null;
     onnegotiationneeded: (() => void) | null;
     readonly iceConnectionState: string;
     readonly localDescription: RTCSessionDescription | null;
     readonly remoteDescription: RTCSessionDescription | null;
-    createDataChannel(label: string, options?: {ordered?: boolean | undefined}): RTCDataChannel;
-    createOffer(options?: {iceRestart?: boolean | undefined}): Promise<RTCSessionDescriptionInit>;
+    createDataChannel(label: string, options?: { ordered?: boolean | undefined }): RTCDataChannel;
+    createOffer(options?: { iceRestart?: boolean | undefined }): Promise<RTCSessionDescriptionInit>;
     createAnswer(): Promise<RTCSessionDescriptionInit>;
     setLocalDescription(description: RTCSessionDescriptionInit): Promise<void>;
     setRemoteDescription(description: RTCSessionDescriptionInit): Promise<void>;
@@ -161,18 +137,21 @@ interface RTCPeerConnection {
 interface RTCStats {
     readonly type: string;
     readonly selectedCandidatePairId?: string | undefined; // "transport"
-    readonly localCandidateId?: string | undefined; // "candidate-pair"
+    readonly localCandidateId?: string | undefined;        // "candidate-pair"
     readonly remoteCandidateId?: string | undefined;
     readonly nominated?: boolean | undefined;
-    readonly selected?: boolean | undefined; // Firefox: it has no "transport" stats
+    readonly selected?: boolean | undefined;               // Firefox: it has no "transport" stats
     readonly state?: string | undefined;
-    readonly candidateType?: string | undefined; // "local-candidate", "remote-candidate"
+    readonly candidateType?: string | undefined;           // "local-candidate", "remote-candidate"
 }
 interface RTCStatsReport {
     forEach(callback: (stats: RTCStats) => void): void;
     get(id: string): RTCStats | undefined;
 }
-declare const RTCPeerConnection: new (configuration: {iceServers: readonly org.unirail.Network.WebRTCClient.IceServer[]; iceTransportPolicy: "all" | "relay"}) => RTCPeerConnection;
+declare const RTCPeerConnection: new (configuration: {
+    iceServers: readonly org.unirail.Network.WebRTCClient.IceServer[];
+    iceTransportPolicy: "all" | "relay";
+}) => RTCPeerConnection;
 /** Where a page hears it comes back: the window (`globalThis`) for `online`, `focus`, `pageshow`, `document` for `visibilitychange`. */
 interface PageEvents {
     addEventListener(type: string, listener: () => void): void;
@@ -180,7 +159,7 @@ interface PageEvents {
 }
 declare function setTimeout(callback: (...args: any[]) => void, ms: number): unknown;
 declare function clearTimeout(handle: unknown): void;
-declare const console: {log(...data: unknown[]): void; warn(...data: unknown[]): void; error(...data: unknown[]): void};
+declare const console: { log(...data: unknown[]): void; warn(...data: unknown[]): void; error(...data: unknown[]): void };
 
 /** The browser's entry point: everything of `Network.ts`, and the classes that need a browser. */
 export namespace org.unirail.Network {
@@ -415,9 +394,7 @@ export namespace org.unirail.Network {
         /** The shared client this page client runs on: its single connection and Internal. */
         readonly client: Core.TCP.WebSocket.Client<INT, string>;
         /** The connection - a {@link Core.TCP.WebSocket} - the session lives on. */
-        get connection(): Core.TCP.WebSocket {
-            return this.client.connection;
-        }
+        get connection(): Core.TCP.WebSocket { return this.client.connection; }
         /** The name in {@link toString}, logs and `onFailure`. */
         readonly name: string;
         private readonly onFailure: (source: unknown, error: Error) => void;
@@ -440,91 +417,43 @@ export namespace org.unirail.Network {
          * @param bufferSize  the transmit buffer, in bytes.
          * @param mux         the server port is multiplexed: each socket opens with the byte naming the connection.
          */
-        constructor(name: string, newInternal: (connection: AdHoc.Connection.External) => INT, onFailure: (source: unknown, error: Error) => void = Core.TCP.onFailurePrintConsole, bufferSize = 1024, mux = false) {
+        constructor(name: string, newInternal: (connection: AdHoc.Connection.External) => INT,
+            onFailure: (source: unknown, error: Error) => void = Core.TCP.onFailurePrintConsole, bufferSize = 1024, mux = false) {
             this.name = name;
             this.onFailure = onFailure;
             //A browser's send, and Node's, takes the bytes at once: the transmit buffer goes to it as it is, with no copy of its own.
-            this.client = new Core.TCP.WebSocket.Client(newInternal, (address) => new WebSocket(address), {name, onFailure, bufferSize, mux, sendCopiesBytes: true});
+            this.client = new Core.TCP.WebSocket.Client(newInternal, address => new WebSocket(address), { name, onFailure, bufferSize, mux, sendCopiesBytes: true });
         }
         /** A connect is in progress. */
-        get connecting(): boolean {
-            return this.client.isConnecting();
-        }
+        get connecting(): boolean { return this.client.isConnecting(); }
         /** The socket is up and the session started. */
-        get connected(): boolean {
-            return this.client.isConnected();
-        }
+        get connected(): boolean { return this.client.isConnected(); }
         /** Neither connecting nor connected. */
-        get closed(): boolean {
-            return !this.connecting && !this.connected;
-        }
-        get isOpen(): boolean {
-            return this.connection.isOpen;
-        }
+        get closed(): boolean { return !this.connecting && !this.connected; }
+        get isOpen(): boolean { return this.connection.isOpen; }
         /** The Internal - the generated connection - of this client. */
-        get Internal(): INT {
-            return this.client.internal;
-        }
-        set Internal(value: INT) {
-            this.connection.Internal = value;
-            value.External?.(this.connection);
-        }
+        get Internal(): INT { return this.client.internal; }
+        set Internal(value: INT) { this.connection.Internal = value; value.External?.(this.connection); }
         /** The key of the other side, proved by the handshake of this socket; `undefined` - the pattern brings none, or not yet. */
-        get peerKey(): Uint8Array | undefined {
-            return this.connection.peerKey;
-        }
-        get id(): number {
-            return this.connection.id;
-        }
-        get resumable(): number {
-            return this.connection.resumable;
-        }
-        session(): number {
-            return this.connection.session();
-        }
-        get parked(): number {
-            return this.connection.parked;
-        }
-        identify(id: number): number {
-            return this.connection.identify(id);
-        }
-        reclaim(token: number): number {
-            return this.connection.reclaim(token);
-        }
-        WakeReceive(): void {
-            this.connection.WakeReceive();
-        }
-        WakeTransmit(): void {
-            this.connection.WakeTransmit();
-        }
-        Deadline(ms: number): number {
-            return this.connection.Deadline(ms);
-        }
-        Pulse(ms: number): void {
-            this.connection.Pulse(ms);
-        }
-        HeardPulse(): void {
-            this.connection.HeardPulse();
-        }
-        ReceiveTimedOut(): void {
-            this.connection.ReceiveTimedOut();
-        }
-        get receiveTimeout(): number {
-            return this.connection.receiveTimeout;
-        }
-        set receiveTimeout(value: number) {
-            this.connection.receiveTimeout = value;
-        }
-        get transmitTimeout(): number {
-            return this.connection.transmitTimeout;
-        }
-        set transmitTimeout(value: number) {
-            this.connection.transmitTimeout = value;
-        }
+        get peerKey(): Uint8Array | undefined { return this.connection.peerKey; }
+        get id(): number { return this.connection.id; }
+        get resumable(): number { return this.connection.resumable; }
+        session(): number { return this.connection.session(); }
+        get parked(): number { return this.connection.parked; }
+        identify(id: number): number { return this.connection.identify(id); }
+        reclaim(token: number): number { return this.connection.reclaim(token); }
+        WakeReceive(): void { this.connection.WakeReceive(); }
+        WakeTransmit(): void { this.connection.WakeTransmit(); }
+        Deadline(ms: number): number { return this.connection.Deadline(ms); }
+        Pulse(ms: number): void { this.connection.Pulse(ms); }
+        HeardPulse(): void { this.connection.HeardPulse(); }
+        ReceiveTimedOut(): void { this.connection.ReceiveTimedOut(); }
+        get receiveTimeout(): number { return this.connection.receiveTimeout; }
+        set receiveTimeout(value: number) { this.connection.receiveTimeout = value; }
+        get transmitTimeout(): number { return this.connection.transmitTimeout; }
+        set transmitTimeout(value: number) { this.connection.transmitTimeout = value; }
         /** A graceful close: what is queued goes out, then the WebSocket CLOSE (1000); the server's answer ends the session. */
-        close(): void {
-            this.client.disconnect_gracefully();
-        }
+        close(): void { this.client.disconnect_gracefully(); }
         /**
          * The WebSocket closing handshake with the application's code and reason. A page may use only 1000 or a code
          * of its own in 3000-4999, and the reason is cut to 123 bytes of UTF-8:
@@ -533,9 +462,7 @@ export namespace org.unirail.Network {
          * client.closeGracefully( 4001, "Session expired" );
          * ```
          */
-        closeGracefully(code: number, why?: string): void {
-            this.connection.closeGracefully(code, why);
-        }
+        closeGracefully(code: number, why?: string): void { this.connection.closeGracefully(code, why); }
         /**
          * The session is taken up now, not after the backoff ({@link Core.TCP.Client.redialNow}): a socket silent for
          * `silentMs` is taken as lost, a parked session is dialed at once. For a native shell that hears the app come
@@ -543,9 +470,7 @@ export namespace org.unirail.Network {
          *
          * @return a dial is under way.
          */
-        redialNow(silentMs = Number.MAX_SAFE_INTEGER): boolean {
-            return this.client.redialNow(silentMs);
-        }
+        redialNow(silentMs = Number.MAX_SAFE_INTEGER): boolean { return this.client.redialNow(silentMs); }
 
         /**
          * {@link redialNow} whenever the page comes back: it is shown again (`visibilitychange`, `pageshow` from the
@@ -566,14 +491,11 @@ export namespace org.unirail.Network {
          * @return removes the listeners. Outside a page (a Worker, Node) nothing is listened to.
          */
         redialOnResume(silentMs = Number.MAX_SAFE_INTEGER): () => void {
-            const page = globalThis as unknown as Partial<PageEvents> & {document?: (PageEvents & {readonly visibilityState: string}) | undefined};
+            const page = globalThis as unknown as Partial<PageEvents> & { document?: PageEvents & { readonly visibilityState: string } | undefined };
             const doc = page.document;
-            if (doc === undefined || page.addEventListener === undefined || page.removeEventListener === undefined) return () => {};
-            const add = page.addEventListener.bind(page),
-                remove = page.removeEventListener.bind(page);
-            const resumed = (): void => {
-                if (doc.visibilityState === "visible") this.redialNow(silentMs);
-            };
+            if (doc === undefined || page.addEventListener === undefined || page.removeEventListener === undefined) return () => { };
+            const add = page.addEventListener.bind(page), remove = page.removeEventListener.bind(page);
+            const resumed = (): void => { if (doc.visibilityState === "visible") this.redialNow(silentMs); };
             const events = ["online", "focus", "pageshow"];
             doc.addEventListener("visibilitychange", resumed);
             for (const type of events) add(type, resumed);
@@ -584,17 +506,11 @@ export namespace org.unirail.Network {
         }
 
         /** Closes at once: nothing more is sent, the session ends. */
-        abort(): void {
-            this.client.disconnect();
-        }
+        abort(): void { this.client.disconnect(); }
         /** The socket is to be treated as lost: an identified session parks and resumes on the next connect. */
-        lost(): void {
-            this.connection.lost();
-        }
+        lost(): void { this.connection.lost(); }
         /** {@link abort}, by its former name. */
-        closeAndDispose(): void {
-            this.client.disconnect();
-        }
+        closeAndDispose(): void { this.client.disconnect(); }
         /**
          * Connects to `server`, retrying with a doubling wait (see the class). An open socket is closed first.
          *
@@ -619,9 +535,8 @@ export namespace org.unirail.Network {
             for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
                 try {
                     return await this.client.connect(address.href, connectingTimeout);
-                } catch {
-                    //reported to onFailure by the client
-                    if (attempt < this.maxRetries) await new Promise((resolve) => setTimeout(resolve, this.retryDelay * 2 ** attempt));
+                } catch { //reported to onFailure by the client
+                    if (attempt < this.maxRetries) await new Promise(resolve => setTimeout(resolve, this.retryDelay * 2 ** attempt));
                 }
             }
             this.failed = true;
@@ -724,7 +639,9 @@ export namespace org.unirail.Network {
          * candidate of ICE. Over an AdHoc connection it is a pack of yours: the type, `sdp` of a description; `candidate`,
          * `sdpMid`, `sdpMLineIndex` of a candidate.
          */
-        export type Signal = {readonly type: "sessionDescription"; readonly data: RTCSessionDescriptionInit} | {readonly type: "iceCandidate"; readonly data: RTCIceCandidateInit};
+        export type Signal =
+            | { readonly type: "sessionDescription"; readonly data: RTCSessionDescriptionInit }
+            | { readonly type: "iceCandidate"; readonly data: RTCIceCandidateInit };
 
         /**
          * The channel two peers negotiate over before their data channel exists. Implement it to signal through
@@ -908,9 +825,7 @@ export namespace org.unirail.Network {
             isOfferer = false;
 
             /** The offerer writes the first message of the handshake of [Noise]. */
-            protected override get initiator(): boolean {
-                return this.isOfferer;
-            }
+            protected override get initiator(): boolean { return this.isOfferer; }
 
             /**
              * Starts connecting through `signaling`.
@@ -989,13 +904,13 @@ export namespace org.unirail.Network {
                 };
 
                 if (this.isOfferer) {
-                    this.data = this.rtc.createDataChannel("AdHoc", {ordered: true});
+                    this.data = this.rtc.createDataChannel("AdHoc", { ordered: true });
                     this.bindDataChannelEvents();
                 }
 
                 // Trickle ICE: every candidate goes to the other peer as soon as it is found.
                 this.rtc.onicecandidate = (event) => {
-                    if (event.candidate && this.signal) this.signal.send({type: "iceCandidate", data: event.candidate.toJSON()});
+                    if (event.candidate && this.signal) this.signal.send({ type: "iceCandidate", data: event.candidate.toJSON() });
                 };
 
                 this.rtc.oniceconnectionstatechange = () => {
@@ -1013,10 +928,10 @@ export namespace org.unirail.Network {
                 this.rtc.onnegotiationneeded = () => {
                     if (this.connectionState !== "connecting" && this.connectionState !== "connected") return;
                     this.rtc
-                        ?.createOffer({iceRestart: this.retryCount > 0}) // a retry restarts ICE: new candidates, new paths
+                        ?.createOffer({ iceRestart: this.retryCount > 0 }) // a retry restarts ICE: new candidates, new paths
 
                         .then((offer) => this.rtc!.setLocalDescription(offer))
-                        .then(() => this.signal?.send({type: "sessionDescription", data: this.rtc!.localDescription!.toJSON()}))
+                        .then(() => this.signal?.send({ type: "sessionDescription", data: this.rtc!.localDescription!.toJSON() }))
                         .catch((err) => this.handleError(err, true));
                 };
             }
@@ -1037,17 +952,12 @@ export namespace org.unirail.Network {
                     const start = (): void => {
                         if (this.data !== channel || this.connectionState !== "connected") return;
                         this.declared = declared;
-                        this.transmitterConnected(
-                            {
-                                get isOpen() {
-                                    return channel.readyState === "open";
-                                },
-                                send: (bytes: Uint8Array<ArrayBuffer>) => channel.send(bytes),
-                                close: () => this.cleanup(),
-                                subscribe: () => () => {},
-                            },
-                            this.serverUrl,
-                        );
+                        this.transmitterConnected({
+                            get isOpen() { return channel.readyState === "open"; },
+                            send: (bytes: Uint8Array<ArrayBuffer>) => channel.send(bytes),
+                            close: () => this.cleanup(),
+                            subscribe: () => () => { },
+                        }, this.serverUrl);
                     };
                     // The Internal seated declares the Noise of the channel ( secure ): seated anew for this channel
                     let declared: Core.Chain | undefined;
@@ -1058,8 +968,7 @@ export namespace org.unirail.Network {
                         this.handleError(e instanceof Error ? e : new Error(String(e)), true);
                         return;
                     }
-                    if (declared !== undefined && declared.codec === undefined) {
-                        //no keys for it
+                    if (declared !== undefined && declared.codec === undefined) { //no keys for it
                         this.handleError(Core.TCP.ExternalConnection.refused(), true);
                         return;
                     }
@@ -1069,7 +978,8 @@ export namespace org.unirail.Network {
 
                 // A channel that closes by itself is tried again (an ICE restart) before it is a failure.
                 this.data.onclose = () => {
-                    if (this.connectionState !== "closed") this.handleError(new Error("Data channel closed unexpectedly"), false);
+                    if (this.connectionState !== "closed")
+                        this.handleError(new Error("Data channel closed unexpectedly"), false);
                 };
 
                 this.data.onerror = (event) => {
@@ -1122,8 +1032,7 @@ export namespace org.unirail.Network {
                 clearTimeout(this.signalingTimeout);
                 this.signalingTimeout = undefined;
 
-                if (this.signal !== undefined && this.signal === this.given)
-                    //the application's: it goes on carrying, only unheard here
+                if (this.signal !== undefined && this.signal === this.given) //the application's: it goes on carrying, only unheard here
                     this.signal.onmessage = this.signal.onfailure = this.signal.onerror = this.signal.onopen = undefined;
                 else this.signal?.close();
                 this.signal = undefined;
@@ -1150,12 +1059,12 @@ export namespace org.unirail.Network {
                 const report = await this.rtc?.getStats();
                 if (report === undefined) return undefined;
                 let pair: RTCStats | undefined;
-                report.forEach((stats) => {
+                report.forEach(stats => {
                     if (stats.type === "transport" && stats.selectedCandidatePairId !== undefined) pair = report.get(stats.selectedCandidatePairId);
                 });
                 if (pair === undefined)
-                    report.forEach((stats) => {
-                        if (stats.type === "candidate-pair" && (stats.selected === true || (stats.nominated === true && stats.state === "succeeded"))) pair ??= stats;
+                    report.forEach(stats => {
+                        if (stats.type === "candidate-pair" && (stats.selected === true || stats.nominated === true && stats.state === "succeeded")) pair ??= stats;
                     });
                 if (pair === undefined) return undefined;
                 const local = pair.localCandidateId === undefined ? undefined : report.get(pair.localCandidateId);
@@ -1170,9 +1079,7 @@ export namespace org.unirail.Network {
             }
 
             /** The teardown closes the native RTC resources for close, abort and loss alike. */
-            protected override onDispose(): void {
-                this.cleanup();
-            }
+            protected override onDispose(): void { this.cleanup(); }
 
             /**
              * A signaling message from the other peer. `sessionDescription`: the remote description is set, the queued
@@ -1199,7 +1106,7 @@ export namespace org.unirail.Network {
                                     if (description.type === "offer") {
                                         await this.rtc!.setLocalDescription(await this.rtc!.createAnswer());
                                         // With the answer set as local description, send it back.
-                                        if (this.rtc?.localDescription) this.signal?.send({type: "sessionDescription", data: this.rtc.localDescription.toJSON()});
+                                        if (this.rtc?.localDescription) this.signal?.send({ type: "sessionDescription", data: this.rtc.localDescription.toJSON() });
                                     }
                                     // An answer completes the exchange: nothing more to do.
                                     return Promise.resolve();
@@ -1219,8 +1126,10 @@ export namespace org.unirail.Network {
                     this.handleError(err as Error, true);
                 }
             }
+
         }
     }
+
 }
 import Network = org.unirail.Network;
 export default Network;

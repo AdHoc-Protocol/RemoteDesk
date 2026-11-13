@@ -10,8 +10,8 @@
 
 use std::sync::Arc;
 
-use crate::lib::adhoc::connection::receiver::bytes_copy::Capture;
 use crate::lib::adhoc::connection::transmitter::{BytesSrc, Tx};
+use crate::lib::adhoc::connection::receiver::bytes_copy::Capture;
 
 /// A connection a broadcast goes to: the generated connection.
 pub trait Subscriber: Send + Sync {
@@ -34,11 +34,7 @@ pub struct Broadcaster<D: Subscriber> {
 
 impl<D: Subscriber> Default for Broadcaster<D> {
     fn default() -> Self {
-        Self {
-            subscribers: arc_swap::ArcSwap::from_pointee(Vec::new()),
-            len: std::sync::atomic::AtomicUsize::new(0),
-            writers: parking_lot::Mutex::new(()),
-        }
+        Self { subscribers: arc_swap::ArcSwap::from_pointee(Vec::new()), len: std::sync::atomic::AtomicUsize::new(0), writers: parking_lot::Mutex::new(()) }
     }
 }
 

@@ -14,17 +14,17 @@
 //! A connection's serialization, I/O, and deadlines run on its assigned loop. Other threads submit
 //! requests through the loop inbox and wake the poller when necessary.
 
-#[allow(non_snake_case)]
-pub mod TCP;
-#[allow(non_snake_case)]
-pub mod UDP;
 pub mod admission;
-pub mod buf;
 pub mod engine;
 pub mod failure;
 pub mod mux;
 pub mod noise_adapter;
-pub mod reseat;
+pub mod buf;
+#[allow(non_snake_case)]
+pub mod TCP;
+#[allow(non_snake_case)]
+pub mod UDP;
 pub mod wire;
+pub mod reseat;
 
 pub use wire::Wire;

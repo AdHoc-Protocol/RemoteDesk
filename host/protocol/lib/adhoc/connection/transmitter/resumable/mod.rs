@@ -60,6 +60,7 @@ use std::sync::atomic::{AtomicPtr, AtomicU64, Ordering};
 
 use crate::lib::adhoc::connection::control::{get_i32, get_i64, set_i32, set_i64, Control};
 
+
 // Constants
 
 /// Default segment: the most the buffer in memory grows to while the connection is open. 4 MB.
@@ -233,8 +234,18 @@ impl Resumable {
     /// Full constructor, geometry included. Hidden: the geometry is a protocol constant; tests
     /// shrink it to exercise the file paths without megabytes of I/O.
     #[doc(hidden)]
-    pub fn with_geometry(capacity: i64, dir: PathBuf, start: i64, hot_size: usize, file_size: usize, segment: usize) -> Self {
-        assert!(capacity <= MAX_CAPACITY, "the positions of a session must stay within a signed 32-bit offset of each other");
+    pub fn with_geometry(
+        capacity: i64,
+        dir: PathBuf,
+        start: i64,
+        hot_size: usize,
+        file_size: usize,
+        segment: usize,
+    ) -> Self {
+        assert!(
+            capacity <= MAX_CAPACITY,
+            "the positions of a session must stay within a signed 32-bit offset of each other"
+        );
         assert!(ROOM <= hot_size && hot_size <= segment && hot_size <= file_size);
         Self {
             capacity,
@@ -462,7 +473,11 @@ impl Resumable {
             self.awaiting_ = false;
             self.replaying = NONE;
             self.close_replay();
-            return Ok(if self.next_ < position { self.next_ } else { self.base_ });
+            return Ok(if self.next_ < position {
+                self.next_
+            } else {
+                self.base_
+            });
         }
         self.sent_ = position;
         self.replaying = position;
@@ -578,18 +593,16 @@ impl Resumable {
     /// then anyway, and what does - the login that lets the peer know this side - must. While
     /// swallowing — always: the announcement of a lost position gets out.
     pub fn has_room(&self) -> bool {
-        self.swallow || ROOM as i64 <= self.capacity - (self.next_ - self.acked_) && (self.awaiting_ || self.next_ - self.acked_ < self.in_flight)
+        self.swallow
+            || ROOM as i64 <= self.capacity - (self.next_ - self.acked_)
+                && (self.awaiting_ || self.next_ - self.acked_ < self.in_flight)
     }
 
     /// The bytes a read of the transmitter may produce: what is left under the cap - a pack in the
     /// middle too waits there. While swallowing - no limit: the announcement of a lost position
     /// gets out.
     pub fn free(&self) -> usize {
-        if self.swallow {
-            usize::MAX
-        } else {
-            (self.capacity - (self.next_ - self.acked_)).max(0) as usize
-        }
+        if self.swallow { usize::MAX } else { (self.capacity - (self.next_ - self.acked_)).max(0) as usize }
     }
 
     /// Bytes of a guaranteed pack as the transmitter produces them: into the journal. `true` — they
@@ -745,6 +758,7 @@ impl Resumable {
         self.parked_ = false;
     }
 
+
     // The journal itself
 
     /// The position of the first byte in `hot`: past every file, the last one as far as it is
@@ -753,7 +767,9 @@ impl Resumable {
         if self.files.is_empty() {
             self.base_
         } else {
-            self.base_ + (self.files.len() - 1) as i64 * self.file_size as i64 + self.written as i64
+            self.base_
+                + (self.files.len() - 1) as i64 * self.file_size as i64
+                + self.written as i64
         }
     }
 
@@ -761,11 +777,7 @@ impl Resumable {
     #[inline(always)]
     fn hot_at(&self, i: usize) -> usize {
         let at = self.hot_off + i;
-        if at < self.hot.len() {
-            at
-        } else {
-            at - self.hot.len()
-        }
+        if at < self.hot.len() { at } else { at - self.hot.len() }
     }
 
     /// What the ring holds, in order, to the front of `to` - at most two copies: its part up to the end of the ring, the part
@@ -970,11 +982,7 @@ impl Resumable {
             self.whole_end = end;
             self.ends.pop_front();
         }
-        if self.datagram {
-            self.acked_
-        } else {
-            self.whole_end.max(self.base_)
-        }
+        if self.datagram { self.acked_ } else { self.whole_end.max(self.base_) }
     }
 
     fn release(&mut self) {
@@ -994,7 +1002,10 @@ impl Resumable {
         }
         let file = self.file_size as i64;
         // The full files below the acknowledged position; the one still being written stays.
-        while !self.files.is_empty() && (self.ch.is_none() || 1 < self.files.len()) && self.base_ + file <= upto {
+        while !self.files.is_empty()
+            && (self.ch.is_none() || 1 < self.files.len())
+            && self.base_ + file <= upto
+        {
             if self.replay_index == Some(0) {
                 self.close_replay(); // an open file cannot be deleted on Windows
             }
@@ -1149,7 +1160,7 @@ impl Resumable {
         }
         self.hot = to; // the old mapping goes: the new one has its bytes, they are the file's
         self.sync_all = true; // laid out anew: the next sync writes what the ring holds whole
-                              // SAFETY: the header is mapped while `head` is set
+        // SAFETY: the header is mapped while `head` is set
         unsafe { set_i32(self.head, Control::H_HOT_CAP, cap as i32) };
         Ok(())
     }
@@ -1231,7 +1242,16 @@ impl Resumable {
                 get_i32(h, Control::H_JFLAGS),
             )
         };
-        if !(0 < b && b <= n && b <= hb && (n < hb || n - hb <= cap) && self.hot_size as i64 <= cap && cap <= self.segment as i64 && 0 <= off && off < cap && ring_file.is_file()) {
+        if !(0 < b
+            && b <= n
+            && b <= hb
+            && (n < hb || n - hb <= cap)
+            && self.hot_size as i64 <= cap
+            && cap <= self.segment as i64
+            && 0 <= off
+            && off < cap
+            && ring_file.is_file())
+        {
             return Ok(false);
         }
         let upto = n.min(hb); // the files hold the journal below hb, up to its end
@@ -1262,15 +1282,7 @@ impl Resumable {
             let f = self.seg(s);
             self.files.push(f);
         }
-        self.base_ = if k == from {
-            if n < hb {
-                n
-            } else {
-                hb
-            }
-        } else {
-            segs[from]
-        };
+        self.base_ = if k == from { if n < hb { n } else { hb } } else { segs[from] };
         self.written = if k == from { 0 } else { (upto - segs[k - 1]) as usize };
         if !self.files.is_empty() && self.written < self.file_size {
             let mut ch = self.last(self.files.last().unwrap())?;
@@ -1434,11 +1446,7 @@ impl Resumable {
             return Ok(());
         }
         let end = self.d_off + (len as usize).min(self.d_cap);
-        let hit = if end <= self.d_cap {
-            at < end && self.d_off < at + n
-        } else {
-            at < end - self.d_cap || self.d_off < at + n
-        };
+        let hit = if end <= self.d_cap { at < end && self.d_off < at + n } else { at < end - self.d_cap || self.d_off < at + n };
         if hit {
             self.sync()
         } else {
@@ -1563,21 +1571,11 @@ struct Hot {
 impl Hot {
     fn mem(n: usize) -> Self {
         let mut mem = vec![0u8; n];
-        Self {
-            ptr: mem.as_mut_ptr(),
-            len: n,
-            mem,
-            map: None,
-        }
+        Self { ptr: mem.as_mut_ptr(), len: n, mem, map: None }
     }
 
     fn mapped(map: Map) -> Self {
-        Self {
-            ptr: map.ptr(),
-            len: map.len(),
-            mem: Vec::new(),
-            map: Some(map),
-        }
+        Self { ptr: map.ptr(), len: map.len(), mem: Vec::new(), map: Some(map) }
     }
 
     /// What is stored into the mapping, on the disk.
@@ -1743,22 +1741,8 @@ pub(crate) mod os {
         let mut id = 0u32;
         let mut size = 4u32;
         // SAFETY: the strings end with 0, the buffer is 4 bytes as `size` says
-        let r = unsafe {
-            RegGetValueW(
-                HKEY_LOCAL_MACHINE,
-                key.as_ptr(),
-                value.as_ptr(),
-                RRF_RT_REG_DWORD,
-                std::ptr::null_mut(),
-                &mut id as *mut u32 as *mut c_void,
-                &mut size,
-            )
-        };
-        if r == 0 {
-            id as i64 | 2 << 32
-        } else {
-            0
-        }
+        let r = unsafe { RegGetValueW(HKEY_LOCAL_MACHINE, key.as_ptr(), value.as_ptr(), RRF_RT_REG_DWORD, std::ptr::null_mut(), &mut id as *mut u32 as *mut c_void, &mut size) };
+        if r == 0 { id as i64 | 2 << 32 } else { 0 }
     }
 }
 
@@ -1958,12 +1942,7 @@ impl Journal {
     fn attach_now(&self, j: &mut Resumable) {
         let Some((head, base_file, restoring, trusted)) = self.attaching.lock().take() else { return };
         if let Err(e) = j.attach(head as *mut u8, base_file, restoring, trusted) {
-            crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                &"the journal",
-                &"could not move into the files of its session",
-                Some(&e),
-            );
+            crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &"the journal", &"could not move into the files of its session", Some(&e));
         }
     }
 
@@ -1999,12 +1978,7 @@ impl Journal {
                 let _ = j.close(false);
             } else if asked & PARK != 0 {
                 if let Err(e) = j.close(true) {
-                    crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                        crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                        &"the journal",
-                        &"could not be parked",
-                        Some(&e),
-                    );
+                    crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &"the journal", &"could not be parked", Some(&e));
                 }
             }
             self.publish();
@@ -2204,7 +2178,10 @@ fn delete_file(file: &Path) {
 
 fn next_file_tag() -> u64 {
     static TAG: AtomicU64 = AtomicU64::new(0);
-    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
     nanos ^ (TAG.fetch_add(1, Ordering::Relaxed) << 32) ^ ((std::process::id() as u64) << 48)
 }
 
@@ -2217,7 +2194,11 @@ pub(crate) fn seed_start() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos() as u64)
         .unwrap_or(0x9E37_79B9_7F4A_7C15);
-    let mut x = nanos ^ ((std::process::id() as u64) << 32) ^ COUNTER.fetch_add(1, Ordering::Relaxed).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+    let mut x = nanos
+        ^ ((std::process::id() as u64) << 32)
+        ^ COUNTER
+            .fetch_add(1, Ordering::Relaxed)
+            .wrapping_mul(0x9E37_79B9_7F4A_7C15);
     // splitmix64
     x = (x ^ (x >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
     x = (x ^ (x >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
@@ -2241,13 +2222,23 @@ mod tests {
     }
 
     fn test_dir(tag: &str) -> PathBuf {
-        let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
-        std::env::temp_dir().join("AdHoc").join("journal-test").join(format!("{}-{tag}-{nanos}", std::process::id()))
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        std::env::temp_dir()
+            .join("AdHoc")
+            .join("journal-test")
+            .join(format!("{}-{tag}-{nanos}", std::process::id()))
     }
 
     fn seg_files(dir: &PathBuf) -> usize {
         std::fs::read_dir(dir)
-            .map(|rd| rd.filter_map(|e| e.ok()).filter(|e| e.file_name().to_string_lossy().ends_with(".seg")).count())
+            .map(|rd| {
+                rd.filter_map(|e| e.ok())
+                    .filter(|e| e.file_name().to_string_lossy().ends_with(".seg"))
+                    .count()
+            })
             .unwrap_or(0)
     }
 
@@ -2276,7 +2267,9 @@ mod tests {
     #[test]
     fn capacity_limit_matches_csharp() {
         let dir = test_dir("cap-assert");
-        let jr = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| Resumable::with_dir((1i64 << 31) + 1, dir)));
+        let jr = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            Resumable::with_dir((1i64 << 31) + 1, dir)
+        }));
         assert!(jr.is_err());
     }
 
@@ -2440,7 +2433,8 @@ mod tests {
         let mut window = [0u8; 64];
         jr.resume_here(sink.feeder()).unwrap();
         jr.send(&blob(a), window.len(), sink.feeder()).unwrap();
-        jr.send(&blob(a + b), window.len(), sink.feeder()).unwrap();
+        jr.send(&blob(a + b), window.len(), sink.feeder())
+            .unwrap();
         (jr, sink.0)
     }
 
@@ -2527,7 +2521,7 @@ mod tests {
     fn turn_resets_awaiting_and_swallow() {
         let (mut jr, _) = datagram_rig("turn-flags", 10, 10);
         jr.ack(START + 20); // in the middle of the second pack: the journal starts at its start, the end of the first
-                            // Force swallow by naming a gone position via resume().
+        // Force swallow by naming a gone position via resume().
         let mut dummy = Sink(Vec::new());
         assert_eq!(jr.resume(START - 5, dummy.feeder()).unwrap(), START + 10);
         assert!(jr.is_holding());
@@ -2628,8 +2622,7 @@ mod tests {
             jr.attach(map.ptr(), base.clone(), false, false).unwrap();
             jr.online();
             for i in 0..3 {
-                assert!(jr.send(&blob(40 + i * 7), 1 + i * 7, sink.feeder()).unwrap());
-                // the ring grows in its file
+                assert!(jr.send(&blob(40 + i * 7), 1 + i * 7, sink.feeder()).unwrap()); // the ring grows in its file
             }
             jr.ack(START + 70);
             jr.close(true).unwrap(); // the socket is lost: what the ring holds goes to the files, the ring file takes its first size
@@ -2754,7 +2747,9 @@ mod tests {
         jr.resume_here(|_: &[u8]| -> io::Result<()> { Ok(()) }).unwrap();
         // A transport that dies on the very first window: the window's bytes are journalled but not
         // marked sent.
-        let r = jr.send(&blob(100), window.len(), |_: &[u8]| Err(io::Error::new(io::ErrorKind::ConnectionReset, "cut")));
+        let r = jr.send(&blob(100), window.len(), |_: &[u8]| {
+            Err(io::Error::new(io::ErrorKind::ConnectionReset, "cut"))
+        });
         assert!(r.is_err());
         assert_eq!(jr.next(), START + 64, "the first window's bytes are journalled");
         assert_eq!(jr.sent(), START, "but not marked sent");
@@ -2766,5 +2761,5 @@ mod tests {
 }
 
 mod source;
-pub(crate) use source::pull_offline;
 pub use source::{excluding_pulls, journal_queue, save, unconfirmed, ResumableSource, Session, Unconfirmed};
+pub(crate) use source::pull_offline;

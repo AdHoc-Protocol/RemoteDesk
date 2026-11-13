@@ -193,8 +193,7 @@ export namespace BitsList {
             if (!(1 <= bitsPerItem && bitsPerItem <= 31)) throw new RangeError("bitsPerItem must be in the range 1 to 31");
             this.mask = mask((this.bits = bitsPerItem));
 
-            if (b === undefined) {
-                // (bits) or (bits, length)
+            if (b === undefined) { // (bits) or (bits, length)
                 this.defaultValue = 0;
                 if (a < 0) throw new RangeError("length cannot be negative");
                 if (0 < a) this.values = new Uint32Array(len4bits(a * this.bits));
@@ -453,12 +452,9 @@ export namespace BitsList {
          * The storage holds them already; the bits around the range are kept.
          */
         protected static put(dst: _R, from: number, src: ArrayLike<number>, si: number, len: number) {
-            const b = dst.bits,
-                m = dst.mask,
-                v = dst.values;
+            const b = dst.bits, m = dst.mask, v = dst.values;
             const pos = from * b;
-            let idx = pos >>> LEN,
-                bit = pos & MASK;
+            let idx = pos >>> LEN, bit = pos & MASK;
             let acc = v[idx] & mask(bit); // the bits below `from` in its word
             for (let i = si, end = si + len; i < end; i++) {
                 const x = src[i] & m;
@@ -481,23 +477,18 @@ export namespace BitsList {
             if (to <= from) return;
             const b = dst.bits;
             value &= dst.mask;
-            const g = b & -b,
-                periodItems = BITS / g,
-                periodWords = b / g;
+            const g = b & -b, periodItems = BITS / g, periodWords = b / g;
             let i = from;
             for (; i < to && i % periodItems !== 0; i++) _R.put1(dst, i, value);
             const reps = Math.floor((to - i) / periodItems);
             if (0 < reps) {
                 const pat = new Uint32Array(periodWords);
                 for (let k = 0; k < periodItems; k++) {
-                    const pos = k * b,
-                        w = pos >>> LEN,
-                        off = pos & MASK;
+                    const pos = k * b, w = pos >>> LEN, off = pos & MASK;
                     pat[w] |= value << off;
                     if (BITS - off < b) pat[w + 1] |= value >>> (BITS - off);
                 }
-                const v = dst.values,
-                    w0 = (i * b) >>> LEN;
+                const v = dst.values, w0 = (i * b) >>> LEN;
                 if (periodWords === 1) v.fill(pat[0], w0, w0 + reps);
                 else for (let r = 0; r < reps; r++) v.set(pat, w0 + r * periodWords);
                 i += reps * periodItems;
@@ -737,13 +728,8 @@ export namespace BitsList {
             const actualEnd = end === undefined ? this._size : end < 0 ? Math.max(0, this._size + end) : Math.min(this._size, end);
             const sliceSize = Math.max(0, actualEnd - actualStart);
             const result = new RW(this.bits, this.defaultValue, -sliceSize); // sliceSize items, not filled: written below
-            const from = actualStart * this.bits,
-                nbits = sliceSize * this.bits,
-                words = len4bits(nbits);
-            const q = from >>> LEN,
-                sh = from & MASK,
-                v = this.values,
-                w = result.values;
+            const from = actualStart * this.bits, nbits = sliceSize * this.bits, words = len4bits(nbits);
+            const q = from >>> LEN, sh = from & MASK, v = this.values, w = result.values;
             // Reads past the array end yield undefined, i.e. 0 in the bit operations.
             if (sh === 0) w.set(v.subarray(q, q + words));
             else for (let i = 0; i < words; i++) w[i] = (v[q + i] >>> sh) | (v[q + i + 1] << (BITS - sh));
@@ -772,10 +758,7 @@ export namespace BitsList {
          * they travel. `items * bits` is at most 32, the items lie within the size. Unsigned: 0 .. 2^32 - 1.
          */
         raw(item: number, items: number): number {
-            const pos = item * this.bits,
-                n = items * this.bits,
-                bit = pos & MASK,
-                idx = pos >>> LEN;
+            const pos = item * this.bits, n = items * this.bits, bit = pos & MASK, idx = pos >>> LEN;
             let v = this.values[idx] >>> bit;
             if (BITS - bit < n) v |= this.values[idx + 1] << (BITS - bit);
             return (n === BITS ? v : v & ((1 << n) - 1)) >>> 0;
@@ -968,10 +951,7 @@ export namespace BitsList {
         override raw(item: number, items: number, src: number): RW;
         override raw(item: number, items: number, src?: number): number | RW {
             if (src === undefined) return super.raw(item, items);
-            const pos = item * this.bits,
-                n = items * this.bits,
-                idx = pos >>> LEN,
-                bit = pos & MASK;
+            const pos = item * this.bits, n = items * this.bits, idx = pos >>> LEN, bit = pos & MASK;
             const m = n === BITS ? -1 : (1 << n) - 1;
             src &= m;
             const v = this.values;

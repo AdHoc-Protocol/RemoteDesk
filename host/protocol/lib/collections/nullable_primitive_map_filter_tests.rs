@@ -1,37 +1,23 @@
 use super::NullablePrimitiveMap;
-use std::{
-    collections::HashMap,
-    hash::{BuildHasher, Hasher, RandomState},
-    rc::Rc,
-};
+use std::{collections::HashMap, hash::{BuildHasher, Hasher, RandomState}, rc::Rc};
 
 #[derive(Clone, Default)]
 struct Identity;
 #[derive(Default)]
 struct IdentityHasher(u64);
 impl Hasher for IdentityHasher {
-    fn finish(&self) -> u64 {
-        self.0
-    }
-    fn write_u64(&mut self, value: u64) {
-        self.0 = value;
-    }
+    fn finish(&self) -> u64 { self.0 }
+    fn write_u64(&mut self, value: u64) { self.0 = value; }
     fn write(&mut self, bytes: &[u8]) {
-        for &byte in bytes {
-            self.0 = self.0.wrapping_mul(31).wrapping_add(byte as u64);
-        }
+        for &byte in bytes { self.0 = self.0.wrapping_mul(31).wrapping_add(byte as u64); }
     }
 }
 impl BuildHasher for Identity {
     type Hasher = IdentityHasher;
-    fn build_hasher(&self) -> IdentityHasher {
-        IdentityHasher::default()
-    }
+    fn build_hasher(&self) -> IdentityHasher { IdentityHasher::default() }
 }
 
-fn key(class: u64, suffix: u64) -> u64 {
-    class << (usize::BITS - 3) | suffix
-}
+fn key(class: u64, suffix: u64) -> u64 { class << (usize::BITS - 3) | suffix }
 
 #[test]
 fn shared_bits_survive_head_middle_and_tail_removal() {
@@ -39,9 +25,7 @@ fn shared_bits_survive_head_middle_and_tail_removal() {
     let keys = [key(1, 5), key(1, 69), key(2, 133), key(3, 197), key(4, 261)];
     for order in [[0, 2, 4, 1, 3], [4, 3, 2, 1, 0], [1, 0, 3, 2, 4]] {
         let mut map = NullablePrimitiveMap::with_capacity_and_hasher(32, Identity);
-        for &k in &keys {
-            map.insert(Some(k), k);
-        }
+        for &k in &keys { map.insert(Some(k), k); }
         let mut present = [true; 5];
         for index in order {
             assert_eq!(map.remove(Some(keys[index])), Some(keys[index]));
@@ -69,32 +53,22 @@ fn empty_clear_shrink_clone_and_null_key() {
     let empty_clone = map.clone();
     assert_eq!(empty_clone.get(Some(0)), None);
     assert_eq!(map.capacity(), 0);
-    for class in 0..8 {
-        assert_eq!(map.get(Some(key(class, 0))), None);
-    }
+    for class in 0..8 { assert_eq!(map.get(Some(key(class, 0))), None); }
     map.insert(None, 99);
     assert_eq!(map.get(None), Some(&99));
     assert_eq!(map.capacity(), 0);
-    for class in 0..8 {
-        map.insert(Some(key(class, class)), class);
-    }
+    for class in 0..8 { map.insert(Some(key(class, class)), class); }
     map.reserve(300);
     let mut clone = map.clone();
     map.clear();
-    for class in 0..8 {
-        assert_eq!(map.get(Some(key(class, class))), None);
-    }
+    for class in 0..8 { assert_eq!(map.get(Some(key(class, class))), None); }
     assert_eq!(map.get(None), None);
-    for class in 0..8 {
-        assert_eq!(clone.get(Some(key(class, class))), Some(&class));
-    }
+    for class in 0..8 { assert_eq!(clone.get(Some(key(class, class))), Some(&class)); }
     clone.retain(|k, _| k.is_none());
     clone.shrink_to_fit();
     assert_eq!(clone.capacity(), 0);
     assert_eq!(clone.get(None), Some(&99));
-    for class in 0..8 {
-        assert_eq!(clone.get(Some(key(class, class))), None);
-    }
+    for class in 0..8 { assert_eq!(clone.get(Some(key(class, class))), None); }
     clone.insert(Some(key(7, 5)), 77);
     assert_eq!(clone.get(Some(key(7, 5))), Some(&77));
     map.insert(Some(key(6, 5)), 66);
@@ -154,12 +128,8 @@ fn differential<S: BuildHasher + Clone>(hasher: S, seed: u64) {
                 assert_eq!(map.contains_key(k), model.contains_key(&k));
             }
             70..=74 => {
-                if let Some(x) = map.get_mut(k) {
-                    x.0 ^= 1;
-                }
-                if let Some(x) = model.get_mut(&k) {
-                    *x ^= 1;
-                }
+                if let Some(x) = map.get_mut(k) { x.0 ^= 1; }
+                if let Some(x) = model.get_mut(&k) { *x ^= 1; }
             }
             75..=79 => assert_eq!(map.get_or_insert_with(k, || (v, token.clone())).0, *model.entry(k).or_insert(v)),
             80..=82 => {
@@ -168,25 +138,14 @@ fn differential<S: BuildHasher + Clone>(hasher: S, seed: u64) {
             }
             83..=84 => map.shrink_to_fit(),
             85..=86 => map.reserve((v % 800) as usize),
-            87 => {
-                let clone = map.clone();
-                assert!(clone == map);
-                map = clone;
-            }
-            88 if v % 8 == 0 => {
-                map.clear();
-                model.clear();
-            }
+            87 => { let clone = map.clone(); assert!(clone == map); map = clone; }
+            88 if v % 8 == 0 => { map.clear(); model.clear(); }
             _ => {}
         }
         assert_eq!(map.len(), model.len());
         if step % 97 == 0 {
-            for (&k, &v) in &model {
-                assert_eq!(map.get(k).map(|x| x.0), Some(v));
-            }
-            for (k, v) in map.iter() {
-                assert_eq!(model.get(&k), Some(&v.0));
-            }
+            for (&k, &v) in &model { assert_eq!(map.get(k).map(|x| x.0), Some(v)); }
+            for (k, v) in map.iter() { assert_eq!(model.get(&k), Some(&v.0)); }
             // Fresh absent keys exercise both zero and stale nonzero masks.
             for class in 0..8 {
                 assert_eq!(map.get(Some(key(class, 1024 + step))), None);

@@ -19,10 +19,7 @@ pub struct Handlers<F: Copy> {
 
 impl<F: Copy> Handlers<F> {
     pub const fn new() -> Self {
-        Self {
-            list: parking_lot::RwLock::new(Vec::new()),
-            n: std::sync::atomic::AtomicUsize::new(0),
-        }
+        Self { list: parking_lot::RwLock::new(Vec::new()), n: std::sync::atomic::AtomicUsize::new(0) }
     }
 
     pub fn add(&self, f: F) {
@@ -87,10 +84,7 @@ pub struct Handler<H: ?Sized> {
 
 impl<H: ?Sized> Handler<H> {
     pub const fn new() -> Self {
-        Self {
-            cur: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()),
-            kept: parking_lot::Mutex::new(Vec::new()),
-        }
+        Self { cur: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()), kept: parking_lot::Mutex::new(Vec::new()) }
     }
 
     /// Sets `h` (`None` — no handler) and returns the one it replaces: a handler that wraps the one

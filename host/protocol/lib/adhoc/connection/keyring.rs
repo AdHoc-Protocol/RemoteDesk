@@ -79,10 +79,7 @@ impl Default for Keyring {
 
 impl Keyring {
     pub fn new() -> Self {
-        Self {
-            keys: ArcSwap::from_pointee(Vec::new()),
-            writers: Mutex::new(()),
-        }
+        Self { keys: ArcSwap::from_pointee(Vec::new()), writers: Mutex::new(()) }
     }
 
     /// Borrows the newest key through a snapshot guard, or returns `None` for an empty ring.

@@ -58,9 +58,9 @@ pub mod pool;
 pub mod primitive_map;
 pub mod primitive_set;
 pub mod ring_buffer;
-pub mod token;
 pub mod two_bytes_map;
 pub mod two_bytes_set;
+pub mod token;
 
 pub use bit_list::BitList;
 pub use bits_list::BitsList;
@@ -83,9 +83,9 @@ pub use pool::Pool;
 pub use primitive_map::PrimitiveMap;
 pub use primitive_set::PrimitiveSet;
 pub use ring_buffer::RingBuffer;
-pub use token::{Token, NULL_TOKEN};
 pub use two_bytes_map::TwoBytesMap;
 pub use two_bytes_set::TwoBytesSet;
+pub use token::{Token, NULL_TOKEN};
 
 /// The hash of one entry of an unordered collection, alone: the collection sums them, so the order
 /// does not count.

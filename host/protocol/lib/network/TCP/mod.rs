@@ -27,13 +27,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use self::external_connection::ConnId;
-use self::external_connection::Event;
-use self::web_socket::Codec;
 use super::admission::{Admission, Admit, Census, SocketOptions};
 use super::engine::{self, Accept, Engine, Listening, Loop};
+use self::external_connection::Event;
 use super::noise_adapter;
-use crate::lib::adhoc::{BytesDst, BytesSrc};
 use crate::lib::chain::Chain;
+use crate::lib::adhoc::{BytesDst, BytesSrc};
+use self::web_socket::Codec;
 
 /// Seats the protocol layer on a new connection: its sink, its source. The connection wakes its
 /// transmit through [`ExternalConnection::wake_transmit`].
@@ -204,27 +204,14 @@ pub(crate) fn noised(state: &Arc<ExternalConnection>, initiator: bool, sink: Box
 /// The Noise stream of `chain` around the sink and the source of the protocol layer on `state`.
 pub(crate) fn noise(state: &Arc<ExternalConnection>, chain: &Chain, initiator: bool, sink: Box<dyn BytesDst>, source: Box<dyn BytesSrc>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) {
     let st = Arc::downgrade(state); // weak: the connection holds its Noise stream, the stream this hook
-    let (sink, source, h) = noise_adapter::wrap_chain(
-        chain,
-        initiator,
-        sink,
-        source,
-        Box::new(move || {
-            if let Some(st) = st.upgrade() {
-                st.wake_transmit_deferred()
-            }
-        }),
-    );
+    let (sink, source, h) = noise_adapter::wrap_chain(chain, initiator, sink, source, Box::new(move || if let Some(st) = st.upgrade() { st.wake_transmit_deferred() }));
     state.set_noise(h);
     (sink, source)
 }
 
 /// The protocol layer seated has no keys for the connection ([`ExternalConnection::secure`] with `None`).
 pub(crate) fn refused() -> std::io::Error {
-    std::io::Error::new(
-        std::io::ErrorKind::PermissionDenied,
-        "The protocol layer refused the connection: [Noise] of its description has no keys for it.",
-    )
+    std::io::Error::new(std::io::ErrorKind::PermissionDenied, "The protocol layer refused the connection: [Noise] of its description has no keys for it.")
 }
 
 /// Who hears how a connect went - a client of its own, or a closure of the caller -, and, for a
@@ -245,10 +232,7 @@ impl Report {
     }
 
     pub(crate) fn client(c: Arc<client::Core>) -> Self {
-        Self {
-            to: ReportTo::Client(c),
-            redial: None,
-        }
+        Self { to: ReportTo::Client(c), redial: None }
     }
 
     /// Once: the connection whose session started, or what went wrong.
@@ -273,14 +257,7 @@ pub(crate) enum Pending {
     Start(Arc<client::Core>),
     Dial(Dial),
     /// A reconnect of a parked session, after the teardown it came behind.
-    Redial {
-        engine: Arc<Engine>,
-        addr: SocketAddr,
-        timeout: Option<Duration>,
-        ws: Option<Box<Codec>>,
-        opts: SocketOptions,
-        report: Report,
-    },
+    Redial { engine: Arc<Engine>, addr: SocketAddr, timeout: Option<Duration>, ws: Option<Box<Codec>>, opts: SocketOptions, report: Report },
 }
 
 /// What a connect does on its loop ([`dial`]).
@@ -301,14 +278,7 @@ pub(crate) fn pending(lp: &Loop, ext: &Arc<ExternalConnection>, p: Pending) {
     match p {
         Pending::Start(c) => c.start(),
         Pending::Dial(d) => dial_on(lp, d),
-        Pending::Redial {
-            engine,
-            addr,
-            timeout,
-            ws,
-            opts,
-            report,
-        } => redial(ext, &engine, addr, timeout, ws, opts, report),
+        Pending::Redial { engine, addr, timeout, ws, opts, report } => redial(ext, &engine, addr, timeout, ws, opts, report),
     }
 }
 
@@ -351,17 +321,7 @@ pub(crate) fn dial(
         SlotOf::Pool(_, home) => engine.loops[*home as usize - 1].clone(),
         SlotOf::Clients => engine.pick().clone(),
     };
-    let d = Dial {
-        engine: engine.clone(),
-        addr,
-        until,
-        ws,
-        opts,
-        from,
-        resume,
-        seat,
-        report,
-    };
+    let d = Dial { engine: engine.clone(), addr, until, ws, opts, from, resume, seat, report };
     match carrier {
         Some(c) => {
             *c.dial.lock() = Some(Pending::Dial(d));
@@ -374,17 +334,7 @@ pub(crate) fn dial(
 /// The connect, on its loop: the slot, the protocol layer seated on it, the socket connecting
 /// there.
 fn dial_on(lp: &Loop, d: Dial) {
-    let Dial {
-        engine: eng,
-        addr,
-        until,
-        ws,
-        opts,
-        from,
-        resume,
-        seat,
-        report,
-    } = d;
+    let Dial { engine: eng, addr, until, ws, opts, from, resume, seat, report } = d;
     {
         let st = match from {
             SlotOf::Parked(s) => {
@@ -402,7 +352,7 @@ fn dial_on(lp: &Loop, d: Dial) {
         st.dialing.store(true, std::sync::atomic::Ordering::Release); // a slot that dials: its side names itself first
         st.forget_noise(); // the Noise of this socket is what the protocol layer seated now declares
         st.set_addresses(None, Some(addr)); // the region of the keys sees where it calls: the socket is not there yet
-                                            // the factory is code of the application: its panic fails this connect - whoever waits for it hears it
+        // the factory is code of the application: its panic fails this connect - whoever waits for it hears it
         let seated = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| seat.seat(&st).map(|(sink, source)| noised(&st, true, sink, source)))) {
             Ok(seated) => seated,
             Err(why) => {
@@ -442,10 +392,7 @@ fn dial_on(lp: &Loop, d: Dial) {
 /// to other hosts. Returns `true` when all sessions ended within the grace period. A nonzero grace
 /// period must not be used from an engine loop thread.
 pub(crate) fn stop(pool: &Pool, engine: &Arc<Engine>, grace: Duration) -> bool {
-    assert!(
-        grace.is_zero() || !engine::on_a_loop(),
-        "A graceful shutdown waits for the loops: not from a thread of one ( the handler of a connection )."
-    );
+    assert!(grace.is_zero() || !engine::on_a_loop(), "A graceful shutdown waits for the loops: not from a thread of one ( the handler of a connection ).");
     let each = |politely: bool| {
         pool.each(|c| {
             if c.is_open() {
@@ -483,14 +430,7 @@ pub(crate) fn redial(state: &Arc<ExternalConnection>, engine: &Arc<Engine>, addr
     // took the session as it came: the reconnect waits for it on the slot's loop, as a connect
     // during any teardown - carried by the connection itself, served on a later pass
     let behind = |state: &Arc<ExternalConnection>, engine: &Arc<Engine>, ws: Option<Box<Codec>>, opts: SocketOptions, report: Report| {
-        *state.dial.lock() = Some(Pending::Redial {
-            engine: engine.clone(),
-            addr,
-            timeout,
-            ws,
-            opts,
-            report,
-        });
+        *state.dial.lock() = Some(Pending::Redial { engine: engine.clone(), addr, timeout, ws, opts, report });
         state.request(&engine.loops[state.home as usize - 1], engine::CONNECT);
     };
     match state.conn_state.load(Acquire) {
@@ -513,10 +453,7 @@ pub(crate) fn redial(state: &Arc<ExternalConnection>, engine: &Arc<Engine>, addr
         parked.end_stale();
     }
     let before = parked.session(); // the identity the session parked with
-    let report = Report {
-        redial: Some((resume, before)),
-        ..report
-    };
+    let report = Report { redial: Some((resume, before)), ..report };
     let carrier = parked.clone();
     dial(engine, addr, timeout, ws, opts, SlotOf::Parked(parked), resume, SeatBy::Hook, report, Some(&carrier));
 }
@@ -614,11 +551,7 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             s2.lock().unwrap().push(state.clone());
             (
-                Box::new(Taker {
-                    got: g2.clone(),
-                    take: l2.load(Ordering::Relaxed),
-                    kept: k2.clone(),
-                }) as Box<dyn BytesDst>,
+                Box::new(Taker { got: g2.clone(), take: l2.load(Ordering::Relaxed), kept: k2.clone() }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
@@ -633,16 +566,7 @@ mod tests {
                 client::connect(
                     addr,
                     Some(Duration::from_secs(2)),
-                    move |_| {
-                        (
-                            Box::new(EchoSink {
-                                out: Arc::new(Mutex::new(Vec::new())),
-                                echo: Arc::new(Mutex::new(Vec::new())),
-                                state: None,
-                            }) as Box<dyn BytesDst>,
-                            Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>,
-                        )
-                    },
+                    move |_| (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>),
                     done,
                 )
             })
@@ -671,11 +595,7 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             let echo = Arc::new(Mutex::new(Vec::new()));
             (
-                Box::new(EchoSink {
-                    out: rs.clone(),
-                    echo: echo.clone(),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: rs.clone(), echo: echo.clone(), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(echo)) as Box<dyn BytesSrc>,
             )
         });
@@ -689,16 +609,7 @@ mod tests {
             client::connect(
                 addr,
                 Some(Duration::from_secs(2)),
-                move |_| {
-                    (
-                        Box::new(EchoSink {
-                            out: rc,
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>,
-                    )
-                },
+                move |_| (Box::new(EchoSink { out: rc, echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>),
                 done,
             )
         })
@@ -725,19 +636,11 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             let echo = Arc::new(Mutex::new(Vec::new()));
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: echo.clone(),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: echo.clone(), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(echo)) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("for client", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .on_connect(factory)
-            .engine(engine.clone())
-            .build()
-            .unwrap();
+        let server = server::Builder::new("for client", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).on_connect(factory).engine(engine.clone()).build().unwrap();
         let addr = server.local_addr().unwrap();
         let got = Arc::new(Mutex::new(Vec::<u8>::new()));
         let g = got.clone();
@@ -745,23 +648,15 @@ mod tests {
         let me: Arc<std::sync::OnceLock<std::sync::Weak<Client>>> = Default::default();
         let seen_while_starting = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let (m, sw) = (me.clone(), seen_while_starting.clone());
-        let client = Arc::new(Client::with_engine(
-            "c",
-            &engine,
-            Arc::new(move |st| {
-                if let Some(c) = m.get().and_then(|c| c.upgrade()) {
-                    sw.store(c.connection().is_some_and(|x| Arc::ptr_eq(&x, st)), Ordering::Relaxed);
-                }
-                (
-                    Box::new(EchoSink {
-                        out: g.clone(),
-                        echo: Arc::new(Mutex::new(Vec::new())),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
-                    Box::new(EchoSource(Arc::new(Mutex::new(b"ping".to_vec())))) as Box<dyn BytesSrc>,
-                )
-            }),
-        ));
+        let client = Arc::new(Client::with_engine("c", &engine, Arc::new(move |st| {
+            if let Some(c) = m.get().and_then(|c| c.upgrade()) {
+                sw.store(c.connection().is_some_and(|x| Arc::ptr_eq(&x, st)), Ordering::Relaxed);
+            }
+            (
+                Box::new(EchoSink { out: g.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                Box::new(EchoSource(Arc::new(Mutex::new(b"ping".to_vec())))) as Box<dyn BytesSrc>,
+            )
+        })));
         me.set(Arc::downgrade(&client)).ok();
         assert!(!client.is_connected() && client.connection().is_none());
         let (tx, rx) = std::sync::mpsc::channel();
@@ -804,42 +699,22 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             let echo = Arc::new(Mutex::new(Vec::new()));
             (
-                Box::new(EchoSink {
-                    out: rs.clone(),
-                    echo: echo.clone(),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: rs.clone(), echo: echo.clone(), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(echo)) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("own", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .on_connect(factory)
-            .engine(engine.clone())
-            .build()
-            .unwrap();
+        let server = server::Builder::new("own", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).on_connect(factory).engine(engine.clone()).build().unwrap();
         let addr = server.local_addr().unwrap();
         let received_on_client = Arc::new(Mutex::new(Vec::<u8>::new()));
         let payload: Vec<u8> = (0..100_000u32).map(|i| (i * 31) as u8).collect();
         let outbox = Arc::new(Mutex::new(payload.clone()));
         let rc = received_on_client.clone();
-        let state = connected(|done| {
-            client::connect_with(
-                addr,
-                Some(Duration::from_secs(2)),
-                &engine,
-                move |_| {
-                    (
-                        Box::new(EchoSink {
-                            out: rc,
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
+        let state = connected(|done| client::connect_with(addr, Some(Duration::from_secs(2)), &engine, move |_| {
+            (
+                Box::new(EchoSink { out: rc, echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>,
             )
-        })
+        }, done))
         .unwrap();
         assert_eq!(state.buffer_size.load(std::sync::atomic::Ordering::Relaxed), crate::lib::network::engine::MIN_BUFFER);
         state.wake_transmit();
@@ -868,35 +743,19 @@ mod tests {
             let factory: ConnectionFactory = Arc::new(move |state| {
                 state.secure(noise(crate::lib::noise::PATTERN_NK, &secret, &public));
                 (
-                    Box::new(EchoSink {
-                        out: rs.clone(),
-                        echo: Arc::new(Mutex::new(Vec::new())),
-                        state: Some(state.clone()),
-                    }) as Box<dyn BytesDst>,
+                    Box::new(EchoSink { out: rs.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                     Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
                 )
             });
-            let server = server::Builder::new("closed", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-                .engine(engine.clone())
-                .on_connect(factory)
-                .build()
-                .unwrap();
+            let server = server::Builder::new("closed", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
             let addr = server.local_addr().unwrap();
-            let client = Client::with_engine(
-                "closed",
-                &engine,
-                Arc::new(move |st| {
-                    st.secure(noise(crate::lib::noise::PATTERN_NK, &[0u8; 32], &public));
-                    (
-                        Box::new(EchoSink {
-                            out: Arc::new(Mutex::new(Vec::new())),
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(Arc::new(Mutex::new(b"x".to_vec())))) as Box<dyn BytesSrc>,
-                    )
-                }),
-            );
+            let client = Client::with_engine("closed", &engine, Arc::new(move |st| {
+                st.secure(noise(crate::lib::noise::PATTERN_NK, &[0u8; 32], &public));
+                (
+                    Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                    Box::new(EchoSource(Arc::new(Mutex::new(b"x".to_vec())))) as Box<dyn BytesSrc>,
+                )
+            }));
             let state = connected(|done| client.connect(addr, Some(Duration::from_secs(2)), done).unwrap()).unwrap();
             state.wake_transmit();
             until("the byte", &|| received.lock().unwrap().len() == 1);
@@ -923,19 +782,11 @@ mod tests {
                 *sd.lock().unwrap() = Some(Arc::downgrade(state));
                 state.secure(noise(crate::lib::noise::PATTERN_NK, &secret, &[0u8; 32]));
                 (
-                    Box::new(EchoSink {
-                        out: Arc::new(Mutex::new(Vec::new())),
-                        echo: Arc::new(Mutex::new(Vec::new())),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
+                    Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                     Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
                 )
             });
-            let server = server::Builder::new("closed-live", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-                .engine(engine.clone())
-                .on_connect(factory)
-                .build()
-                .unwrap();
+            let server = server::Builder::new("closed-live", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
             let raw = std::net::TcpStream::connect(server.local_addr().unwrap()).unwrap();
             until("seated", &|| seated.lock().unwrap().is_some());
             let watch = (Arc::downgrade(&engine), engine.loops.iter().map(Arc::downgrade).collect::<Vec<_>>());
@@ -953,19 +804,11 @@ mod tests {
         let engine = Engine::new("dropped", 1, crate::lib::network::engine::MIN_BUFFER);
         let factory: ConnectionFactory = Arc::new(|_| {
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("dropped", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory.clone())
-            .build()
-            .unwrap();
+        let server = server::Builder::new("dropped", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory.clone()).build().unwrap();
         let s = {
             let client = Client::with_engine("dropped", &engine, factory);
             let state = connected(|done| client.connect(server.local_addr().unwrap(), Some(Duration::from_secs(2)), done).unwrap()).unwrap();
@@ -988,20 +831,9 @@ mod tests {
         let s = seated.clone();
         let factory: ConnectionFactory = Arc::new(move |state| {
             s.lock().unwrap().push(state.clone());
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("handoff", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .on_connect(factory)
-            .engine(engine.clone())
-            .build()
-            .unwrap();
+        let server = server::Builder::new("handoff", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).on_connect(factory).engine(engine.clone()).build().unwrap();
         let addr = server.local_addr().unwrap();
         const C: usize = 160;
         let clients: Vec<_> = (0..4)
@@ -1027,41 +859,15 @@ mod tests {
         let received_on_server = Arc::new(Mutex::new(Vec::<u8>::new()));
         let rs = received_on_server.clone();
         let factory: ConnectionFactory = Arc::new(move |state| {
-            (
-                Box::new(EchoSink {
-                    out: rs.clone(),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: rs.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("flood", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .on_connect(factory)
-            .engine(engine.clone())
-            .build()
-            .unwrap();
+        let server = server::Builder::new("flood", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).on_connect(factory).engine(engine.clone()).build().unwrap();
         let addr = server.local_addr().unwrap();
         let outbox = Arc::new(Mutex::new(Vec::<u8>::new()));
         let ob = outbox.clone();
-        let state = connected(|done| {
-            client::connect_with(
-                addr,
-                Some(Duration::from_secs(2)),
-                &engine,
-                move |_| {
-                    (
-                        Box::new(EchoSink {
-                            out: Default::default(),
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(ob)) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
-            )
-        })
+        let state = connected(|done| client::connect_with(addr, Some(Duration::from_secs(2)), &engine, move |_| {
+            (Box::new(EchoSink { out: Default::default(), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(ob)) as Box<dyn BytesSrc>)
+        }, done))
         .unwrap();
         let counts = Arc::strong_count(&state);
         let threads: Vec<_> = (0..4)
@@ -1083,9 +889,7 @@ mod tests {
         }
         // not more than before: what was counted then may have held a passing count too (the report
         // of the connect)
-        until("the loop served the requests", &|| {
-            state.asks.requests.load(Ordering::Acquire) == 0 && Arc::strong_count(&state) <= counts
-        });
+        until("the loop served the requests", &|| state.asks.requests.load(Ordering::Acquire) == 0 && Arc::strong_count(&state) <= counts);
         let payload: Vec<u8> = (0..20_000u32).map(|i| (i * 13) as u8).collect();
         outbox.lock().unwrap().extend_from_slice(&payload);
         let st = state.clone();
@@ -1126,11 +930,7 @@ mod tests {
         let rs = received_on_server.clone();
         let factory: ConnectionFactory = Arc::new(move |state| {
             (
-                Box::new(EchoSink {
-                    out: rs.clone(),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: rs.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
@@ -1139,23 +939,12 @@ mod tests {
         let payload: Vec<u8> = (0..1000u32).map(|i| (i * 7) as u8).collect();
         let go = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let (bytes, g) = (payload.clone(), go.clone());
-        let state = connected(|done| {
-            client::connect(
-                addr,
-                Some(Duration::from_secs(2)),
-                move |_| {
-                    (
-                        Box::new(EchoSink {
-                            out: Arc::new(Mutex::new(Vec::new())),
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(Halting { bytes, at: 0, cut: 500, go: g }) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
+        let state = connected(|done| client::connect(addr, Some(Duration::from_secs(2)), move |_| {
+            (
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                Box::new(Halting { bytes, at: 0, cut: 500, go: g }) as Box<dyn BytesSrc>,
             )
-        })
+        }, done))
         .unwrap();
         state.wake_transmit();
         for _ in 0..200 {
@@ -1197,11 +986,7 @@ mod tests {
             }));
             state.secure(noise(crate::lib::noise::PATTERN_NK, &secret, &[0u8; 32]));
             (
-                Box::new(EchoSink {
-                    out: rs.clone(),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: rs.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
@@ -1209,24 +994,13 @@ mod tests {
         let addr = server.local_addr().unwrap();
         let payload: Vec<u8> = (0..5000u32).map(|i| (i * 13) as u8).collect();
         let outbox = Arc::new(Mutex::new(payload.clone()));
-        let state = connected(|done| {
-            client::connect(
-                addr,
-                Some(Duration::from_secs(2)),
-                move |st| {
-                    st.secure(noise(crate::lib::noise::PATTERN_NK, &[0u8; 32], &public));
-                    (
-                        Box::new(EchoSink {
-                            out: Arc::new(Mutex::new(Vec::new())),
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
+        let state = connected(|done| client::connect(addr, Some(Duration::from_secs(2)), move |st| {
+            st.secure(noise(crate::lib::noise::PATTERN_NK, &[0u8; 32], &public));
+            (
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                Box::new(EchoSource(outbox)) as Box<dyn BytesSrc>,
             )
-        })
+        }, done))
         .unwrap();
         state.wake_transmit();
         for _ in 0..400 {
@@ -1245,10 +1019,7 @@ mod tests {
             }
             std::thread::sleep(Duration::from_millis(5));
         }
-        assert!(
-            closed.load(std::sync::atomic::Ordering::Acquire),
-            "the graceful close of a drained encrypted connection never sent the FIN"
-        );
+        assert!(closed.load(std::sync::atomic::Ordering::Acquire), "the graceful close of a drained encrypted connection never sent the FIN");
         server.shutdown();
     }
 
@@ -1267,38 +1038,22 @@ mod tests {
                 state.secure(noise(crate::lib::noise::PATTERN_NK, &secret, &[0u8; 32]));
             }
             (
-                Box::new(EchoSink {
-                    out: rs.clone(),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: rs.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("noise-per-seat", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("noise-per-seat", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let e = encrypt.clone();
-        let client = Client::with_engine(
-            "c",
-            &engine,
-            Arc::new(move |st| {
-                if e.load(Ordering::Relaxed) {
-                    st.secure(noise(crate::lib::noise::PATTERN_NK, &[0u8; 32], &public));
-                }
-                (
-                    Box::new(EchoSink {
-                        out: Arc::new(Mutex::new(Vec::new())),
-                        echo: Arc::new(Mutex::new(Vec::new())),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
-                    Box::new(EchoSource(Arc::new(Mutex::new(b"secret".to_vec())))) as Box<dyn BytesSrc>,
-                )
-            }),
-        );
+        let client = Client::with_engine("c", &engine, Arc::new(move |st| {
+            if e.load(Ordering::Relaxed) {
+                st.secure(noise(crate::lib::noise::PATTERN_NK, &[0u8; 32], &public));
+            }
+            (
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                Box::new(EchoSource(Arc::new(Mutex::new(b"secret".to_vec())))) as Box<dyn BytesSrc>,
+            )
+        }));
         let state = connected(|done| client.connect(addr, Some(Duration::from_secs(2)), done).unwrap()).unwrap();
         state.wake_transmit();
         until("the bytes through the encryption", &|| received.lock().unwrap().as_slice() == b"secret");
@@ -1328,22 +1083,14 @@ mod tests {
         let (rs, h, cl) = (received_on_server.clone(), heard.clone(), closed.clone());
         let factory: ConnectionFactory = Arc::new(move |state| {
             let (h, c) = (h.clone(), cl.clone());
-            state.set_event_sink(Arc::new(move |_, ev| {
-                if ev.is_close() {
-                    c.store(true, Ordering::Release)
-                }
-            }));
+            state.set_event_sink(Arc::new(move |_, ev| if ev.is_close() { c.store(true, Ordering::Release) }));
             state.secure(Some(Chain::default().noise_keys(pattern, &server_secret, &client_public).on_peer(move |k| {
                 h.lock().unwrap().push(*k);
                 !refuse
             })));
             let echo = Arc::new(Mutex::new(Vec::new()));
             (
-                Box::new(EchoSink {
-                    out: rs.clone(),
-                    echo: echo.clone(),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: rs.clone(), echo: echo.clone(), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(echo)) as Box<dyn BytesSrc>,
             )
         });
@@ -1352,24 +1099,10 @@ mod tests {
         let payload: Vec<u8> = (0..40_000u32).map(|i| (i * 29) as u8).collect();
         let (outbox, received_on_client) = (Arc::new(Mutex::new(payload.clone())), Arc::new(Mutex::new(Vec::<u8>::new())));
         let (ob, rc) = (outbox.clone(), received_on_client.clone());
-        let state = connected(|done| {
-            client::connect(
-                addr,
-                Some(Duration::from_secs(2)),
-                move |st| {
-                    st.secure(noise(pattern, &client_secret, &server_public));
-                    (
-                        Box::new(EchoSink {
-                            out: rc,
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(ob)) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
-            )
-        })
+        let state = connected(|done| client::connect(addr, Some(Duration::from_secs(2)), move |st| {
+            st.secure(noise(pattern, &client_secret, &server_public));
+            (Box::new(EchoSink { out: rc, echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(ob)) as Box<dyn BytesSrc>)
+        }, done))
         .unwrap();
         state.wake_transmit();
         if refuse {
@@ -1413,14 +1146,7 @@ mod tests {
         let fl = failures.clone();
         let factory: ConnectionFactory = Arc::new(move |state| {
             state.secure(None);
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
         let server = server::Builder::new("refused", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
             .on_connect(factory)
@@ -1458,30 +1184,13 @@ mod tests {
         let g = got.clone();
         let named: ConnectionFactory = Arc::new(move |state| {
             state.secure(noise(crate::lib::noise::PATTERN_NK, &secret, &[0u8; 32]));
-            (
-                Box::new(EchoSink {
-                    out: g.clone(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: g.clone(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
         let pick: super::super::mux::MuxPick = Arc::new(move |uid| (uid == 7).then(|| named.clone()));
-        let server = server::Builder::new("mux", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .on_connect(super::super::mux::factory(pick, Event::REMOTE_CONNECT))
-            .build()
-            .unwrap();
+        let server = server::Builder::new("mux", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).on_connect(super::super::mux::factory(pick, Event::REMOTE_CONNECT)).build().unwrap();
         let seat = move |st: &Arc<ExternalConnection>| {
             st.secure(noise(crate::lib::noise::PATTERN_NK, &[0u8; 32], &public));
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Arc::new(Mutex::new(b"plain text of the layer".to_vec())))) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(b"plain text of the layer".to_vec())))) as Box<dyn BytesSrc>)
         };
         // what goes on the wire: a listener that only reads
         let wire = std::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
@@ -1515,11 +1224,7 @@ mod tests {
             state.set_event_sink(Arc::new(move |_, event| e.lock().unwrap().push(event)));
             state.secure(noise(crate::lib::noise::PATTERN_NK, &secret, &[0u8; 32]));
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
@@ -1558,10 +1263,7 @@ mod tests {
         let failures = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let (g, f) = (got.clone(), failures.clone());
         let factory: ConnectionFactory = Arc::new(move |_| {
-            (
-                Box::new(Flaky { got: g.clone(), once: false }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-            )
+            (Box::new(Flaky { got: g.clone(), once: false }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>)
         });
         let server = server::Builder::new("flaky", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
             .on_connect(factory)
@@ -1572,23 +1274,9 @@ mod tests {
             .unwrap();
         let outbox = Arc::new(Mutex::new(b"abc".to_vec()));
         let ob = outbox.clone();
-        let state = connected(|done| {
-            client::connect(
-                server.local_addr().unwrap(),
-                Some(Duration::from_secs(2)),
-                move |_| {
-                    (
-                        Box::new(EchoSink {
-                            out: Arc::new(Mutex::new(Vec::new())),
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(ob)) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
-            )
-        })
+        let state = connected(|done| client::connect(server.local_addr().unwrap(), Some(Duration::from_secs(2)), move |_| {
+            (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(ob)) as Box<dyn BytesSrc>)
+        }, done))
         .unwrap();
         state.wake_transmit();
         for _ in 0..400 {
@@ -1621,39 +1309,17 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             *sn.lock().unwrap() = Some(state.clone());
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(vec![7u8; 10_000])))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("held", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("held", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         server.set_linger_timeout(1234);
         let got = Arc::new(Mutex::new(Vec::<u8>::new()));
         let g = got.clone();
-        let state = connected(|done| {
-            client::connect(
-                server.local_addr().unwrap(),
-                Some(Duration::from_secs(2)),
-                move |_| {
-                    (
-                        Box::new(EchoSink {
-                            out: g,
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
-            )
-        })
+        let state = connected(|done| client::connect(server.local_addr().unwrap(), Some(Duration::from_secs(2)), move |_| {
+            (Box::new(EchoSink { out: g, echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>)
+        }, done))
         .unwrap();
         for _ in 0..400 {
             if got.lock().unwrap().len() == 10_000 {
@@ -1717,21 +1383,8 @@ mod tests {
     #[test]
     fn a_stopped_engine_closes_its_listeners() {
         let engine = Engine::new("stop", 1, crate::lib::network::engine::MIN_BUFFER);
-        let factory: ConnectionFactory = Arc::new(move |_| {
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
-        });
-        let server = server::Builder::new("stop", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let factory: ConnectionFactory = Arc::new(move |_| (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>));
+        let server = server::Builder::new("stop", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         // a connect is refused once the listener is closed - a bind would not tell it: the port
         // freed may go to a socket of another test at once
@@ -1759,20 +1412,9 @@ mod tests {
         let s = seated.clone();
         let factory: ConnectionFactory = Arc::new(move |state| {
             s.lock().unwrap().push(state.clone());
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("close-connecting", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("close-connecting", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let seat = layer(Default::default(), Default::default(), Default::default(), None);
         let state = connected(|done| client::connect_with(addr, Some(Duration::from_secs(2)), &engine, seat, done)).unwrap();
@@ -1790,12 +1432,7 @@ mod tests {
             lp.submit_fn(Box::new(move |_| st.close_gracefully())); // on the loop's thread, behind the connect it starts
         });
         assert!(r.is_err(), "no session");
-        assert!(
-            at.elapsed() < Duration::from_secs(3),
-            "the connect ends with the close, not with its timeout: {:?} {:?}",
-            at.elapsed(),
-            r.err()
-        );
+        assert!(at.elapsed() < Duration::from_secs(3), "the connect ends with the close, not with its timeout: {:?} {:?}", at.elapsed(), r.err());
         server.shutdown();
         engine.close();
     }
@@ -1806,33 +1443,18 @@ mod tests {
     fn a_negative_timeout_closes_an_idle_connection() {
         let factory: ConnectionFactory = Arc::new(move |state| {
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
         let server = server::Builder::new("idle", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
-        let state = connected(|done| {
-            client::connect(
-                addr,
-                Some(Duration::from_secs(2)),
-                move |_| {
-                    (
-                        Box::new(EchoSink {
-                            out: Arc::new(Mutex::new(Vec::new())),
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
+        let state = connected(|done| client::connect(addr, Some(Duration::from_secs(2)), move |_| {
+            (
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
-        })
+        }, done))
         .unwrap();
         std::thread::sleep(Duration::from_millis(50));
         assert!(crate::lib::network::TCP::external_connection::ExternalConnection::is_open(&*state));
@@ -1843,10 +1465,7 @@ mod tests {
             }
             std::thread::sleep(Duration::from_millis(5));
         }
-        assert!(
-            !crate::lib::network::TCP::external_connection::ExternalConnection::is_open(&*state),
-            "nothing to send: the close does not wait for anything"
-        );
+        assert!(!crate::lib::network::TCP::external_connection::ExternalConnection::is_open(&*state), "nothing to send: the close does not wait for anything");
         server.shutdown();
     }
 
@@ -1859,42 +1478,23 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             let (o, e) = (h.clone(), h.clone());
             state.set_session_hook(Arc::new(move |open| o.lock().unwrap().push(if open { "server open" } else { "server close" })));
-            state.set_event_sink(Arc::new(move |_, ev| {
-                if ev.is_close() {
-                    e.lock().unwrap().push("server event")
-                }
-            }));
+            state.set_event_sink(Arc::new(move |_, ev| if ev.is_close() { e.lock().unwrap().push("server event") }));
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
         let server = server::Builder::new("session", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let h = heard.clone();
-        let state = connected(|done| {
-            client::connect(
-                addr,
-                Some(Duration::from_secs(2)),
-                move |st| {
-                    let o = h.clone();
-                    st.set_session_hook(Arc::new(move |open| o.lock().unwrap().push(if open { "client open" } else { "client close" })));
-                    (
-                        Box::new(EchoSink {
-                            out: Arc::new(Mutex::new(Vec::new())),
-                            echo: Arc::new(Mutex::new(Vec::new())),
-                            state: None,
-                        }) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
+        let state = connected(|done| client::connect(addr, Some(Duration::from_secs(2)), move |st| {
+            let o = h.clone();
+            st.set_session_hook(Arc::new(move |open| o.lock().unwrap().push(if open { "client open" } else { "client close" })));
+            (
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
+                Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
-        })
+        }, done))
         .unwrap();
         std::thread::sleep(Duration::from_millis(50));
         crate::lib::network::TCP::external_connection::ExternalConnection::close(&*state);
@@ -1923,23 +1523,10 @@ mod tests {
         let dial = |addr: SocketAddr, timeout: Duration| {
             let s = seated.clone();
             connected(|done| {
-                client::connect_with(
-                    addr,
-                    Some(timeout),
-                    &engine,
-                    move |st| {
-                        s.lock().unwrap().push(st.clone());
-                        (
-                            Box::new(EchoSink {
-                                out: Arc::new(Mutex::new(Vec::new())),
-                                echo: Arc::new(Mutex::new(Vec::new())),
-                                state: None,
-                            }) as Box<dyn BytesDst>,
-                            Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                        )
-                    },
-                    done,
-                )
+                client::connect_with(addr, Some(timeout), &engine, move |st| {
+                    s.lock().unwrap().push(st.clone());
+                    (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>)
+                }, done)
             })
         };
         let free = || engine.clients.census()[pool::FREE as usize];
@@ -1967,16 +1554,7 @@ mod tests {
         // connected: the slot is the connection
         let server = server::Builder::new("connect-in-slot", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
             .engine(engine.clone())
-            .on_connect(Arc::new(|_| {
-                (
-                    Box::new(EchoSink {
-                        out: Arc::new(Mutex::new(Vec::new())),
-                        echo: Arc::new(Mutex::new(Vec::new())),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
-                    Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                )
-            }))
+            .on_connect(Arc::new(|_| (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>)))
             .build()
             .unwrap();
         let st = dial(server.local_addr().unwrap(), Duration::from_secs(2)).unwrap();
@@ -1999,38 +1577,16 @@ mod tests {
             state.identify(9);
             s.lock().unwrap().push(state.clone());
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
         // one loop: a slot freed on a loop serves the next socket of that loop
-        let server = server::Builder::new("reuse", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(Engine::new("reuse", 1, crate::lib::network::engine::MIN_BUFFER))
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("reuse", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(Engine::new("reuse", 1, crate::lib::network::engine::MIN_BUFFER)).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let dial = || {
             connected(|done| {
-                client::connect(
-                    addr,
-                    Some(Duration::from_secs(2)),
-                    |_| {
-                        (
-                            Box::new(EchoSink {
-                                out: Arc::new(Mutex::new(Vec::new())),
-                                echo: Arc::new(Mutex::new(Vec::new())),
-                                state: None,
-                            }) as Box<dyn BytesDst>,
-                            Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                        )
-                    },
-                    done,
-                )
+                client::connect(addr, Some(Duration::from_secs(2)), |_| (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>), done)
             })
             .unwrap()
         };
@@ -2070,37 +1626,15 @@ mod tests {
             state.identify(5);
             s.lock().unwrap().push(state.clone());
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(Engine::new("park", 1, crate::lib::network::engine::MIN_BUFFER))
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(Engine::new("park", 1, crate::lib::network::engine::MIN_BUFFER)).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let dial = || {
             connected(|done| {
-                client::connect(
-                    addr,
-                    Some(Duration::from_secs(2)),
-                    |_| {
-                        (
-                            Box::new(EchoSink {
-                                out: Arc::new(Mutex::new(Vec::new())),
-                                echo: Arc::new(Mutex::new(Vec::new())),
-                                state: None,
-                            }) as Box<dyn BytesDst>,
-                            Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                        )
-                    },
-                    done,
-                )
+                client::connect(addr, Some(Duration::from_secs(2)), |_| (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>), done)
             })
             .unwrap()
         };
@@ -2149,20 +1683,9 @@ mod tests {
         let s = seated.clone();
         let factory: ConnectionFactory = Arc::new(move |_| {
             s.fetch_add(1, Ordering::Relaxed);
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("multi", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("multi", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let second = server.bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0), 16).unwrap();
         assert_eq!(server.local_addrs().len(), 2);
         assert!(server.to_string().starts_with("Server multi") && server.to_string().contains(&second.to_string()), "{server}");
@@ -2198,26 +1721,11 @@ mod tests {
             let c = c.clone();
             state.set_maintenance(Arc::new(move |ext| {
                 assert!(ext.is_active());
-                if c.fetch_add(1, Ordering::Relaxed) + 1 == 5 {
-                    i32::MAX
-                } else {
-                    20
-                }
+                if c.fetch_add(1, Ordering::Relaxed) + 1 == 5 { i32::MAX } else { 20 }
             }));
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("maintain", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("maintain", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let _a = std::net::TcpStream::connect(server.local_addr().unwrap()).unwrap();
         let t = std::time::Instant::now();
         while calls.load(Ordering::Relaxed) < 5 {
@@ -2241,20 +1749,9 @@ mod tests {
         let s = seated.clone();
         let factory: ConnectionFactory = Arc::new(move |state| {
             s.lock().unwrap().push(state.clone());
-            (
-                Box::new(EchoSink {
-                    out: Default::default(),
-                    echo: Default::default(),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("client-redial", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("client-redial", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let me: Arc<std::sync::OnceLock<Arc<ExternalConnection>>> = Default::default();
         let from_close: Arc<Mutex<Option<bool>>> = Default::default(); // the report of the reconnect made in OnClose
@@ -2266,15 +1763,9 @@ mod tests {
             Arc::new(move |st: &Arc<ExternalConnection>| {
                 st.set_resumable_seconds_hook(Arc::new(|_| 60));
                 let c = closes.clone();
-                st.set_event_sink(Arc::new(move |_, ev| {
-                    if ev.is_close() {
-                        c.fetch_add(1, Ordering::Relaxed);
-                    }
-                }));
+                st.set_event_sink(Arc::new(move |_, ev| if ev.is_close() { c.fetch_add(1, Ordering::Relaxed); }));
                 let r = resumed.clone();
-                st.set_resume_hook(Arc::new(move || {
-                    r.fetch_add(1, Ordering::Relaxed);
-                }));
+                st.set_resume_hook(Arc::new(move || { r.fetch_add(1, Ordering::Relaxed); }));
                 let (me, from_close, armed, engine) = (me.clone(), from_close.clone(), armed.clone(), engine.clone());
                 st.set_session_hook(Arc::new(move |open| {
                     if !open && armed.swap(false, Ordering::AcqRel) {
@@ -2282,29 +1773,16 @@ mod tests {
                         client::reconnect(me.get().unwrap(), addr, Some(Duration::from_secs(2)), &engine, move |r| *f.lock().unwrap() = Some(r.is_ok()));
                     }
                 }));
-                (
-                    Box::new(EchoSink {
-                        out: Default::default(),
-                        echo: Default::default(),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
-                    Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-                )
+                (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
             })
         };
         let hook = seat_on.clone();
         let state = connected(|done| {
-            client::connect_with(
-                addr,
-                Some(Duration::from_secs(2)),
-                &engine,
-                move |st| {
-                    let h = hook.clone();
-                    st.set_seat_hook(Arc::new(move |to| Some(h(to))));
-                    seat_on(st)
-                },
-                done,
-            )
+            client::connect_with(addr, Some(Duration::from_secs(2)), &engine, move |st| {
+                let h = hook.clone();
+                st.set_seat_hook(Arc::new(move |to| Some(h(to))));
+                seat_on(st)
+            }, done)
         })
         .unwrap();
         let _ = me.set(state.clone());
@@ -2349,19 +1827,11 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             s.lock().unwrap().push(state.clone());
             (
-                Box::new(EchoSink {
-                    out: g.clone(),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: g.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("client-park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("client-park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let outbox = Arc::new(Mutex::new(Vec::<u8>::new()));
         let closes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -2387,36 +1857,21 @@ mod tests {
                 }
             }));
             let r = r.clone();
-            st.set_resume_hook(Arc::new(move || {
-                r.fetch_add(1, Ordering::Relaxed);
-            }));
-            (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(o.clone())) as Box<dyn BytesSrc>,
-            )
+            st.set_resume_hook(Arc::new(move || { r.fetch_add(1, Ordering::Relaxed); }));
+            (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(o.clone())) as Box<dyn BytesSrc>)
         });
         let hook = seat_on.clone();
         let state = connected(|done| {
-            client::connect_with(
-                addr,
-                Some(Duration::from_secs(2)),
-                &engine,
-                move |st| {
-                    let h = hook.clone();
-                    st.set_seat_hook(Arc::new(move |to| {
-                        let h2 = h.clone();
-                        let pair = h(to);
-                        to.set_seat_hook(Arc::new(move |t| Some(h2(t))));
-                        Some(pair)
-                    }));
-                    seat_on(st)
-                },
-                done,
-            )
+            client::connect_with(addr, Some(Duration::from_secs(2)), &engine, move |st| {
+                let h = hook.clone();
+                st.set_seat_hook(Arc::new(move |to| {
+                    let h2 = h.clone();
+                    let pair = h(to);
+                    to.set_seat_hook(Arc::new(move |t| Some(h2(t))));
+                    Some(pair)
+                }));
+                seat_on(st)
+            }, done)
         })
         .unwrap();
         state.identify(9);
@@ -2487,11 +1942,7 @@ mod tests {
             Some(Arc::new(move |state: &Arc<ExternalConnection>| {
                 s.lock().unwrap().push(state.clone());
                 (
-                    Box::new(EchoSink {
-                        out: g.clone(),
-                        echo: Arc::new(Mutex::new(Vec::new())),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
+                    Box::new(EchoSink { out: g.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                     Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
                 )
             }) as ConnectionFactory)
@@ -2578,32 +2029,19 @@ mod tests {
         let addr = server.local_addr().unwrap();
         let call = |uid: u8, what: &'static [u8]| {
             let st = connected(|done| {
-                client::connect_with(
-                    addr,
-                    Some(Duration::from_secs(2)),
-                    &engine,
-                    crate::lib::network::mux::dialing(uid, move |_| {
-                        (
-                            Box::new(Touchy(Default::default())) as Box<dyn BytesDst>,
-                            Box::new(EchoSource(Arc::new(Mutex::new(what.to_vec())))) as Box<dyn BytesSrc>,
-                        )
-                    }),
-                    done,
-                )
+                client::connect_with(addr, Some(Duration::from_secs(2)), &engine, crate::lib::network::mux::dialing(uid, move |_| {
+                    (Box::new(Touchy(Default::default())) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(what.to_vec())))) as Box<dyn BytesSrc>)
+                }), done)
             })
             .unwrap();
             st.wake_transmit();
             st
         };
         let first = call(5, b"one");
-        until("the first caller seated", &|| {
-            made.lock().unwrap().len() == 1 && made.lock().unwrap()[0].1.upgrade().is_some_and(|l| l.got.lock().unwrap().as_slice() == b"one")
-        });
+        until("the first caller seated", &|| made.lock().unwrap().len() == 1 && made.lock().unwrap()[0].1.upgrade().is_some_and(|l| l.got.lock().unwrap().as_slice() == b"one"));
         let layer5 = made.lock().unwrap()[0].1.clone();
         first.disconnect(Event::THIS_CLOSE_ABRUPTLY);
-        until("the slot free with its connection kept", &|| {
-            server.pool.census()[pool::FREE as usize] == 1 && server.pool.connections_live() == 0
-        });
+        until("the slot free with its connection kept", &|| server.pool.census()[pool::FREE as usize] == 1 && server.pool.connections_live() == 0);
         assert!(layer5.upgrade().is_some(), "the slot holds the connection it served");
         let second = call(5, b"two");
         until("the same connection seated again", &|| layer5.upgrade().is_some_and(|l| l.got.lock().unwrap().as_slice() == b"onetwo"));
@@ -2695,18 +2133,10 @@ mod tests {
             let c = closed.clone();
             let factory: ConnectionFactory = Arc::new(move |state| {
                 let c = c.clone();
-                state.set_event_sink(Arc::new(move |_, ev| {
-                    if ev.is_close() {
-                        c.lock().unwrap().push(ev)
-                    }
-                }));
+                state.set_event_sink(Arc::new(move |_, ev| if ev.is_close() { c.lock().unwrap().push(ev) }));
                 (Box::new(Refuse(broken)) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
             });
-            let server = server::Builder::new("refuse", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-                .engine(engine.clone())
-                .on_connect(factory)
-                .build()
-                .unwrap();
+            let server = server::Builder::new("refuse", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
             let mut a = std::net::TcpStream::connect(server.local_addr().unwrap()).unwrap();
             a.write_all(&[1, 2, 3]).unwrap();
             until("the connection closes", &|| !closed.lock().unwrap().is_empty());
@@ -2730,11 +2160,7 @@ mod tests {
             }
             (Box::new(Touchy(g.clone())) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("panic-factory", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("panic-factory", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let mut a = std::net::TcpStream::connect(addr).unwrap();
         a.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
@@ -2754,16 +2180,7 @@ mod tests {
         let engine = Engine::new("panic-client-factory", 1, crate::lib::network::engine::MIN_BUFFER);
         let server = server::Builder::new("panic-client-factory", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
             .engine(engine.clone())
-            .on_connect(Arc::new(|_| {
-                (
-                    Box::new(EchoSink {
-                        out: Default::default(),
-                        echo: Default::default(),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
-                    Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-                )
-            }))
+            .on_connect(Arc::new(|_| (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)))
             .build()
             .unwrap();
         let addr = server.local_addr().unwrap();
@@ -2771,25 +2188,12 @@ mod tests {
         let dial = || {
             let n = n.clone();
             connected(|done| {
-                client::connect_with(
-                    addr,
-                    Some(Duration::from_secs(2)),
-                    &engine,
-                    move |_| {
-                        if n.fetch_add(1, Ordering::Relaxed) == 0 {
-                            panic!("the factory of the client fails its first connect");
-                        }
-                        (
-                            Box::new(EchoSink {
-                                out: Default::default(),
-                                echo: Default::default(),
-                                state: None,
-                            }) as Box<dyn BytesDst>,
-                            Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>,
-                        )
-                    },
-                    done,
-                )
+                client::connect_with(addr, Some(Duration::from_secs(2)), &engine, move |_| {
+                    if n.fetch_add(1, Ordering::Relaxed) == 0 {
+                        panic!("the factory of the client fails its first connect");
+                    }
+                    (Box::new(EchoSink { out: Default::default(), echo: Default::default(), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
+                }, done)
             })
         };
         let Err(e) = dial() else { panic!("the factory panicked: the connect is to fail") };
@@ -2815,11 +2219,7 @@ mod tests {
             }));
             (Box::new(Touchy(g.clone())) as Box<dyn BytesDst>, Box::new(EchoSource(Default::default())) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("panic-close", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("panic-close", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let a = std::net::TcpStream::connect(addr).unwrap();
         until("the connection lives", &|| server.census().live == 1);
@@ -2834,43 +2234,19 @@ mod tests {
     /// What a protocol layer does for a client: seats itself on a connection - again on another
     /// one, through the seat hook -, hears its close events into `closes`, counts its resumes into
     /// `resumed`, sends what `outbox` holds; declares the Noise `noise` every time it is seated.
-    pub(crate) fn layer(
-        outbox: Arc<Mutex<Vec<u8>>>,
-        closes: Arc<std::sync::atomic::AtomicUsize>,
-        resumed: Arc<std::sync::atomic::AtomicUsize>,
-        noise: Option<Chain>,
-    ) -> impl Fn(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) + Send + Sync + Clone + 'static {
-        fn seat(
-            st: &Arc<ExternalConnection>,
-            o: &Arc<Mutex<Vec<u8>>>,
-            c: &Arc<std::sync::atomic::AtomicUsize>,
-            r: &Arc<std::sync::atomic::AtomicUsize>,
-            n: &Option<Chain>,
-        ) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) {
+    pub(crate) fn layer(outbox: Arc<Mutex<Vec<u8>>>, closes: Arc<std::sync::atomic::AtomicUsize>, resumed: Arc<std::sync::atomic::AtomicUsize>, noise: Option<Chain>) -> impl Fn(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) + Send + Sync + Clone + 'static {
+        fn seat(st: &Arc<ExternalConnection>, o: &Arc<Mutex<Vec<u8>>>, c: &Arc<std::sync::atomic::AtomicUsize>, r: &Arc<std::sync::atomic::AtomicUsize>, n: &Option<Chain>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) {
             if let Some(chain) = n {
                 st.secure(Some(chain.clone()));
             }
             st.set_resumable_seconds_hook(Arc::new(|_| 60));
             let cc = c.clone();
-            st.set_event_sink(Arc::new(move |_, ev| {
-                if ev.is_close() {
-                    cc.fetch_add(1, Ordering::Relaxed);
-                }
-            }));
+            st.set_event_sink(Arc::new(move |_, ev| if ev.is_close() { cc.fetch_add(1, Ordering::Relaxed); }));
             let rr = r.clone();
-            st.set_resume_hook(Arc::new(move || {
-                rr.fetch_add(1, Ordering::Relaxed);
-            }));
+            st.set_resume_hook(Arc::new(move || { rr.fetch_add(1, Ordering::Relaxed); }));
             let (o2, c2, r2, n2) = (o.clone(), c.clone(), r.clone(), n.clone());
             st.set_seat_hook(Arc::new(move |to| Some(seat(to, &o2, &c2, &r2, &n2))));
-            (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
-                Box::new(EchoSource(o.clone())) as Box<dyn BytesSrc>,
-            )
+            (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(o.clone())) as Box<dyn BytesSrc>)
         }
         move |st: &Arc<ExternalConnection>| seat(st, &outbox, &closes, &resumed, &noise)
     }
@@ -2885,39 +2261,19 @@ mod tests {
         let s = seated.clone();
         let factory: ConnectionFactory = Arc::new(move |state| {
             s.lock().unwrap().push(state.clone());
-            (
-                Box::new(Touchy(Default::default())) as Box<dyn BytesDst>,
-                Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-            )
+            (Box::new(Touchy(Default::default())) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>)
         });
-        let server = server::Builder::new("reap-nearest", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("reap-nearest", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let closes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let c = closes.clone();
         let state = connected(|done| {
-            client::connect_with(
-                addr,
-                Some(Duration::from_secs(2)),
-                &engine,
-                move |st| {
-                    st.set_resumable_seconds_hook(Arc::new(|_| 1));
-                    let c = c.clone();
-                    st.set_event_sink(Arc::new(move |_, ev| {
-                        if ev.is_close() {
-                            c.fetch_add(1, Ordering::Relaxed);
-                        }
-                    }));
-                    (
-                        Box::new(Touchy(Default::default())) as Box<dyn BytesDst>,
-                        Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                    )
-                },
-                done,
-            )
+            client::connect_with(addr, Some(Duration::from_secs(2)), &engine, move |st| {
+                st.set_resumable_seconds_hook(Arc::new(|_| 1));
+                let c = c.clone();
+                st.set_event_sink(Arc::new(move |_, ev| if ev.is_close() { c.fetch_add(1, Ordering::Relaxed); }));
+                (Box::new(Touchy(Default::default())) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>)
+            }, done)
         })
         .unwrap();
         state.identify(9);
@@ -2926,9 +2282,7 @@ mod tests {
         // through it finds the session reaped already
         let lost_at = std::time::Instant::now();
         seated.lock().unwrap()[0].disconnect(Event::THIS_CLOSE_ABRUPTLY);
-        until("the client parks its session", &|| {
-            engine.clients.census()[pool::PARKED as usize] == 1 || closes.load(Ordering::Relaxed) == 1
-        });
+        until("the client parks its session", &|| engine.clients.census()[pool::PARKED as usize] == 1 || closes.load(Ordering::Relaxed) == 1);
         let heard = closes.load(Ordering::Relaxed); // first: a reap between the two reads shows it no longer parked
         if engine.clients.census()[pool::PARKED as usize] == 1 {
             assert_eq!(heard, 0, "a parked session hears no close");
@@ -2965,19 +2319,11 @@ mod tests {
             s.lock().unwrap().push(state.clone());
             state.secure(noise(crate::lib::noise::PATTERN_NK, &secret, &[0u8; 32]));
             (
-                Box::new(EchoSink {
-                    out: g.clone(),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: g.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("enc-park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("enc-park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let outbox = Arc::new(Mutex::new(Vec::<u8>::new()));
         let closes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -3007,10 +2353,7 @@ mod tests {
         assert_eq!(fresh.session() as u32, 9);
         wait("resumed once connected", &|| resumed.load(Ordering::Relaxed) == 1);
         wait("the handshake of the new connection", &|| fresh.noise().is_some_and(|n| n.ready()));
-        assert!(
-            !Arc::ptr_eq(&fresh.noise().unwrap().0, &first.0),
-            "a Noise stream of its own: the protocol layer seated again declared it"
-        );
+        assert!(!Arc::ptr_eq(&fresh.noise().unwrap().0, &first.0), "a Noise stream of its own: the protocol layer seated again declared it");
         let payload: Vec<u8> = (0..20_000u32).map(|i| (i * 11) as u8).collect();
         outbox.lock().unwrap().extend_from_slice(&payload);
         fresh.wake_transmit();
@@ -3035,20 +2378,11 @@ mod tests {
             state.set_event_sink(Arc::new(move |_, e| a.lock().unwrap().push(format!("{e:?}"))));
             state.set_session_hook(Arc::new(move |open| b.lock().unwrap().push(if open { "open" } else { "close" }.into())));
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("ws-open", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("ws-open", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket().engine(engine.clone()).on_connect(factory).build().unwrap();
         let addr = server.local_addr().unwrap();
         let wait = |what: &str, f: &dyn Fn() -> bool| {
             for _ in 0..400 {
@@ -3070,25 +2404,9 @@ mod tests {
         heard.lock().unwrap().clear();
         // a WebSocket
         let (tx, rx) = std::sync::mpsc::channel();
-        web_socket::client::connect_with(
-            &format!("ws://{addr}"),
-            Some(Duration::from_secs(2)),
-            &engine,
-            true,
-            |_| {
-                (
-                    Box::new(EchoSink {
-                        out: Arc::new(Mutex::new(Vec::new())),
-                        echo: Arc::new(Mutex::new(Vec::new())),
-                        state: None,
-                    }) as Box<dyn BytesDst>,
-                    Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
-                )
-            },
-            move |r| {
-                let _ = tx.send(r.map(|c| c.state));
-            },
-        );
+        web_socket::client::connect_with(&format!("ws://{addr}"), Some(Duration::from_secs(2)), &engine, true, |_| (Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>, Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>), move |r| {
+            let _ = tx.send(r.map(|c| c.state));
+        });
         let client = rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap();
         wait("the server side opened", &|| opens() == 1);
         let got = heard.lock().unwrap().clone();
@@ -3111,20 +2429,11 @@ mod tests {
         let factory: ConnectionFactory = Arc::new(move |state| {
             s.lock().unwrap().push(state.clone());
             (
-                Box::new(EchoSink {
-                    out: g.clone(),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: None,
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: g.clone(), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
-        let server = server::Builder::new("ws-park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
-            .engine(engine.clone())
-            .on_connect(factory)
-            .build()
-            .unwrap();
+        let server = server::Builder::new("ws-park", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket().engine(engine.clone()).on_connect(factory).build().unwrap();
         let url = format!("ws://{}", server.local_addr().unwrap());
         let outbox = Arc::new(Mutex::new(Vec::<u8>::new()));
         let closes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
@@ -3152,10 +2461,7 @@ mod tests {
         seated.lock().unwrap()[0].disconnect(Event::THIS_CLOSE_ABRUPTLY);
         wait("the client parks its session", &|| engine.clients.census()[pool::PARKED as usize] == 1);
         let dead = format!("ws://{}", dead_addr());
-        assert!(
-            ws(&|done| web_socket::client::reconnect(&state, &dead, Some(Duration::from_secs(2)), &engine, true, done)).is_err(),
-            "nobody listens there"
-        );
+        assert!(ws(&|done| web_socket::client::reconnect(&state, &dead, Some(Duration::from_secs(2)), &engine, true, done)).is_err(), "nobody listens there");
         wait("parked again", &|| engine.clients.census()[pool::PARKED as usize] == 1);
         // a server that refuses the upgrade: a 400 instead of the 101
         let refusing = std::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
@@ -3165,26 +2471,18 @@ mod tests {
             if let Ok((mut s, _)) = refusing.accept() {
                 let mut req = Vec::new();
                 let mut b = [0u8; 1];
-                while !req.ends_with(
-                    b"
+                while !req.ends_with(b"
 
-",
-                ) && s.read(&mut b).map_or(false, |n| n == 1)
-                {
+") && s.read(&mut b).map_or(false, |n| n == 1) {
                     req.push(b[0]);
                 }
-                let _ = s.write_all(
-                    b"HTTP/1.1 400 Bad Request
+                let _ = s.write_all(b"HTTP/1.1 400 Bad Request
 Content-Length: 0
 
-",
-                );
+");
             }
         });
-        assert!(
-            ws(&|done| web_socket::client::reconnect(&state, &no, Some(Duration::from_secs(2)), &engine, true, done)).is_err(),
-            "the upgrade is refused"
-        );
+        assert!(ws(&|done| web_socket::client::reconnect(&state, &no, Some(Duration::from_secs(2)), &engine, true, done)).is_err(), "the upgrade is refused");
         wait("parked again after the refused upgrade", &|| engine.clients.census()[pool::PARKED as usize] == 1);
         assert_eq!(closes.load(Ordering::Relaxed), 0, "a refused upgrade is not the end of the session");
         assert_eq!(closes.load(Ordering::Relaxed), 0, "a failed reconnect is not the end of the session");
@@ -3207,11 +2505,7 @@ Content-Length: 0
     fn shutdown_gives_the_sessions_their_grace() {
         let factory: ConnectionFactory = Arc::new(move |state| {
             (
-                Box::new(EchoSink {
-                    out: Arc::new(Mutex::new(Vec::new())),
-                    echo: Arc::new(Mutex::new(Vec::new())),
-                    state: Some(state.clone()),
-                }) as Box<dyn BytesDst>,
+                Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: Some(state.clone()) }) as Box<dyn BytesDst>,
                 Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
             )
         });
@@ -3224,11 +2518,7 @@ Content-Length: 0
                     Some(Duration::from_secs(2)),
                     move |_| {
                         (
-                            Box::new(EchoSink {
-                                out: Arc::new(Mutex::new(Vec::new())),
-                                echo: Arc::new(Mutex::new(Vec::new())),
-                                state: None,
-                            }) as Box<dyn BytesDst>,
+                            Box::new(EchoSink { out: Arc::new(Mutex::new(Vec::new())), echo: Arc::new(Mutex::new(Vec::new())), state: None }) as Box<dyn BytesDst>,
                             Box::new(EchoSource(Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesSrc>,
                         )
                     },

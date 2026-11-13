@@ -93,10 +93,7 @@ pub(crate) const UNIT_BROKEN: i32 = 21;
 #[cold]
 #[inline(never)]
 pub(crate) fn broken_unit() -> u16 {
-    crate::lib::adhoc::connection::receiver::on_error::rx(
-        crate::lib::adhoc::connection::receiver::on_error::RxOnError::BytesDistortion,
-        &"a UTF-16 unit of more than three varint bytes, or above U+FFFF: mended with U+FFFD",
-    );
+    crate::lib::adhoc::connection::receiver::on_error::rx(crate::lib::adhoc::connection::receiver::on_error::RxOnError::BytesDistortion, &"a UTF-16 unit of more than three varint bytes, or above U+FFFF: mended with U+FFFD");
     0xFFFD
 }
 
@@ -187,7 +184,9 @@ mod tests {
 
     #[test]
     fn round_trip_mixed_text() {
-        let src: Vec<u16> = "héllo, こんにちは — ASCII & ünïcödé & 𝒜?".encode_utf16().collect();
+        let src: Vec<u16> = "héllo, こんにちは — ASCII & ünïcödé & 𝒜?"
+            .encode_utf16()
+            .collect();
         let bytes = encode_all(&src);
         let mut back = Vec::new();
         let ret = varint_decode(&bytes, 0, &mut back);

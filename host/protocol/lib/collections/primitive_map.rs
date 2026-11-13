@@ -22,36 +22,24 @@ pub struct PrimitiveMap<K, V, S = FxBuildHasher> {
 impl<K, V, S> PrimitiveMap<K, V, S> {
     /// First physical slot; see [`super::token`] for validity and iteration order.
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        self.raw.token()
-    }
+    pub fn token(&self) -> Option<Token> { self.raw.token() }
 
     /// Next live slot, skipping the gap between lo and hi.
     #[inline(always)]
-    pub fn next_token(&self, token: Token) -> Option<Token> {
-        self.raw.next_token(token)
-    }
+    pub fn next_token(&self, token: Token) -> Option<Token> { self.raw.next_token(token) }
 
     /// Checks slot occupancy, without detecting a stale or foreign token.
     #[inline(always)]
-    pub fn contains_token(&self, token: Token) -> bool {
-        self.raw.contains_token(token)
-    }
+    pub fn contains_token(&self, token: Token) -> bool { self.raw.contains_token(token) }
 
     /// Direct slot access without hashing; token is not an ordinal `entry_at` index.
     #[inline(always)]
-    pub fn entry_by_token(&self, token: Token) -> Option<(K, &V)>
-    where
-        K: Copy,
-    {
+    pub fn entry_by_token(&self, token: Token) -> Option<(K, &V)> where K: Copy {
         self.raw.get_by_token(token).map(|(k, v)| (*k, v))
     }
 
     #[inline(always)]
-    pub fn key_by_token(&self, token: Token) -> Option<K>
-    where
-        K: Copy,
-    {
+    pub fn key_by_token(&self, token: Token) -> Option<K> where K: Copy {
         self.raw.get_by_token(token).map(|(k, _)| *k)
     }
 
@@ -169,10 +157,7 @@ impl<K: Copy + Eq + Hash, V, S: BuildHasher> PrimitiveMap<K, V, S> {
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> Self {
-        Self {
-            raw: RawTable::with_capacity(capacity),
-            hasher,
-        }
+        Self { raw: RawTable::with_capacity(capacity), hasher }
     }
 
     #[inline(always)]
@@ -264,10 +249,7 @@ impl<K: Copy + Eq + Hash, V, S: BuildHasher> PrimitiveMap<K, V, S> {
 
 impl<K: Clone, V: Clone, S: Clone> Clone for PrimitiveMap<K, V, S> {
     fn clone(&self) -> Self {
-        Self {
-            raw: self.raw.clone(),
-            hasher: self.hasher.clone(),
-        }
+        Self { raw: self.raw.clone(), hasher: self.hasher.clone() }
     }
 }
 

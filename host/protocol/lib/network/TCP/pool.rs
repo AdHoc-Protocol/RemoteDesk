@@ -487,14 +487,7 @@ impl Pool {
     /// The census as one line, for a log: `"free 12, active 300, cleaning 0, parked 4, slots 316"`.
     pub fn census_text(&self) -> String {
         let n = self.census();
-        format!(
-            "free {}, active {}, cleaning {}, parked {}, slots {}",
-            n[FREE as usize],
-            n[ACTIVE as usize],
-            n[CLEANING as usize],
-            n[PARKED as usize],
-            self.connections_size()
-        )
+        format!("free {}, active {}, cleaning {}, parked {}, slots {}", n[FREE as usize], n[ACTIVE as usize], n[CLEANING as usize], n[PARKED as usize], self.connections_size())
     }
 
     /// Every slot made.

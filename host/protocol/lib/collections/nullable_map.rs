@@ -19,34 +19,23 @@ pub struct NullableMap<K, V, S = FxBuildHasher> {
 impl<K, V, S> NullableMap<K, V, S> {
     /// Keyed slots first, then `NULL_TOKEN`; see [`super::token`].
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        or_null(self.map.token(), self.null_value.is_some())
-    }
+    pub fn token(&self) -> Option<Token> { or_null(self.map.token(), self.null_value.is_some()) }
 
     #[inline(always)]
     pub fn next_token(&self, token: Token) -> Option<Token> {
-        if token == NULL_TOKEN || !self.map.contains_token(token) {
-            return None;
-        }
+        if token == NULL_TOKEN || !self.map.contains_token(token) { return None; }
         or_null(self.map.next_token(token), self.null_value.is_some())
     }
 
     #[inline(always)]
     pub fn contains_token(&self, token: Token) -> bool {
-        if token == NULL_TOKEN {
-            self.null_value.is_some()
-        } else {
-            self.map.contains_token(token)
-        }
+        if token == NULL_TOKEN { self.null_value.is_some() } else { self.map.contains_token(token) }
     }
 
     #[inline(always)]
     pub fn entry_by_token(&self, token: Token) -> Option<(Option<&K>, &V)> {
-        if token == NULL_TOKEN {
-            self.null_value.as_ref().map(|v| (None, v))
-        } else {
-            self.map.entry_by_token(token).map(|(k, v)| (Some(k), v))
-        }
+        if token == NULL_TOKEN { self.null_value.as_ref().map(|v| (None, v)) }
+        else { self.map.entry_by_token(token).map(|(k, v)| (Some(k), v)) }
     }
 
     #[inline(always)]
@@ -56,20 +45,12 @@ impl<K, V, S> NullableMap<K, V, S> {
 
     #[inline(always)]
     pub fn value_by_token(&self, token: Token) -> Option<&V> {
-        if token == NULL_TOKEN {
-            self.null_value.as_ref()
-        } else {
-            self.map.value_by_token(token)
-        }
+        if token == NULL_TOKEN { self.null_value.as_ref() } else { self.map.value_by_token(token) }
     }
 
     #[inline(always)]
     pub fn value_by_token_mut(&mut self, token: Token) -> Option<&mut V> {
-        if token == NULL_TOKEN {
-            self.null_value.as_mut()
-        } else {
-            self.map.value_by_token_mut(token)
-        }
+        if token == NULL_TOKEN { self.null_value.as_mut() } else { self.map.value_by_token_mut(token) }
     }
 
     #[inline(always)]
@@ -155,18 +136,12 @@ impl<K, V, S> NullableMap<K, V, S> {
 
     #[inline]
     pub fn iter(&self) -> Iter<'_, K, V> {
-        Iter {
-            null: self.null_value.as_ref(),
-            inner: self.map.iter(),
-        }
+        Iter { null: self.null_value.as_ref(), inner: self.map.iter() }
     }
 
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
-        IterMut {
-            null: self.null_value.as_mut(),
-            inner: self.map.iter_mut(),
-        }
+        IterMut { null: self.null_value.as_mut(), inner: self.map.iter_mut() }
     }
 
     #[inline]
@@ -207,30 +182,18 @@ impl<K: Eq + Hash, V> Default for NullableMap<K, V, FxBuildHasher> {
 impl<K: Eq + Hash, V, S: BuildHasher> NullableMap<K, V, S> {
     #[inline(always)]
     pub fn token_of<Q>(&self, key: Option<&Q>) -> Option<Token>
-    where
-        K: Borrow<Q>,
-        Q: Hash + Eq + ?Sized,
-    {
-        match key {
-            Some(k) => self.map.token_of(k),
-            None => self.null_value.is_some().then_some(NULL_TOKEN),
-        }
+    where K: Borrow<Q>, Q: Hash + Eq + ?Sized {
+        match key { Some(k) => self.map.token_of(k), None => self.null_value.is_some().then_some(NULL_TOKEN) }
     }
 
     /// Does not allocate.
     #[inline]
     pub fn with_hasher(hasher: S) -> Self {
-        Self {
-            map: Map::with_hasher(hasher),
-            null_value: None,
-        }
+        Self { map: Map::with_hasher(hasher), null_value: None }
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> Self {
-        Self {
-            map: Map::with_capacity_and_hasher(capacity, hasher),
-            null_value: None,
-        }
+        Self { map: Map::with_capacity_and_hasher(capacity, hasher), null_value: None }
     }
 
     /// The value of a key without `Option`; the null key — `null_value`.
@@ -281,14 +244,10 @@ impl<K: Eq + Hash, V, S: BuildHasher> NullableMap<K, V, S> {
 
     /// Key without `Option`, the null key separately: the serializer and the parser neither wrap a key nor check it for null.
     #[inline(always)]
-    pub fn insert_key(&mut self, k: K, value: V) -> Option<V> {
-        self.map.insert(k, value)
-    }
+    pub fn insert_key(&mut self, k: K, value: V) -> Option<V> { self.map.insert(k, value) }
 
     #[inline(always)]
-    pub fn insert_null_key(&mut self, value: V) -> Option<V> {
-        self.null_value.replace(value)
-    }
+    pub fn insert_null_key(&mut self, value: V) -> Option<V> { self.null_value.replace(value) }
 
     /// Returns the previous value of the key.
     #[inline]
@@ -335,10 +294,7 @@ impl<K: Eq + Hash, V, S: BuildHasher> NullableMap<K, V, S> {
 
 impl<K: Clone, V: Clone, S: Clone> Clone for NullableMap<K, V, S> {
     fn clone(&self) -> Self {
-        Self {
-            map: self.map.clone(),
-            null_value: self.null_value.clone(),
-        }
+        Self { map: self.map.clone(), null_value: self.null_value.clone() }
     }
 }
 
@@ -393,10 +349,7 @@ pub struct Iter<'a, K, V> {
 
 impl<K, V> Clone for Iter<'_, K, V> {
     fn clone(&self) -> Self {
-        Self {
-            null: self.null,
-            inner: self.inner.clone(),
-        }
+        Self { null: self.null, inner: self.inner.clone() }
     }
 }
 
@@ -505,9 +458,6 @@ impl<K, V, S> IntoIterator for NullableMap<K, V, S> {
     type IntoIter = IntoIter<K, V>;
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            null: self.null_value,
-            inner: self.map.into_iter(),
-        }
+        IntoIter { null: self.null_value, inner: self.map.into_iter() }
     }
 }

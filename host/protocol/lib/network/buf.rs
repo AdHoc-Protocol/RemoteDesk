@@ -33,10 +33,7 @@ pub struct RxBuf {
 impl RxBuf {
     /// A buffer of `size` bytes.
     pub fn new(size: usize) -> Box<RxBuf> {
-        Box::new(RxBuf {
-            bytes: UnsafeCell::new(vec![0u8; size].into_boxed_slice()),
-            filled: Cell::new(0),
-        })
+        Box::new(RxBuf { bytes: UnsafeCell::new(vec![0u8; size].into_boxed_slice()), filled: Cell::new(0) })
     }
 
     #[inline(always)]
@@ -132,9 +129,7 @@ mod tests {
         fn assert_send<T: Send>() {}
         assert_send::<RxBuf>();
 
-        trait AmbiguousIfSync<A> {
-            fn check() {}
-        }
+        trait AmbiguousIfSync<A> { fn check() {} }
         impl<T: ?Sized> AmbiguousIfSync<()> for T {}
         impl<T: ?Sized + Sync> AmbiguousIfSync<u8> for T {}
         // Type inference becomes ambiguous if RxBuf implements Sync.
@@ -145,14 +140,14 @@ mod tests {
     fn safe_sink_calls_reject_invalid_buffer_ranges() {
         struct Sink;
         impl BytesDst for Sink {
-            fn on_bytes(&mut self, _: &[u8]) -> bool {
-                true
-            }
+            fn on_bytes(&mut self, _: &[u8]) -> bool { true }
         }
 
         let buffer = RxBuf::new(8);
         for (at, end) in [(0, 9), (5, 4)] {
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| Sink.on_block(&buffer, at, end)));
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                Sink.on_block(&buffer, at, end)
+            }));
             assert!(result.is_err(), "accepted invalid buffer range {at}..{end}");
         }
     }
@@ -161,7 +156,9 @@ mod tests {
     fn invalid_replacement_keeps_the_original_buffer() {
         let buffer = RxBuf::new(8);
         let original = buffer.as_ptr();
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| buffer.take(vec![0; 4].into_boxed_slice())));
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            buffer.take(vec![0; 4].into_boxed_slice())
+        }));
         assert!(result.is_err());
         assert_eq!(buffer.len(), 8);
         assert_eq!(buffer.as_ptr(), original);

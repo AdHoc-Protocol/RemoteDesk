@@ -59,16 +59,11 @@ export namespace BoolNullList {
          * @returns {boolean} True if the value is found in the list, false otherwise.
          */
         contains(value: boolean | undefined): boolean {
-            return (
-                -1 <
-                super._indexOf(
-                    value === undefined
-                        ? 2 // Represent undefined as 2 for internal search
-                        : value
-                          ? 1 // Represent true as 1 for internal search
-                          : 0,
-                )
-            ); // Represent false as 0 for internal search
+            return -1 < super._indexOf(value === undefined ?
+                                       2 : // Represent undefined as 2 for internal search
+                                       value ?
+                                       1 : // Represent true as 1 for internal search
+                                       0);  // Represent false as 0 for internal search
         }
 
         /**
@@ -78,13 +73,11 @@ export namespace BoolNullList {
          * @returns {number} The index of the first occurrence, or -1 if not found.
          */
         indexOf(value: boolean | undefined): number {
-            return super._indexOf(
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal search
-                    : value
-                      ? 1 // Represent true as 1 for internal search
-                      : 0,
-            ); // Represent false as 0 for internal search
+            return super._indexOf(value === undefined ?
+                                  2 : // Represent undefined as 2 for internal search
+                                  value ?
+                                  1 : // Represent true as 1 for internal search
+                                  0);  // Represent false as 0 for internal search
         }
 
         /**
@@ -94,14 +87,11 @@ export namespace BoolNullList {
          * @returns {number} The index of the last occurrence, or -1 if not found.
          */
         lastIndexOf(value: boolean | undefined): number {
-            return super._lastIndexOf_(
-                this._size,
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal search
-                    : value
-                      ? 1 // Represent true as 1 for internal search
-                      : 0,
-            ); // Represent false as 0 for internal search
+            return super._lastIndexOf_(this._size, value === undefined ?
+                                                   2 : // Represent undefined as 2 for internal search
+                                                   value ?
+                                                   1 : // Represent true as 1 for internal search
+                                                   0);  // Represent false as 0 for internal search
         }
 
         /**
@@ -112,14 +102,11 @@ export namespace BoolNullList {
          * @returns {number} The index of the last occurrence, or -1 if not found.
          */
         lastIndexOf_(from: number, value: boolean | undefined) {
-            return super._lastIndexOf_(
-                from,
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal search
-                    : value
-                      ? 1 // Represent true as 1 for internal search
-                      : 0,
-            ); // Represent false as 0 for internal search
+            return super._lastIndexOf_(from, value === undefined ?
+                                             2 : // Represent undefined as 2 for internal search
+                                             value ?
+                                             1 : // Represent true as 1 for internal search
+                                             0);  // Represent false as 0 for internal search
         }
 
         /**
@@ -131,9 +118,9 @@ export namespace BoolNullList {
          */
         get(index: number): boolean | undefined {
             const value = this.raw(index);
-            return value === 2
-                ? undefined // Return undefined if internal value is 2 (representing undefined/null)
-                : value === 1; // Return true if internal value is 1, otherwise (implicitly 0) return false
+            return value === 2 ?
+                   undefined : // Return undefined if internal value is 2 (representing undefined/null)
+                   value === 1;  // Return true if internal value is 1, otherwise (implicitly 0) return false
         }
 
         /**
@@ -247,14 +234,11 @@ export namespace BoolNullList {
          * @param {boolean | undefined} value The boolean value or undefined to add.
          */
         add(value: boolean | undefined) {
-            BitsList.R.add(
-                this,
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal storage
-                    : value
-                      ? 1 // Represent true as 1 for internal storage
-                      : 0,
-            ); // Represent false as 0 for internal storage
+            BitsList.R.add(this, value === undefined ?
+                                 2 : // Represent undefined as 2 for internal storage
+                                 value ?
+                                 1 : // Represent true as 1 for internal storage
+                                 0);  // Represent false as 0 for internal storage
         }
 
         /**
@@ -264,15 +248,11 @@ export namespace BoolNullList {
          * @param {boolean | undefined} value The boolean value or undefined to insert.
          */
         add_(index: number, value: boolean | undefined) {
-            R.add_(
-                this,
-                index,
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal storage
-                    : value
-                      ? 1 // Represent true as 1 for internal storage
-                      : 0,
-            ); // Represent false as 0 for internal storage
+            R.add_(this, index, value === undefined ?
+                                2 : // Represent undefined as 2 for internal storage
+                                value ?
+                                1 : // Represent true as 1 for internal storage
+                                0);  // Represent false as 0 for internal storage
         }
 
         /**
@@ -297,14 +277,11 @@ export namespace BoolNullList {
          * @param {boolean | undefined} value The boolean value or undefined to remove.
          */
         remove_(value: boolean | undefined) {
-            R.remove(
-                this,
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal removal
-                    : value
-                      ? 1 // Represent true as 1 for internal removal
-                      : 0,
-            ); // Represent false as 0 for internal removal
+            R.remove(this, value === undefined ?
+                           2 : // Represent undefined as 2 for internal removal
+                           value ?
+                           1 : // Represent true as 1 for internal removal
+                           0);  // Represent false as 0 for internal removal
         }
 
         /**
@@ -312,7 +289,11 @@ export namespace BoolNullList {
          * @returns The number of items removed.
          */
         removeAll(value: boolean | undefined): number {
-            return R.remove(this, value === undefined ? 2 : value ? 1 : 0);
+            return R.remove(this, value === undefined ?
+                                  2 :
+                                  value ?
+                                  1 :
+                                  0);
         }
 
         /**
@@ -331,15 +312,11 @@ export namespace BoolNullList {
          * @throws RangeError if the list is empty.
          */
         set last(value: boolean | undefined) {
-            R.set(
-                this,
-                this._size - 1,
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal storage
-                    : value
-                      ? 1 // Represent true as 1 for internal storage
-                      : 0,
-            ); // Represent false as 0 for internal storage
+            R.set(this, this._size - 1, value === undefined ?
+                                        2 : // Represent undefined as 2 for internal storage
+                                        value ?
+                                        1 : // Represent true as 1 for internal storage
+                                        0);  // Represent false as 0 for internal storage
         }
 
         /**
@@ -358,15 +335,11 @@ export namespace BoolNullList {
          * @param {boolean | undefined} value The boolean value or undefined to set.
          */
         set1_(index: number, value: boolean | undefined) {
-            R.set(
-                this,
-                index,
-                value === undefined
-                    ? 2 // Represent undefined as 2 for internal storage
-                    : value
-                      ? 1 // Represent true as 1 for internal storage
-                      : 0,
-            ); // Represent false as 0 for internal storage
+            R.set(this, index, value === undefined ?
+                               2 : // Represent undefined as 2 for internal storage
+                               value ?
+                               1 : // Represent true as 1 for internal storage
+                               0);  // Represent false as 0 for internal storage
         }
 
         /**
@@ -414,15 +387,11 @@ export namespace BoolNullList {
             R.begin(this, index, len); // storage, the default-filled gap before `index`, the size: once; throws for index < 0
             for (let i = 0; i < len; i++) {
                 const value = values[i];
-                R.put1(
-                    this,
-                    index + i,
-                    value === undefined
-                        ? 2 // Represent undefined as 2 for internal storage
-                        : value
-                          ? 1 // Represent true as 1 for internal storage
-                          : 0,
-                ); // Represent false as 0 for internal storage
+                R.put1(this, index + i, value === undefined ?
+                                        2 : // Represent undefined as 2 for internal storage
+                                        value ?
+                                        1 : // Represent true as 1 for internal storage
+                                        0);  // Represent false as 0 for internal storage
             }
             return this;
         }

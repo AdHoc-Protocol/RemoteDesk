@@ -88,13 +88,7 @@ fn punycode(label: &str, out: &mut String) {
             } else if c == n {
                 let (mut q, mut k) = (delta, 36);
                 loop {
-                    let t = if k <= bias {
-                        1
-                    } else if bias + 26 <= k {
-                        26
-                    } else {
-                        k - bias
-                    };
+                    let t = if k <= bias { 1 } else if bias + 26 <= k { 26 } else { k - bias };
                     if q < t {
                         break;
                     }
@@ -158,7 +152,12 @@ pub fn create_request(domain: &str, id: u16) -> Vec<u8> {
 /// Whether `response` answers the question of `plain`: the id, QR=1, one question and that question,
 /// the case of its letters aside.
 fn is_answer(response: &[u8], plain: &[u8]) -> bool {
-    plain.len() <= response.len() && response[..2] == plain[..2] && response[2] & 0x80 != 0 && response[4] == 0 && response[5] == 1 && response[12..plain.len()].eq_ignore_ascii_case(&plain[12..])
+    plain.len() <= response.len()
+        && response[..2] == plain[..2]
+        && response[2] & 0x80 != 0
+        && response[4] == 0
+        && response[5] == 1
+        && response[12..plain.len()].eq_ignore_ascii_case(&plain[12..])
 }
 
 /// Parses a raw DNS response into the TXT record values: one entry per TXT record of class IN, its
@@ -356,11 +355,7 @@ fn ask(servers: &[IpAddr], first: usize, plain: &[u8], request: &[u8]) -> Option
     for server in servers {
         let family = server.is_ipv6() as usize;
         if udp[family].is_none() {
-            let bind: SocketAddr = if server.is_ipv6() {
-                (std::net::Ipv6Addr::UNSPECIFIED, 0).into()
-            } else {
-                (std::net::Ipv4Addr::UNSPECIFIED, 0).into()
-            };
+            let bind: SocketAddr = if server.is_ipv6() { (std::net::Ipv6Addr::UNSPECIFIED, 0).into() } else { (std::net::Ipv4Addr::UNSPECIFIED, 0).into() };
             if let Ok(mut socket) = UdpSocket::bind(bind) {
                 if poll.registry().register(&mut socket, Token(family), Interest::READABLE).is_ok() {
                     udp[family] = Some(socket);
@@ -389,8 +384,7 @@ fn ask(servers: &[IpAddr], first: usize, plain: &[u8], request: &[u8]) -> Option
                     continue;
                 }
                 if let Some(socket) = &udp[server.is_ipv6() as usize] {
-                    let _ = socket.send_to(request, SocketAddr::new(*server, 53));
-                    // no route to it: the others are not to suffer
+                    let _ = socket.send_to(request, SocketAddr::new(*server, 53)); // no route to it: the others are not to suffer
                 }
             }
             repeat = true;

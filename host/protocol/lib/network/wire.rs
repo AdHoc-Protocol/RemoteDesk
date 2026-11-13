@@ -23,7 +23,11 @@ pub struct Wire {
 impl Wire {
     /// Creates a bridge with one reusable buffer of `buffer_size.max(16)` bytes. Each step requests
     /// at most the length of that buffer from the source.
-    pub fn new(src: Box<dyn BytesSrc>, dst: Box<dyn BytesDst>, buffer_size: usize) -> Self {
+    pub fn new(
+        src: Box<dyn BytesSrc>,
+        dst: Box<dyn BytesDst>,
+        buffer_size: usize,
+    ) -> Self {
         Self {
             src,
             dst,

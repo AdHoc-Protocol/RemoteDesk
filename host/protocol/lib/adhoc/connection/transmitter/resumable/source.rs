@@ -10,9 +10,9 @@
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use crate::lib::adhoc::connection::control::Control;
 use crate::lib::adhoc::connection::transmitter::resumable::{Journal, Resumable, FREE, PULL};
 use crate::lib::adhoc::connection::transmitter::{TxHost, TxState};
+use crate::lib::adhoc::connection::control::Control;
 
 /// The session state the generated connection keeps for its guaranteed packs: what
 /// [`ResumableSource`] works with.
@@ -83,10 +83,7 @@ pub struct Unconfirmed {
 /// What of the journal of the session the peer has not confirmed ([`Unconfirmed`]). From any
 /// thread: the positions the journal published.
 pub fn unconfirmed<T: Session>(conn: &T) -> Unconfirmed {
-    conn.journal().map_or(Unconfirmed::default(), |j| Unconfirmed {
-        held: j.unconfirmed(),
-        owed: conn.control().step() <= j.owed(),
-    })
+    conn.journal().map_or(Unconfirmed::default(), |j| Unconfirmed { held: j.unconfirmed(), owed: conn.control().step() <= j.owed() })
 }
 
 /// The room a call of the source gets at least.
@@ -132,23 +129,14 @@ where
             Some(j) => {
                 let mut n = control.sources.fetch_add(1, Ordering::AcqRel).wrapping_add(1);
                 while n == FREE || n == PULL {
-                    n = control.sources.fetch_add(1, Ordering::AcqRel).wrapping_add(1);
-                    // the numbers of a source only
+                    n = control.sources.fetch_add(1, Ordering::AcqRel).wrapping_add(1); // the numbers of a source only
                 }
                 j.set_offline(false); // the queue is this source's: an offline pull in progress ends its pack
                 n
             }
             None => 0,
         };
-        let mut s = Self {
-            conn,
-            tx: TxState::default(),
-            number,
-            session: 0,
-            capped: false,
-            holds: false,
-            clear: false,
-        };
+        let mut s = Self { conn, tx: TxState::default(), number, session: 0, capped: false, holds: false, clear: false };
         s.hold();
         s
     }
@@ -244,7 +232,7 @@ where
                 if let Some(j) = journal.as_deref_mut() {
                     if control.agreeing() {
                         break; // a new socket: nothing but the packs of the agreement until the position the peer names is
-                               // answered
+                        // answered
                     }
                     // Between the identification and the agreement nothing leaves - see the order in the
                     // description of the module resumable:
@@ -378,12 +366,7 @@ where
                     // the session waits for its next socket: the journal goes to the disk and grows
                     // no more in memory
                     if let Err(e) = r.close(true) {
-                        crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                            crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                            &"the journal",
-                            &"could not be parked",
-                            Some(&e),
-                        );
+                        crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &"the journal", &"could not be parked", Some(&e));
                     }
                 }
             } else if parked {
@@ -538,19 +521,11 @@ where
 {
     let Some(m) = conn.journal() else { return f() };
     let control = conn.control();
-    while control
-        .draining
-        .compare_exchange_weak(0, 1, std::sync::atomic::Ordering::AcqRel, std::sync::atomic::Ordering::Relaxed)
-        .is_err()
-    {
+    while control.draining.compare_exchange_weak(0, 1, std::sync::atomic::Ordering::AcqRel, std::sync::atomic::Ordering::Relaxed).is_err() {
         std::hint::spin_loop(); // a pull in flight: one pack
     }
     let r = f();
-    if control
-        .draining
-        .compare_exchange(1, 0, std::sync::atomic::Ordering::AcqRel, std::sync::atomic::Ordering::Acquire)
-        .is_err()
-    {
+    if control.draining.compare_exchange(1, 0, std::sync::atomic::Ordering::AcqRel, std::sync::atomic::Ordering::Acquire).is_err() {
         pull_queued(conn, m); // packs queued meanwhile: their threads left them to the holder
     }
     r
@@ -571,21 +546,12 @@ where
                 Ok(false) => break,
                 Err(e) => {
                     // the journal is emptied already
-                    crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                        crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                        &"the journal of a parked session",
-                        &"failed",
-                        Some(&e),
-                    );
+                    crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &"the journal of a parked session", &"failed", Some(&e));
                     break;
                 }
             }
         }
-        if control
-            .draining
-            .compare_exchange(seen, 0, std::sync::atomic::Ordering::AcqRel, std::sync::atomic::Ordering::Acquire)
-            .is_ok()
-        {
+        if control.draining.compare_exchange(seen, 0, std::sync::atomic::Ordering::AcqRel, std::sync::atomic::Ordering::Acquire).is_ok() {
             break;
         }
     }

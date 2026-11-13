@@ -76,14 +76,7 @@ impl<T> NullableObjectList<T> {
     /// Does not allocate.
     #[inline]
     pub const fn new() -> Self {
-        Self {
-            repr: Repr::Compressed {
-                nulls: BitList::new(),
-                values: Vec::new(),
-                ranks: Vec::new(),
-            },
-            flat_threshold: DEFAULT_FLAT_THRESHOLD,
-        }
+        Self { repr: Repr::Compressed { nulls: BitList::new(), values: Vec::new(), ranks: Vec::new() }, flat_threshold: DEFAULT_FLAT_THRESHOLD }
     }
 
     /// Room for `capacity` values.
@@ -101,11 +94,7 @@ impl<T> NullableObjectList<T> {
     /// `len` nulls.
     pub fn with_nulls(len: usize) -> Self {
         Self {
-            repr: Repr::Compressed {
-                nulls: BitList::filled(false, len),
-                values: Vec::new(),
-                ranks: vec![0; len.div_ceil(64)],
-            },
+            repr: Repr::Compressed { nulls: BitList::filled(false, len), values: Vec::new(), ranks: vec![0; len.div_ceil(64)] },
             flat_threshold: DEFAULT_FLAT_THRESHOLD,
         }
     }

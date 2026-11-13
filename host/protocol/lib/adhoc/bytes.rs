@@ -38,11 +38,7 @@ pub trait BytesDst: Send {
     /// offered again once the sink's consumer wakes the receive. `None` - the stream is broken.
     /// Default: [`on_bytes`](Self::on_bytes), all or broken.
     fn on_part(&mut self, bytes: &[u8]) -> Option<usize> {
-        if self.on_bytes(bytes) {
-            Some(bytes.len())
-        } else {
-            None
-        }
+        if self.on_bytes(bytes) { Some(bytes.len()) } else { None }
     }
 
     /// The bytes of a record in the clear of the Noise of the socket: only frames of tunnels with a

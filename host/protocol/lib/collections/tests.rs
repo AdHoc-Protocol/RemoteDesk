@@ -325,10 +325,7 @@ fn byte_set_matches_model() {
         let probe = rng.next() as u8;
         assert_eq!(s.count_less_than(probe as i8), model.range(..probe).count());
         assert_eq!(s.rank(probe as i8), model.range(..=probe).count());
-        assert_eq!(
-            s.next_after(probe as i8).map(|k| k as u8),
-            model.range(probe.saturating_add(1)..).next().copied().filter(|_| probe < 255)
-        );
+        assert_eq!(s.next_after(probe as i8).map(|k| k as u8), model.range(probe.saturating_add(1)..).next().copied().filter(|_| probe < 255));
         assert_eq!(s.prev_before(probe as i8).map(|k| k as u8), model.range(..probe).next_back().copied());
     }
     // Iteration is ascending by byte value: 0..=127, then -128..=-1.
@@ -1820,18 +1817,11 @@ fn a_pass_by_number_gives_the_keys_in_order() {
     check(set.iter().collect(), |n, s| unsafe { set.key_seq(n, s) });
     check(map.iter().map(|(k, _)| k).collect(), |n, s| unsafe { *map.entry_seq(n, s).0 });
     check(map.iter().map(|(_, v)| v[0]).collect(), |n, s| unsafe { map.entry_seq(n, s).1[0] });
-    check(flat.iter().map(|(k, v)| (k, *v)).collect(), |n, s| unsafe {
-        let (k, v) = flat.entry_seq(n, s);
-        (*k, *v)
-    });
+    check(flat.iter().map(|(k, v)| (k, *v)).collect(), |n, s| unsafe { let (k, v) = flat.entry_seq(n, s); (*k, *v) });
     check(nset.iter().flatten().collect(), |n, s| unsafe { nset.key_seq(n, s) });
-    check(nmap.iter().filter_map(|(k, v)| k.map(|k| (k, *v))).collect(), |n, s| unsafe {
-        let (k, v) = nmap.entry_seq(n, s);
-        (*k, *v)
-    });
+    check(nmap.iter().filter_map(|(k, v)| k.map(|k| (k, *v))).collect(), |n, s| unsafe { let (k, v) = nmap.entry_seq(n, s); (*k, *v) });
     assert_eq!(nmap.null_value(), Some(&7));
-    for count in [40u32, 3000] {
-        // hash, then flat
+    for count in [40u32, 3000] { // hash, then flat
         let mut set = TwoBytesSet::<u16>::new();
         let mut map = TwoBytesMap::<u16, u32>::new();
         let mut nset = NullableTwoBytesSet::<u16>::new();
@@ -1845,15 +1835,9 @@ fn a_pass_by_number_gives_the_keys_in_order() {
         nset.insert(None);
         assert!(nset.contains_null());
         check(set.iter().collect(), |n, s| unsafe { set.key_seq(n, s) });
-        check(map.iter().map(|(k, v)| (k, *v)).collect(), |n, s| unsafe {
-            let (k, v) = map.entry_seq(n, s);
-            (*k, *v)
-        });
+        check(map.iter().map(|(k, v)| (k, *v)).collect(), |n, s| unsafe { let (k, v) = map.entry_seq(n, s); (*k, *v) });
         check(nset.iter().flatten().collect(), |n, s| unsafe { nset.key_seq(n, s) });
-        check(nmap.iter().filter_map(|(k, v)| k.map(|k| (k, *v))).collect(), |n, s| unsafe {
-            let (k, v) = nmap.entry_seq(n, s);
-            (*k, *v)
-        });
+        check(nmap.iter().filter_map(|(k, v)| k.map(|k| (k, *v))).collect(), |n, s| unsafe { let (k, v) = nmap.entry_seq(n, s); (*k, *v) });
         assert_eq!(nmap.null_value(), None);
     }
 }
@@ -1936,13 +1920,7 @@ fn bit_list_bytes_match_model() {
         let mut a = list_of(&m[..rng.below(m.len() as u64 + 1) as usize]);
         let mut model: Vec<bool> = model_of(&a);
         for _ in 0..3 {
-            let src: Vec<u8> = (0..rng.below(40))
-                .map(|_| match rng.below(4) {
-                    0 => 0xFF,
-                    1 => 0,
-                    _ => rng.next() as u8,
-                })
-                .collect();
+            let src: Vec<u8> = (0..rng.below(40)).map(|_| match rng.below(4) { 0 => 0xFF, 1 => 0, _ => rng.next() as u8 }).collect();
             a.push_bytes(&src);
             for b in &src {
                 model.extend((0..8).map(|k| b >> k & 1 == 1));
@@ -1986,13 +1964,7 @@ fn bit_list_set_bools_match_model() {
         let run = m.iter().take_while(|b| **b).count();
         let index = if rng.below(3) == 0 { run } else { rng.below(m.len() as u64 + 100) as usize };
         let n = if rng.below(6) == 0 { 2040 + rng.below(3000) } else { rng.below(200) } as usize;
-        let src: Vec<bool> = (0..n)
-            .map(|_| match rng.below(5) {
-                0 => false,
-                1 | 2 => true,
-                _ => rng.below(2) == 1,
-            })
-            .collect();
+        let src: Vec<bool> = (0..n).map(|_| match rng.below(5) { 0 => false, 1 | 2 => true, _ => rng.below(2) == 1 }).collect();
         l.set_bools(index, &src);
         if model.len() < index + n {
             model.resize(index + n, false);
@@ -2067,11 +2039,7 @@ fn bits_list_bulk(plain: bool) {
         let mut got = vec![0xA5u8; rng.below((len - a) as u64 + 1) as usize];
         l.get_slice(a, &mut got);
         assert_eq!(got, model[a..a + got.len()], "get_slice {a}, {bits} bits");
-        assert_eq!(
-            l.iter().fold(0u64, |s, v| s.wrapping_mul(31).wrapping_add(v as u64)),
-            model.iter().fold(0u64, |s, &v| s.wrapping_mul(31).wrapping_add(v as u64)),
-            "fold, {bits} bits"
-        );
+        assert_eq!(l.iter().fold(0u64, |s, v| s.wrapping_mul(31).wrapping_add(v as u64)), model.iter().fold(0u64, |s, &v| s.wrapping_mul(31).wrapping_add(v as u64)), "fold, {bits} bits");
         // extend, then the zeros past the end hold: equality with a list built item by item
         let more: Vec<u8> = (0..rng.below(600)).map(|_| rng.next() as u8 & m).collect();
         l.extend(more.iter().copied());
@@ -2095,27 +2063,17 @@ fn nullable_object_list_ops_match_model() {
             let v = if rng.below(4) == 0 { None } else { Some(format!("{}", rng.next() % 1000)) };
             let len = m.len();
             match rng.below(10) {
-                0 | 1 | 2 => {
-                    l.push(v.clone());
-                    m.push(v);
-                }
+                0 | 1 | 2 => { l.push(v.clone()); m.push(v); }
                 3 | 4 => {
                     let i = rng.below(len as u64 + 70) as usize;
                     let old = l.set(i, v.clone());
-                    if i >= m.len() {
-                        m.resize(i + 1, None);
-                    }
+                    if i >= m.len() { m.resize(i + 1, None); }
                     assert_eq!(old, std::mem::replace(&mut m[i], v), "round {round} step {step}: set {i} old");
                 }
                 5 => {
                     let i = rng.below(len as u64 + 70) as usize;
                     l.insert(i, v.clone());
-                    if i >= m.len() {
-                        m.resize(i + 1, None);
-                        m[i] = v;
-                    } else {
-                        m.insert(i, v);
-                    }
+                    if i >= m.len() { m.resize(i + 1, None); m[i] = v; } else { m.insert(i, v); }
                 }
                 6 if len > 0 => {
                     let i = rng.below(len as u64) as usize;
@@ -2131,10 +2089,7 @@ fn nullable_object_list_ops_match_model() {
                     l.swap(i, j);
                     m.swap(i, j);
                 }
-                9 if rng.below(10) == 0 => {
-                    l.clear();
-                    m.clear();
-                }
+                9 if rng.below(10) == 0 => { l.clear(); m.clear(); }
                 _ => l.set_flat_threshold([0usize, 3, 50, usize::MAX][rng.below(4) as usize]),
             }
             l.assert_ranks();
@@ -2147,10 +2102,7 @@ fn nullable_object_list_ops_match_model() {
             let skip = rng.below(m.len() as u64 + 1) as usize;
             let mut it = l.iter();
             let mut got: Vec<Option<&String>> = (0..skip).map(|_| it.next().unwrap()).collect();
-            got = it.fold(got, |mut g, x| {
-                g.push(x);
-                g
-            });
+            got = it.fold(got, |mut g, x| { g.push(x); g });
             assert_eq!(got, m.iter().map(Option::as_ref).collect::<Vec<_>>(), "round {round} step {step}: fold after {skip}");
         }
     }
@@ -2168,27 +2120,17 @@ fn nullable_primitive_list_ops_match_model() {
             let v = if rng.below(4) == 0 { None } else { Some(rng.next() as u32) };
             let len = m.len();
             match rng.below(9) {
-                0 | 1 | 2 => {
-                    l.push(v);
-                    m.push(v);
-                }
+                0 | 1 | 2 => { l.push(v); m.push(v); }
                 3 | 4 => {
                     let i = rng.below(len as u64 + 70) as usize;
                     let old = l.set(i, v);
-                    if i >= m.len() {
-                        m.resize(i + 1, None);
-                    }
+                    if i >= m.len() { m.resize(i + 1, None); }
                     assert_eq!(old, std::mem::replace(&mut m[i], v), "round {round} step {step}: set {i} old");
                 }
                 5 => {
                     let i = rng.below(len as u64 + 70) as usize;
                     l.insert(i, v);
-                    if i >= m.len() {
-                        m.resize(i + 1, None);
-                        m[i] = v;
-                    } else {
-                        m.insert(i, v);
-                    }
+                    if i >= m.len() { m.resize(i + 1, None); m[i] = v; } else { m.insert(i, v); }
                 }
                 6 if len > 0 => {
                     let i = rng.below(len as u64) as usize;
@@ -2219,10 +2161,7 @@ fn nullable_primitive_list_ops_match_model() {
             let skip = rng.below(m.len() as u64 + 1) as usize;
             let mut it = l.iter();
             let mut got: Vec<Option<u32>> = (0..skip).map(|_| it.next().unwrap()).collect();
-            got = it.fold(got, |mut g, x| {
-                g.push(x);
-                g
-            });
+            got = it.fold(got, |mut g, x| { g.push(x); g });
             assert_eq!(got, m, "round {round} step {step}: fold after {skip}");
         }
     }
@@ -2250,30 +2189,9 @@ fn clear_keys_to_gives_each_key_and_keeps_the_table() {
             n.insert_null_key(token.clone());
             s.insert_null();
             for (mut given, is) in [
-                (
-                    {
-                        let mut g = Vec::new();
-                        m.clear_keys_to(|k| g.push(k));
-                        g
-                    },
-                    m.is_empty() && m.len() == 0,
-                ),
-                (
-                    {
-                        let mut g = Vec::new();
-                        n.clear_keys_to(|k| g.push(k));
-                        g
-                    },
-                    n.is_empty() && n.len() == 0,
-                ),
-                (
-                    {
-                        let mut g = Vec::new();
-                        s.clear_keys_to(|k| g.push(k));
-                        g
-                    },
-                    s.is_empty() && s.len() == 0,
-                ),
+                ({ let mut g = Vec::new(); m.clear_keys_to(|k| g.push(k)); g }, m.is_empty() && m.len() == 0),
+                ({ let mut g = Vec::new(); n.clear_keys_to(|k| g.push(k)); g }, n.is_empty() && n.len() == 0),
+                ({ let mut g = Vec::new(); s.clear_keys_to(|k| g.push(k)); g }, s.is_empty() && s.len() == 0),
             ] {
                 assert!(is);
                 given.sort();

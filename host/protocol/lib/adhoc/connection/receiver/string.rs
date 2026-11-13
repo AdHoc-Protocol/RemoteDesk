@@ -127,10 +127,7 @@ impl<'a> Rx<'a> {
 
     pub(super) fn check_length_and_getting_string(&mut self) -> Result<bool, RxError> {
         if (self.st.u4 as u64) < self.st.u8 {
-            return Err(RxError::Overflow {
-                got: self.st.u8,
-                max: self.st.u4 as u64,
-            });
+            return Err(RxError::Overflow { got: self.st.u8, max: self.st.u4 as u64 });
         }
         self.st.u8_ = self.st.u8; // the length
         self.st.u4 = 0; // characters received

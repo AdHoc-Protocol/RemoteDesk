@@ -4,15 +4,15 @@
 //! The ends of a tunnel: bursts out on a carrier, frames in to the virtual connection.
 
 use super::*;
-use crate::lib::adhoc::connection::keyring::Keyring;
 use crate::lib::adhoc::connection::receiver::tunnel::In;
-use crate::lib::adhoc::connection::receiver::Receiver;
-use crate::lib::adhoc::connection::receiver::{RxHost, RxState};
 use crate::lib::adhoc::connection::transmitter::tunnel::Out;
+use crate::lib::adhoc::connection::receiver::{RxHost, RxState};
+use crate::lib::adhoc::connection::receiver::Receiver;
 use crate::lib::adhoc::BytesDst;
-use crate::lib::chain::Chain;
 use std::collections::VecDeque;
 use std::sync::Mutex;
+use crate::lib::adhoc::connection::keyring::Keyring;
+use crate::lib::chain::Chain;
 
 const ID: u32 = 9;
 
@@ -76,15 +76,7 @@ fn carrier(tid: u32) -> (C, Arc<Mutex<Vec<Event>>>) {
     let events = Arc::new(Mutex::new(vec![]));
     let e = events.clone();
     end.set_events(move |ev| e.lock().unwrap().push(ev));
-    (
-        C {
-            out: Out::default(),
-            v: V::default(),
-            end,
-            queued,
-        },
-        events,
-    )
+    (C { out: Out::default(), v: V::default(), end, queued }, events)
 }
 
 /// The wire the carrier writes, `window` bytes a read.
@@ -145,11 +137,7 @@ fn bursts_carry_the_packs_in_order() {
         let f = frames(&wire);
         // a burst a round, cut into more where it carried its share: only the last of a round is
         // shorter than that
-        assert!(
-            4 <= f.len() && f.iter().filter(|x| x.1.len() < MAX).count() <= 4,
-            "window {window}: {:?}",
-            f.iter().map(|x| x.1.len()).collect::<Vec<_>>()
-        );
+        assert!(4 <= f.len() && f.iter().filter(|x| x.1.len() < MAX).count() <= 4, "window {window}: {:?}", f.iter().map(|x| x.1.len()).collect::<Vec<_>>());
         assert!(f.iter().all(|(tid, _, abort)| *tid == 0x1234 && !abort));
         let body: Vec<u8> = f.into_iter().flat_map(|x| x.1).collect();
         assert!(body == sent, "window {window}");
@@ -254,10 +242,7 @@ impl RxHost for &mut R {
                 routes.push((tid, make));
                 targets.iter().find(|t| t.0 == tid).map(|t| t.1.clone())
             },
-            |t, b| {
-                t.lock().unwrap().extend_from_slice(b);
-                b.len()
-            },
+            |t, b| { t.lock().unwrap().extend_from_slice(b); b.len() },
             |_, tid| ended.push(tid),
         )
     }
@@ -295,13 +280,7 @@ fn frames_in_go_to_their_tunnels() {
     for step in [1usize, 7, 4096, 1 << 20] {
         a.lock().unwrap().clear();
         b.lock().unwrap().clear();
-        let mut r = R {
-            tin: In::default(),
-            targets: vec![(10, a.clone()), (20, b.clone())],
-            ended: vec![],
-            abandoned: 0,
-            routes: vec![],
-        };
+        let mut r = R { tin: In::default(), targets: vec![(10, a.clone()), (20, b.clone())], ended: vec![], abandoned: 0, routes: vec![] };
         {
             let mut sink = Receiver::new(&mut r, 1);
             for w in wire.chunks(step) {
@@ -332,13 +311,7 @@ fn a_frame_abandoned_half_way_is_told_and_the_next_one_routes() {
     for cut in 1..=half.len() {
         let a = Arc::new(Mutex::new(vec![]));
         let b = Arc::new(Mutex::new(vec![]));
-        let mut r = R {
-            tin: In::default(),
-            targets: vec![(10, a.clone()), (20, b.clone())],
-            ended: vec![],
-            abandoned: 0,
-            routes: vec![],
-        };
+        let mut r = R { tin: In::default(), targets: vec![(10, a.clone()), (20, b.clone())], ended: vec![], abandoned: 0, routes: vec![] };
         {
             let mut sink = Receiver::new(&mut r, 1);
             assert!(sink.on_bytes(&half[..cut]));
@@ -373,13 +346,7 @@ fn an_abort_only_frame_makes_no_tunnel() {
     for step in [1usize, 2, 3, 1000] {
         let a = Arc::new(Mutex::new(vec![]));
         let b = Arc::new(Mutex::new(vec![]));
-        let mut r = R {
-            tin: In::default(),
-            targets: vec![(10, a.clone()), (20, b.clone())],
-            ended: vec![],
-            abandoned: 0,
-            routes: vec![],
-        };
+        let mut r = R { tin: In::default(), targets: vec![(10, a.clone()), (20, b.clone())], ended: vec![], abandoned: 0, routes: vec![] };
         {
             let mut sink = Receiver::new(&mut r, 1);
             for w in wire.chunks(step) {
@@ -437,22 +404,9 @@ fn xor_rx(_: &'static [crate::lib::adhoc::chain::Arg]) -> Box<dyn crate::lib::ad
     Box::new(Xor::default())
 }
 
-const XOR: Stage = Stage::Custom(crate::lib::adhoc::chain::CustomStage {
-    name: "Xor",
-    args: &[],
-    tx: xor_tx,
-    rx: xor_rx,
-});
+const XOR: Stage = Stage::Custom(crate::lib::adhoc::chain::CustomStage { name: "Xor", args: &[], tx: xor_tx, rx: xor_rx });
 
-const SPEC: &[Stage] = &[
-    XOR,
-    Stage::Stages(crate::lib::stages::Run {
-        kind1: crate::lib::stages::ZSTD,
-        level1: 3,
-        kind2: 0,
-        level2: 0,
-    }),
-];
+const SPEC: &[Stage] = &[XOR, Stage::Stages(crate::lib::stages::Run { kind1: crate::lib::stages::ZSTD, level1: 3, kind2: 0, level2: 0 })];
 
 /// The carrier's transmitter of a tunnel with a chain.
 struct CC(C);
@@ -481,18 +435,7 @@ impl RxHost for &mut RC {
     }
     fn put_bytes(&mut self, src: &mut Rx<'_>) -> bool {
         let t = self.target.clone();
-        self.tin.put_bytes_chain(
-            src,
-            2,
-            SPEC,
-            move |_, _| Some(t),
-            |_| crate::lib::stages::Keys::none(),
-            |t, b| {
-                t.lock().unwrap().extend_from_slice(b);
-                b.len()
-            },
-            |_, _| {},
-        )
+        self.tin.put_bytes_chain(src, 2, SPEC, move |_, _| Some(t), |_| crate::lib::stages::Keys::none(), |t, b| { t.lock().unwrap().extend_from_slice(b); b.len() }, |_, _| {})
     }
     fn on_received(&mut self, _st: &mut RxState) {}
 }
@@ -522,10 +465,7 @@ fn chained_bursts_round_trip() {
             }
         }
         for step in [1usize, 7, 4096, 1 << 20] {
-            let mut r = RC {
-                tin: In::default(),
-                target: Arc::new(Mutex::new(vec![])),
-            };
+            let mut r = RC { tin: In::default(), target: Arc::new(Mutex::new(vec![])) };
             {
                 let mut sink = Receiver::new(&mut r, 1);
                 for w in wire.chunks(step) {
@@ -640,12 +580,7 @@ fn a_chained_tunnel_keeps_what_its_connection_refused() {
             drain(&mut c, &mut tx, 4096, &mut wire);
         }
         for step in [1usize, 13, 4096, 1 << 20] {
-            let mut r = RS {
-                tin: In::default(),
-                target: Arc::new(Mutex::new(vec![])),
-                spec,
-                take: 7,
-            };
+            let mut r = RS { tin: In::default(), target: Arc::new(Mutex::new(vec![])), spec, take: 7 };
             {
                 let mut sink = Receiver::new(&mut r, 1);
                 for w in wire.chunks(step) {
@@ -748,18 +683,7 @@ fn a_burst_waiting_for_its_producer_is_woken_with_it() {
         let w: Arc<dyn External> = wakes.clone();
         c.end.set_carrier(Arc::downgrade(&w));
         let body: Vec<u8> = (0..1000u32).map(|i| (i * 13) as u8).collect();
-        let mut s = SlowCarrier {
-            out: Out::default(),
-            v: Slow {
-                cur: body.clone(),
-                pos: 0,
-                avail: 300,
-                queued: true,
-            },
-            end: c.end,
-            queued: c.queued,
-            chain,
-        };
+        let mut s = SlowCarrier { out: Out::default(), v: Slow { cur: body.clone(), pos: 0, avail: 300, queued: true }, end: c.end, queued: c.queued, chain };
         s.end.wake_transmit();
         let mut tx = TxState::new();
         let mut wire = vec![];
@@ -783,12 +707,7 @@ fn a_burst_waiting_for_its_producer_is_woken_with_it() {
         let got: Vec<u8> = match chain {
             None => frames(&wire).into_iter().flat_map(|x| x.1).collect(),
             Some(spec) => {
-                let mut r = RS {
-                    tin: In::default(),
-                    target: Arc::new(Mutex::new(vec![])),
-                    spec,
-                    take: usize::MAX,
-                };
+                let mut r = RS { tin: In::default(), target: Arc::new(Mutex::new(vec![])), spec, take: usize::MAX };
                 assert!(Receiver::new(&mut r, 1).on_bytes(&wire));
                 let got = r.target.lock().unwrap().clone();
                 got
@@ -829,18 +748,7 @@ impl RxHost for &mut RK {
     }
     fn put_bytes(&mut self, src: &mut Rx<'_>) -> bool {
         let (t, k) = (self.target.clone(), self.keys.clone());
-        self.tin.put_bytes_chain(
-            src,
-            2,
-            self.spec,
-            move |_, _| Some(t),
-            move |_| k,
-            |t, b| {
-                t.lock().unwrap().extend_from_slice(b);
-                b.len()
-            },
-            |_, _| {},
-        )
+        self.tin.put_bytes_chain(src, 2, self.spec, move |_, _| Some(t), move |_| k, |t, b| { t.lock().unwrap().extend_from_slice(b); b.len() }, |_, _| {})
     }
     fn on_received(&mut self, _st: &mut RxState) {}
 }
@@ -857,18 +765,8 @@ fn ring(keys: &[crate::lib::adhoc::connection::keyring::Key]) -> Arc<Keyring> {
     r
 }
 
-const ZSTD_CHACHA: &[Stage] = &[Stage::Stages(crate::lib::stages::Run {
-    kind1: crate::lib::stages::ZSTD,
-    level1: 3,
-    kind2: crate::lib::stages::CHACHA20_PACK,
-    level2: 0,
-})];
-const CHACHA: &[Stage] = &[Stage::Stages(crate::lib::stages::Run {
-    kind1: crate::lib::stages::CHACHA20_PACK,
-    level1: 0,
-    kind2: 0,
-    level2: 0,
-})];
+const ZSTD_CHACHA: &[Stage] = &[Stage::Stages(crate::lib::stages::Run { kind1: crate::lib::stages::ZSTD, level1: 3, kind2: crate::lib::stages::CHACHA20_PACK, level2: 0 })];
+const CHACHA: &[Stage] = &[Stage::Stages(crate::lib::stages::Run { kind1: crate::lib::stages::CHACHA20_PACK, level1: 0, kind2: 0, level2: 0 })];
 
 /// The bursts of a tunnel through `spec` keyed by `tx_keys`, on a carrier with keys of its own: the wire, what was sent.
 fn keyed_wire(spec: &'static [Stage], tx_keys: crate::lib::stages::Keys) -> (Vec<u8>, Vec<u8>) {
@@ -891,12 +789,7 @@ fn keyed_wire(spec: &'static [Stage], tx_keys: crate::lib::stages::Keys) -> (Vec
 
 /// What a carrier with the carrier's key gets of `wire` through `spec` keyed by `rx_keys`.
 fn keyed_take(spec: &'static [Stage], wire: &[u8], rx_keys: crate::lib::stages::Keys, step: usize) -> Vec<u8> {
-    let mut r = RK {
-        tin: In::default(),
-        target: Arc::new(Mutex::new(vec![])),
-        spec,
-        keys: rx_keys,
-    };
+    let mut r = RK { tin: In::default(), target: Arc::new(Mutex::new(vec![])), spec, keys: rx_keys };
     {
         let mut sink = Receiver::new(&mut r, 1).keys(ring(&[key(1, 0x11)]));
         for w in wire.chunks(step) {
@@ -919,10 +812,7 @@ fn a_chained_tunnel_is_keyed_by_the_tunnel_not_its_carrier() {
         for step in [1usize, 13, 4096, 1 << 20] {
             assert!(keyed_take(spec, &wire, tunnel(), step) == sent, "{} stages, step {step}: the far end with the tunnel's key", spec.len());
             // the key of the carrier, as a relay has it: no burst is read
-            assert!(
-                keyed_take(spec, &wire, crate::lib::stages::Keys::new(ring(&[key(1, 0x11)]), None), step).is_empty(),
-                "step {step}: the carrier's key"
-            );
+            assert!(keyed_take(spec, &wire, crate::lib::stages::Keys::new(ring(&[key(1, 0x11)]), None), step).is_empty(), "step {step}: the carrier's key");
             assert!(keyed_take(spec, &wire, crate::lib::stages::Keys::none(), step).is_empty(), "step {step}: no key");
         }
         // a key both ends know in place of the tunnel's own ( the region of the keys of the chain ): another wire, read alike
@@ -933,11 +823,7 @@ fn a_chained_tunnel_is_keyed_by_the_tunnel_not_its_carrier() {
         assert!(keyed_take(spec, &other, tunnel(), 4096).is_empty());
         // no key of the tunnel: the burst is refused - the carrier's key is not taken
         let refused = std::panic::catch_unwind(|| keyed_wire(spec, crate::lib::stages::Keys::none())).expect_err("refused");
-        let why = refused
-            .downcast_ref::<String>()
-            .cloned()
-            .or_else(|| refused.downcast_ref::<&str>().map(|s| s.to_string()))
-            .unwrap_or_default();
+        let why = refused.downcast_ref::<String>().cloned().or_else(|| refused.downcast_ref::<&str>().map(|s| s.to_string())).unwrap_or_default();
         assert!(why.contains("Tunnel::keys") && why.contains("The keys of the chain of the tunnel"), "{why}");
     }
 }
@@ -982,13 +868,7 @@ fn a_busy_tunnel_lets_the_other_through_after_its_share() {
                 true
             });
         }
-        let mut c = Two {
-            outs: [Out::default(), Out::default()],
-            vs: [V::default(), V::default()],
-            ends: ends.clone(),
-            queue,
-            cur: 0,
-        };
+        let mut c = Two { outs: [Out::default(), Out::default()], vs: [V::default(), V::default()], ends: ends.clone(), queue, cur: 0 };
         let big: Vec<Vec<u8>> = (0..20).map(|i| (0..20_000u32).map(|j| (j * 13 + i) as u8).collect()).collect();
         for p in &big {
             c.vs[0].q.push_back(p.clone());
@@ -1014,8 +894,7 @@ fn a_busy_tunnel_lets_the_other_through_after_its_share() {
 /// the other tunnel waits a share, not a share and one more pack.
 #[test]
 fn a_burst_ends_at_the_pack_its_share_ended() {
-    for window in [70_000usize] {
-        // a chunk of MAX: the share ends with it, at the end of the second pack
+    for window in [70_000usize] { // a chunk of MAX: the share ends with it, at the end of the second pack
         let queue: Arc<Mutex<VecDeque<usize>>> = Default::default();
         let ends = [EndPoint::new(1), EndPoint::new(2)];
         for (i, e) in ends.iter().enumerate() {
@@ -1025,13 +904,7 @@ fn a_burst_ends_at_the_pack_its_share_ended() {
                 true
             });
         }
-        let mut c = Two {
-            outs: [Out::default(), Out::default()],
-            vs: [V::default(), V::default()],
-            ends: ends.clone(),
-            queue,
-            cur: 0,
-        };
+        let mut c = Two { outs: [Out::default(), Out::default()], vs: [V::default(), V::default()], ends: ends.clone(), queue, cur: 0 };
         let half: Vec<Vec<u8>> = (0..6).map(|i| vec![i as u8; MAX / 2]).collect(); // two of them are the share exactly
         for p in &half {
             c.vs[0].q.push_back(p.clone());
@@ -1182,14 +1055,7 @@ fn a_secured_tunnel_carries_records_after_its_handshake() {
         relay(&mut a, &mut txa, &b, &mut gb);
         relay(&mut b, &mut txb, &a, &mut ga);
     }
-    assert!(
-        gb.0 == to_b.concat() && ga.0 == to_a.concat(),
-        "{} of {}, {} of {}",
-        gb.0.len(),
-        to_b.concat().len(),
-        ga.0.len(),
-        to_a.concat().len()
-    );
+    assert!(gb.0 == to_b.concat() && ga.0 == to_a.concat(), "{} of {}, {} of {}", gb.0.len(), to_b.concat().len(), ga.0.len(), to_a.concat().len());
     assert_eq!((a.end.peer_key(), b.end.peer_key()), (Some(pb), Some(pa)));
 }
 
@@ -1239,28 +1105,10 @@ impl TxHost for CN {
 fn noise_end(tid: u32, packs: Vec<Vec<u8>>, run: Option<crate::lib::stages::Run>) -> (CN, Option<crate::lib::stages::Unstaged>) {
     let (c, _) = carrier(tid);
     let p: Box<dyn crate::lib::adhoc::BytesSrc> = Box::new(Packs(packs.into(), 0));
-    let Some(run) = run else {
-        return (
-            CN {
-                out: c.out,
-                end: c.end,
-                queued: c.queued,
-                src: p,
-            },
-            None,
-        );
-    };
+    let Some(run) = run else { return (CN { out: c.out, end: c.end, queued: c.queued, src: p }, None) };
     let src: Box<dyn crate::lib::adhoc::BytesSrc> = Box::new(crate::lib::stages::Staged::new(move || Box::new(crate::lib::stages::transmitter::Stage::new(p, run, None))));
     let un = crate::lib::stages::Unstaged::new(move |x| Box::new(crate::lib::stages::receiver::Stage::new(x, run, None)));
-    (
-        CN {
-            out: c.out,
-            end: c.end,
-            queued: c.queued,
-            src,
-        },
-        Some(un),
-    )
+    (CN { out: c.out, end: c.end, queued: c.queued, src }, Some(un))
 }
 
 /// What `from` sends now, through a relay that changes nothing, into `to`: its records opened, then through `stages` when there are
@@ -1285,10 +1133,7 @@ fn relay_noise(from: &mut CN, tx: &mut TxState, to: &CN, stages: &mut Option<cra
 /// (what A got, what B got, what A and B sent, the bytes on the wire).
 fn noise_tunnel(run: Option<crate::lib::stages::Run>) -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, usize) {
     let ((sa, pa), (sb, pb)) = (crate::lib::x25519::keypair(), crate::lib::x25519::keypair());
-    let (to_b, to_a): (Vec<Vec<u8>>, Vec<Vec<u8>>) = (
-        packs(1, 4).into_iter().map(|p| p.iter().map(|b| b % 7).collect()).collect(),
-        packs(2, 3).into_iter().map(|p| p.iter().map(|b| b % 5).collect()).collect(),
-    );
+    let (to_b, to_a): (Vec<Vec<u8>>, Vec<Vec<u8>>) = (packs(1, 4).into_iter().map(|p| p.iter().map(|b| b % 7).collect()).collect(), packs(2, 3).into_iter().map(|p| p.iter().map(|b| b % 5).collect()).collect());
     let (mut a, mut sta) = noise_end(1, to_b.clone(), run);
     let (mut b, mut stb) = noise_end(2, to_a.clone(), run);
     a.end.wake_transmit();
@@ -1311,12 +1156,7 @@ fn noise_tunnel(run: Option<crate::lib::stages::Run>) -> (Vec<u8>, Vec<u8>, Vec<
 /// plaintext: the wire is smaller than with no chain. Both ways, across bursts.
 #[test]
 fn a_tunnel_under_noise_runs_its_chain_over_it() {
-    let zstd = crate::lib::stages::Run {
-        kind1: crate::lib::stages::ZSTD,
-        level1: 3,
-        kind2: 0,
-        level2: 0,
-    };
+    let zstd = crate::lib::stages::Run { kind1: crate::lib::stages::ZSTD, level1: 3, kind2: 0, level2: 0 };
     let mut sizes = vec![];
     for run in [Some(zstd), None] {
         let (ga, gb, to_b, to_a, wire) = noise_tunnel(run);
@@ -1324,12 +1164,7 @@ fn a_tunnel_under_noise_runs_its_chain_over_it() {
         sizes.push(wire);
     }
     println!("the wire of a tunnel under Noise: {} bytes with [Zstd] over it, {} with no chain", sizes[0], sizes[1]);
-    assert!(
-        sizes[0] * 2 < sizes[1],
-        "Zstd over Noise compresses the plaintext: {} bytes on the wire, {} with no chain",
-        sizes[0],
-        sizes[1]
-    );
+    assert!(sizes[0] * 2 < sizes[1], "Zstd over Noise compresses the plaintext: {} bytes on the wire, {} with no chain", sizes[0], sizes[1]);
 }
 
 /// A record a relay changed: the end that gets it is told, once, and closes - its carrier goes on -,

@@ -129,33 +129,18 @@ impl BitList {
     /// Does not allocate.
     #[inline]
     pub const fn new() -> Self {
-        Self {
-            len: 0,
-            toc: 0,
-            words: Vec::new(),
-            tail: 0,
-        }
+        Self { len: 0, toc: 0, words: Vec::new(), tail: 0 }
     }
 
     /// An empty list with room for `bits` bits.
     pub fn with_capacity(bits: usize) -> Self {
-        Self {
-            len: 0,
-            toc: 0,
-            words: Vec::with_capacity(bits / 64),
-            tail: 0,
-        }
+        Self { len: 0, toc: 0, words: Vec::with_capacity(bits / 64), tail: 0 }
     }
 
     /// `len` copies of `value`: no allocation either way.
     pub fn filled(value: bool, len: usize) -> Self {
         if value {
-            Self {
-                len,
-                toc: len,
-                words: Vec::new(),
-                tail: mask(len & 63),
-            }
+            Self { len, toc: len, words: Vec::new(), tail: mask(len & 63) }
         } else {
             Self { len, ..Self::new() }
         }
@@ -498,11 +483,7 @@ impl BitList {
         }
         let base = self.base();
         let lk = (last >> 6) - base;
-        let (mut k, mut w) = if lk <= self.words.len() {
-            (lk, self.at(lk) & mask((last & 63) + 1))
-        } else {
-            (self.words.len(), self.tail)
-        };
+        let (mut k, mut w) = if lk <= self.words.len() { (lk, self.at(lk) & mask((last & 63) + 1)) } else { (self.words.len(), self.tail) };
         loop {
             if w != 0 {
                 return Some(((base + k) << 6) + 63 - w.leading_zeros() as usize);
@@ -587,11 +568,7 @@ impl BitList {
         let k = (bit >> 6) - base;
         let full = k.min(self.words.len());
         let sum = (base << 6) + self.words[..full].iter().map(|w| w.count_ones() as usize).sum::<usize>();
-        sum + if k <= self.words.len() {
-            (self.at(k) & mask((bit & 63) + 1)).count_ones()
-        } else {
-            self.tail.count_ones()
-        } as usize
+        sum + if k <= self.words.len() { (self.at(k) & mask((bit & 63) + 1)).count_ones() } else { self.tail.count_ones() } as usize
     }
 
     /// The index of the `n`-th one, from 0.
@@ -691,26 +668,14 @@ impl BitList {
     /// The bits in order.
     #[inline]
     pub fn iter(&self) -> Iter<'_> {
-        Iter {
-            list: self,
-            a: 0,
-            cur: 0,
-            left: 0,
-            rest: self.len,
-        }
+        Iter { list: self, a: 0, cur: 0, left: 0, rest: self.len }
     }
 
     /// The indices of the ones, ascending.
     #[inline]
     pub fn ones(&self) -> Ones<'_> {
         let base = self.base();
-        Ones {
-            list: self,
-            pos: 0,
-            a: base,
-            cur: self.word(base) & !mask(self.toc & 63),
-            remaining: self.count_ones(),
-        }
+        Ones { list: self, pos: 0, a: base, cur: self.word(base) & !mask(self.toc & 63), remaining: self.count_ones() }
     }
 
     // writing
@@ -959,11 +924,7 @@ impl BitList {
                     self.tail = x & m | (x & !m) << 1 | (value as u64) << (at & 63);
                 }
                 // among the zeros past `tail`
-                core::cmp::Ordering::Less => {
-                    return if value {
-                        self.set(at, true)
-                    }
-                }
+                core::cmp::Ordering::Less => return if value { self.set(at, true) },
             }
             if carry != 0 {
                 self.words.push(self.tail);
@@ -1230,13 +1191,7 @@ fn pack_bools(src: &[bool], dst: &mut [u8]) {
     debug_assert_eq!(src.len(), dst.len() * 8);
     // SAFETY: the features are checked; the lengths are the caller's
     #[cfg(target_arch = "x86_64")]
-    let done = unsafe {
-        if std::is_x86_feature_detected!("avx2") {
-            pack_avx2(src, dst)
-        } else {
-            pack_sse2(src, dst)
-        }
-    };
+    let done = unsafe { if std::is_x86_feature_detected!("avx2") { pack_avx2(src, dst) } else { pack_sse2(src, dst) } };
     #[cfg(not(target_arch = "x86_64"))]
     let done = 0;
     for (d, e) in dst[done..].iter_mut().zip(src[done * 8..].chunks_exact(8)) {

@@ -257,8 +257,8 @@ impl BytesSrc for SwapSource {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lib::adhoc::connection::receiver::Receiver;
     use crate::lib::adhoc::connection::receiver::{Rx, RxHost, RxState};
+    use crate::lib::adhoc::connection::receiver::Receiver;
     use std::sync::Mutex;
 
     /// Packs of a fixed size: `[id][3 bytes]`. The pack with id 9 moves the session.
@@ -317,32 +317,11 @@ mod tests {
             let r = reseat.clone();
             let g = got.clone();
             let mover = move || {
-                let old = crate::lib::adhoc::connection::receiver::Receiver::new(
-                    Host {
-                        name: b'B',
-                        got: g.clone(),
-                        on_move: None,
-                        id: 0,
-                        body: [0; 3],
-                        at: 0,
-                    },
-                    1,
-                )
-                .stop(r.stop());
+                let old = crate::lib::adhoc::connection::receiver::Receiver::new(Host { name: b'B', got: g.clone(), on_move: None, id: 0, body: [0; 3], at: 0 }, 1).stop(r.stop());
                 r.move_here(Box::new(old), Box::new(Src(b'b', true)));
             };
-            let new = crate::lib::adhoc::connection::receiver::Receiver::new(
-                Host {
-                    name: b'A',
-                    got: got.clone(),
-                    on_move: Some(Box::new(mover)),
-                    id: 0,
-                    body: [0; 3],
-                    at: 0,
-                },
-                1,
-            )
-            .stop(reseat.stop());
+            let new = crate::lib::adhoc::connection::receiver::Receiver::new(Host { name: b'A', got: got.clone(), on_move: Some(Box::new(mover)), id: 0, body: [0; 3], at: 0 }, 1)
+                .stop(reseat.stop());
             let mut sink = SwapSink::new(Box::new(new), reseat.clone());
             let wire: Vec<u8> = [[1u8, 1, 1, 1], [9, 9, 9, 9], [2, 2, 2, 2], [3, 3, 3, 3]].concat();
             for w in wire.chunks(step) {
@@ -357,20 +336,7 @@ mod tests {
     fn the_source_takes_over_at_a_boundary() {
         let reseat = Arc::new(Reseat::default());
         let mut source = SwapSource::new(Box::new(Src(b'a', false)), reseat.clone());
-        reseat.move_here(
-            Box::new(crate::lib::adhoc::connection::receiver::Receiver::new(
-                Host {
-                    name: 0,
-                    got: Default::default(),
-                    on_move: None,
-                    id: 0,
-                    body: [0; 3],
-                    at: 0,
-                },
-                1,
-            )),
-            Box::new(Src(b'b', true)),
-        );
+        reseat.move_here(Box::new(crate::lib::adhoc::connection::receiver::Receiver::new(Host { name: 0, got: Default::default(), on_move: None, id: 0, body: [0; 3], at: 0 }, 1)), Box::new(Src(b'b', true)));
         let mut out = vec![];
         let mut one = |source: &mut SwapSource, out: &mut Vec<u8>| {
             let mut b = [0u8; 1];

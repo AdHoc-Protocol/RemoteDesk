@@ -11,7 +11,7 @@
 //! before serializing payload directly into the transmit buffer.
 
 #![allow(dangerous_implicit_autorefs)] // the slots and the state of a loop are reached through raw pointers on purpose: a handler up the
-                                       // stack may hold them
+// stack may hold them
 
 use std::sync::atomic::Ordering;
 
@@ -31,10 +31,7 @@ pub(crate) fn fits(engine: &super::super::engine::Engine, name: &str) -> std::io
     if engine.buffer_size < MIN_BUFFER {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
-            format!(
-                "A WebSocket needs buffers of {MIN_BUFFER} bytes at least: its upgrade request and its 101 go out whole, each in one buffer. The buffers of the engine of {name} are {} bytes.",
-                engine.buffer_size
-            ),
+            format!("A WebSocket needs buffers of {MIN_BUFFER} bytes at least: its upgrade request and its 101 go out whole, each in one buffer. The buffers of the engine of {name} are {} bytes.", engine.buffer_size),
         ));
     }
     Ok(())
@@ -77,11 +74,7 @@ pub struct Control {
 
 impl Control {
     pub fn new(op: u8, payload: &[u8]) -> Self {
-        let mut c = Control {
-            op,
-            len: payload.len().min(125) as u8,
-            data: [0; 125],
-        };
+        let mut c = Control { op, len: payload.len().min(125) as u8, data: [0; 125] };
         c.data[..c.len as usize].copy_from_slice(&payload[..c.len as usize]);
         c
     }
@@ -90,11 +83,7 @@ impl Control {
     /// the reason of a CLOSE is UTF-8, a cut sequence would make the peer fail the connection (RFC
     /// 6455 §5.5.1).
     pub fn close(code: u16, why: &str) -> Self {
-        let mut c = Control {
-            op: op::CLOSE,
-            len: 2,
-            data: [0; 125],
-        };
+        let mut c = Control { op: op::CLOSE, len: 2, data: [0; 125] };
         c.data[0] = (code >> 8) as u8;
         c.data[1] = code as u8;
         let w = why.as_bytes();
@@ -267,11 +256,7 @@ fn seed() -> u32 {
     z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
     let s = (z ^ (z >> 31)) as u32;
-    if s == 0 {
-        1
-    } else {
-        s
-    }
+    if s == 0 { 1 } else { s }
 }
 
 #[inline]
@@ -354,9 +339,9 @@ pub(crate) unsafe fn receive(p: *mut Slot) {
 unsafe fn upgrade(p: *mut Slot) -> bool {
     let limit = (*p).r_end;
     let buf = engine::rbytes(p, 0, engine::rbuf(p).len()); // the handshake
-                                                           // FORWARD for the end of the header: a client may pipeline frames behind it, the first CRLFCRLF
-                                                           // is the header's. A blank line at the very start ends it as well: the lines before it went
-                                                           // already.
+    // FORWARD for the end of the header: a client may pipeline frames behind it, the first CRLFCRLF
+    // is the header's. A blank line at the very start ends it as well: the lines before it went
+    // already.
     let bare = 2 <= limit && buf[0] == b'\r' && buf[1] == b'\n';
     let mut i: isize = if bare { -2 } else { 0 };
     while i <= limit as isize - 4 {
@@ -367,10 +352,7 @@ unsafe fn upgrade(p: *mut Slot) -> bool {
             }
             if !ws(p).answer {
                 fire(p, Event::WEBSOCKET_HANDSHAKE_FAILURE);
-                (*p).ext.failure(&crate::lib::network::failure::protocol(format!(
-                    "Sec-WebSocket-Key not found in header. Handshake failed: {}",
-                    String::from_utf8_lossy(&buf[..end])
-                )));
+                (*p).ext.failure(&crate::lib::network::failure::protocol(format!("Sec-WebSocket-Key not found in header. Handshake failed: {}", String::from_utf8_lossy(&buf[..end]))));
                 engine::disconnect(p, Event::THIS_CLOSE_ABRUPTLY);
                 return false;
             }
@@ -394,8 +376,7 @@ unsafe fn upgrade(p: *mut Slot) -> bool {
     let Some(nl) = buf[..limit].iter().rposition(|&b| b == b'\n') else {
         if limit == buf.len() {
             fire(p, Event::WEBSOCKET_HANDSHAKE_FAILURE);
-            (*p).ext
-                .failure(&crate::lib::network::failure::protocol("A line of the upgrade request does not fit the buffer. Handshake failed."));
+            (*p).ext.failure(&crate::lib::network::failure::protocol("A line of the upgrade request does not fit the buffer. Handshake failed."));
             engine::disconnect(p, Event::THIS_CLOSE_ABRUPTLY); // one header line longer than the buffer
         }
         return false;
@@ -451,7 +432,7 @@ const HEARD_ACCEPT: u8 = 2;
 unsafe fn upgraded(p: *mut Slot) -> bool {
     let limit = (*p).r_end;
     let buf = engine::rbytes(p, 0, engine::rbuf(p).len()); // the handshake
-                                                           // a blank line at the very start ends the answer: the lines before it went already
+    // a blank line at the very start ends the answer: the lines before it went already
     let bare = ws(p).heard & HEARD_LINES != 0 && 2 <= limit && buf[0] == b'\r' && buf[1] == b'\n';
     let mut i: isize = if bare { -2 } else { 0 };
     while i <= limit as isize - 4 {
@@ -584,14 +565,7 @@ unsafe fn decode(p: *mut Slot) -> bool {
                 (*p).r_at += 1;
                 w.decoded = (*p).r_at;
                 if (b & MASK == 0) != w.client {
-                    return fail(
-                        p,
-                        if w.client {
-                            "Protocol Error: Server frame is masked."
-                        } else {
-                            "Protocol Error: Client frame is not masked."
-                        },
-                    );
+                    return fail(p, if w.client { "Protocol Error: Server frame is masked." } else { "Protocol Error: Client frame is not masked." });
                 }
                 if 0x8 <= w.opcode && 125 < (b & LEN) {
                     return fail(p, "Protocol Error: control frame payload > 125 bytes");
@@ -727,9 +701,9 @@ unsafe fn header_done(p: *mut Slot) -> bool {
                     return false;
                 }
                 (*p).ext.ws_closing.store(false, Ordering::Relaxed); // Reset graceful-close state before starting another session.
-                                                                     // the FIN goes from the runner, once our CLOSE is written: sent_closing_frame is set
-                                                                     // when the CLOSE is put in the transmit buffer, and a FIN before the write would cut
-                                                                     // it off
+                // the FIN goes from the runner, once our CLOSE is written: sent_closing_frame is set
+                // when the CLOSE is put in the transmit buffer, and a FIN before the write would cut
+                // it off
                 ws(p).peer_closing = true;
                 engine::wake_on_loop(p);
                 return false;
@@ -834,10 +808,7 @@ pub(crate) unsafe fn fill(p: *mut Slot) -> bool {
         // the upgrade request, whole, in the one buffer: a target too long for it fails the connect
         let n = w.hs.len();
         if buf.len() < n {
-            let e = std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                format!("the upgrade request of {n} bytes does not fit the buffer of {} bytes", buf.len()),
-            );
+            let e = std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("the upgrade request of {n} bytes does not fit the buffer of {} bytes", buf.len()));
             if (*p).report.is_some() {
                 engine::report(p, Err(e)); // the connect hears why (the handler too, then the teardown), as `refused` does
             } else {
@@ -1085,12 +1056,7 @@ struct Sha1 {
 
 impl Sha1 {
     fn new() -> Self {
-        Sha1 {
-            h: [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0],
-            block: [0; 64],
-            fill: 0,
-            total: 0,
-        }
+        Sha1 { h: [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0], block: [0; 64], fill: 0, total: 0 }
     }
 
     fn update(&mut self, mut data: &[u8]) {
@@ -1175,11 +1141,7 @@ impl WebSocket {
         if 125 < p.len() {
             return Err("PING payload exceeds 125 bytes (RFC 6455 §5.5)");
         }
-        if self.state.ws_control(Control::ping(p)) {
-            Ok(())
-        } else {
-            Err("WebSocket connection torn down")
-        }
+        if self.state.ws_control(Control::ping(p)) { Ok(()) } else { Err("WebSocket connection torn down") }
     }
 
     /// Closes gracefully with a CLOSE frame of a status code and a reason - its first 123 bytes,

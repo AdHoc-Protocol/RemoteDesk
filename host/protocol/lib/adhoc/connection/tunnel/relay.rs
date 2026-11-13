@@ -62,13 +62,7 @@ struct Labels {
 
 fn labels_() -> &'static parking_lot::Mutex<Labels> {
     static L: std::sync::OnceLock<parking_lot::Mutex<Labels>> = std::sync::OnceLock::new();
-    L.get_or_init(|| {
-        parking_lot::Mutex::new(Labels {
-            given: std::collections::HashMap::new(),
-            next: 0,
-            generation: 0,
-        })
-    })
+    L.get_or_init(|| parking_lot::Mutex::new(Labels { given: std::collections::HashMap::new(), next: 0, generation: 0 }))
 }
 
 /// The index of `tunnel_id` if it is a label this host gave on a connection - `dialing` it or not.
@@ -81,11 +75,7 @@ fn mine(tunnel_id: u32, dialing: bool) -> Option<u32> {
 /// The tunnel id of a frame that opens a circuit, `[id][mark][label][tunnel id][body]`: all ones of its width.
 #[inline]
 fn open_mark(tid_bytes: usize) -> u32 {
-    if 4 <= tid_bytes {
-        u32::MAX
-    } else {
-        (1u32 << (8 * tid_bytes)) - 1
-    }
+    if 4 <= tid_bytes { u32::MAX } else { (1u32 << (8 * tid_bytes)) - 1 }
 }
 
 /// A circuit the up side of which is the inbound of a relay.
@@ -144,19 +134,7 @@ struct Region {
 
 impl Default for Region {
     fn default() -> Self {
-        Self {
-            own: None,
-            ptr: std::ptr::null(),
-            copy: Vec::new(),
-            len: 0,
-            holes: Vec::new(),
-            hole_bytes: 0,
-            payload: 0,
-            lead: [0; 4],
-            lead_n: 0,
-            last: false,
-            abort: false,
-        }
+        Self { own: None, ptr: std::ptr::null(), copy: Vec::new(), len: 0, holes: Vec::new(), hole_bytes: 0, payload: 0, lead: [0; 4], lead_n: 0, last: false, abort: false }
     }
 }
 
@@ -543,9 +521,7 @@ impl Relay {
         if c.hit.is_some() || !c.opening && c.through.is_none() {
             return;
         }
-        let (Some(up), Some(down)) = (c.inbound.clone(), unsafe { &*self.serving.get() }.clone()) else {
-            return;
-        };
+        let (Some(up), Some(down)) = (c.inbound.clone(), unsafe { &*self.serving.get() }.clone()) else { return };
         let pairs = super::LABEL_PAIRS.load(Ordering::Relaxed);
         assert!(pairs != 0, "A circuit needs labels: set them with crate::lib::adhoc::connection::tunnel::labels( first, count )");
         let mut l = labels_().lock();
@@ -569,19 +545,7 @@ impl Relay {
         let generation = l.generation;
         let label = super::LABEL_FIRST.load(Ordering::Relaxed).wrapping_add(i * 2 + o.dialing() as u32);
         let (up_at, down_at) = (at_of(&up), at_of(&down));
-        l.given.insert(
-            i,
-            Given {
-                up,
-                up_at,
-                up_tid: c.in_tid,
-                down,
-                down_at,
-                label,
-                ends: 0,
-                generation,
-            },
-        );
+        l.given.insert(i, Given { up, up_at, up_tid: c.in_tid, down, down_at, label, ends: 0, generation });
         drop(l);
         c.up.insert(c.in_tid, Side::Given(i, generation));
         c.hit = Some((i, generation, true));
@@ -655,18 +619,12 @@ impl Relay {
         // SAFETY: the receive side - the router runs in it.
         let opening = unsafe { &*self.circ.get() }.opening; // a tunnel a relay sent here: the end gets a label of this host
         let (from, dialing) = self.inbound_here().as_ref().map_or((0, false), |i| (i.id(), i.dialing()));
-        if if opening {
-            tunnel_id == super::ADDRESS.load(Ordering::Relaxed)
-        } else {
-            dialing || from == 0 || tunnel_id == super::ADDRESS.load(Ordering::Relaxed)
-        } {
+        if if opening { tunnel_id == super::ADDRESS.load(Ordering::Relaxed) } else { dialing || from == 0 || tunnel_id == super::ADDRESS.load(Ordering::Relaxed) } {
             self.here();
             return None;
         }
         let Some(all) = super::hosts_() else {
-            panic!(
-                "The usual route of a tunnel needs crate::lib::adhoc::connection::tunnel::hosts and crate::lib::adhoc::connection::tunnel::ADDRESS: set them, or route the tunnel in region Tunneling"
-            )
+            panic!("The usual route of a tunnel needs crate::lib::adhoc::connection::tunnel::hosts and crate::lib::adhoc::connection::tunnel::ADDRESS: set them, or route the tunnel in region Tunneling")
         };
         let to = all.at(tunnel_id);
         if to.is_some() && !opening {
@@ -946,10 +904,7 @@ impl Relay {
                 match route(self, rx.tunnel_id) {
                     None if self.here.load(Ordering::Relaxed) => {
                         // the tunnel ends on this host: its end takes the rest of the frame, the next frame is routed anew
-                        assert!(
-                            rx.lead_n == 0,
-                            "Tunnel arming mismatch: the id field of the inbound holds body bytes past the tunnel_id, which the end of the tunnel on this host cannot replay"
-                        );
+                        assert!(rx.lead_n == 0, "Tunnel arming mismatch: the id field of the inbound holds body bytes past the tunnel_id, which the end of the tunnel on this host cannot replay");
                         rx.cur = None;
                         self.set_outbound(None);
                         self.enqueued.store(false, Ordering::Release);
@@ -1050,7 +1005,7 @@ impl Relay {
                     return false; // the lead was framing only, the body begins in the next window: nothing is staged
                 }
                 // the window's bytes: none when the lead holds body bytes only - they go as a
-// region of their own
+                // region of their own
                 eos = Self::scan(rx, src.buffer, pos, end, pos, true);
             }
             // the bytes stay where they are: taken over with the receive buffer, or copied, at the
@@ -1252,8 +1207,7 @@ impl Relay {
                 }
             }
             for (to, tid) in told {
-                forward(&to, Self::farewell(rx.pack_id, rx.id_bytes, rx.tid_bytes, tid));
-                // not under the lock: the wake may run a route here
+                forward(&to, Self::farewell(rx.pack_id, rx.id_bytes, rx.tid_bytes, tid)); // not under the lock: the wake may run a route here
             }
             c.hit = None;
         }

@@ -20,7 +20,7 @@
 //! callbacks run on the assigned loop.
 
 #![allow(dangerous_implicit_autorefs)] // the connections and the state of a loop are reached through raw pointers on purpose: a handler
-                                       // up the stack may hold them
+// up the stack may hold them
 
 use std::cell::UnsafeCell;
 use std::io;
@@ -39,10 +39,10 @@ use rustc_hash::FxHashMap;
 use sha2::Sha256;
 
 use super::TCP::external_connection::Event;
-use super::TCP::external_connection::{now_ms, now_sec, ConnId, ExternalConnection, TimeoutAnswer, TimeoutKind};
+use crate::lib::adhoc::{BytesDst, BytesSrc};
+use super::TCP::external_connection::{now_sec, now_ms, ConnId, ExternalConnection, TimeoutAnswer, TimeoutKind};
 use super::TCP::ConnectionFactory;
 use crate::lib::adhoc::connection::transmitter::resumable::{Journal, Resumable};
-use crate::lib::adhoc::{BytesDst, BytesSrc};
 use crate::lib::chacha20::{Aead, TAG};
 use crate::lib::chain::Chain;
 use crate::lib::noise::{NoiseNK, KEY};
@@ -225,12 +225,7 @@ impl Engine {
             loops.push(lp);
             handles.push(std::thread::Builder::new().name(format!("{name}-udp-{i}")).spawn(move || lp.run())?);
         }
-        Ok(Arc::new(Self {
-            loops: loops.into_boxed_slice(),
-            next: AtomicUsize::new(0),
-            threads: Mutex::new(handles),
-            on_failure,
-        }))
+        Ok(Arc::new(Self { loops: loops.into_boxed_slice(), next: AtomicUsize::new(0), threads: Mutex::new(handles), on_failure }))
     }
 
     /// As [`new`](Self::new), with where the failures of its loops and of its hosts given none go:
@@ -318,19 +313,7 @@ impl Endpoint {
     fn new(socket: UdpSocket, host: Arc<HostInner>, listening: bool) -> Box<Self> {
         let tx = vec![0u8; host.mtu.max(MIN_INITIAL)].into_boxed_slice();
         let v6 = socket.local_addr().is_ok_and(|a| a.is_ipv6());
-        Box::new(Endpoint {
-            socket,
-            host,
-            listening,
-            accepted: FxHashMap::default(),
-            blocked: Vec::new(),
-            tx,
-            held: 0,
-            held_to: SocketAddr::from(([0, 0, 0, 0], 0)),
-            v6,
-            queued: false,
-            next_readable: null_mut(),
-        })
+        Box::new(Endpoint { socket, host, listening, accepted: FxHashMap::default(), blocked: Vec::new(), tx, held: 0, held_to: SocketAddr::from(([0, 0, 0, 0], 0)), v6, queued: false, next_readable: null_mut() })
     }
 }
 
@@ -411,11 +394,7 @@ impl Loop {
     fn new(index: usize, on_failure: Arc<OnceLock<super::failure::OnFailure>>) -> io::Result<Self> {
         let poll = Poll::new()?;
         let waker = Waker::new(poll.registry(), WAKER)?;
-        let empty = List {
-            head: null_mut(),
-            tail: null_mut(),
-            finger: null_mut(),
-        };
+        let empty = List { head: null_mut(), tail: null_mut(), finger: null_mut() };
         Ok(Self {
             index,
             on_failure,
@@ -803,12 +782,7 @@ impl Loop {
         let factory = match (&host.mux, named) {
             (Some(pick), Some(uid)) => match pick(uid) {
                 Some(f) => f,
-                None => {
-                    return (host.on_failure)(
-                        &host.name,
-                        &io::Error::new(io::ErrorKind::InvalidData, format!("A multiplexed port has no connection for the host uid {uid}")),
-                    )
-                }
+                None => return (host.on_failure)(&host.name, &io::Error::new(io::ErrorKind::InvalidData, format!("A multiplexed port has no connection for the host uid {uid}"))),
             },
             (None, None) => match host.on_connect.clone() {
                 Some(f) => f,
@@ -1600,7 +1574,13 @@ impl Host {
     /// Continues the parked session of `state` over a new handshake - to `server`, or to where it
     /// was (`None`). The slot, its protocol layer and its journal stay what they were. A failed
     /// attempt parks the session again, for what is left of its wait.
-    pub fn reconnect(&self, state: &Arc<ExternalConnection>, timeout: Duration, server: Option<SocketAddr>, on_connected: impl FnOnce(io::Result<Arc<ExternalConnection>>) + Send + 'static) {
+    pub fn reconnect(
+        &self,
+        state: &Arc<ExternalConnection>,
+        timeout: Duration,
+        server: Option<SocketAddr>,
+        on_connected: impl FnOnce(io::Result<Arc<ExternalConnection>>) + Send + 'static,
+    ) {
         let Some(link) = state.udp.get() else {
             return on_connected(Err(io::Error::new(io::ErrorKind::InvalidInput, "not a UDP connection")));
         };
@@ -1619,8 +1599,7 @@ impl Host {
                 Err(e) => return on_connected(Err(e)), // the session stays parked
             };
             if !(*p).claimable.swap(false, Ordering::AcqRel) {
-                return on_connected(Err(io::Error::other("the connection holds no parked session")));
-                // a reclaim took it meanwhile
+                return on_connected(Err(io::Error::other("the connection holds no parked session"))); // a reclaim took it meanwhile
             }
             lp.disarm(p, PARK);
             (*p).ep = ep;
@@ -1725,30 +1704,17 @@ impl Host {
         Some(lp.call(move |lp| unsafe {
             let p = p as *mut Peer;
             let ms = |ticks: i64| ticks as f64 / TICKS_MS as f64;
-            let probe = if (*p).dl[PROBE].armed {
-                format!("in {:.0}ms", ms((*p).dl[PROBE].due - lp.now()))
-            } else {
-                "-".into()
-            };
+            let probe = if (*p).dl[PROBE].armed { format!("in {:.0}ms", ms((*p).dl[PROBE].due - lp.now())) } else { "-".into() };
             format!(
                 "{head} id={id} tx={}.{} rx={}.{}{}{} lost={} cwnd={}KB tokens={:.0} srtt={:.1}ms pace={} drained={} gaps={} refused={}{} backoff={} pto={:.1}ms probe={probe} received={} {}",
-                (*p).tx_series,
-                (*p).tx_number,
-                (*p).rx_series,
-                (*p).rx_number,
+                (*p).tx_series, (*p).tx_number, (*p).rx_series, (*p).rx_number,
                 if (*p).wanted != (*p).rx_series { format!(" wanted={}", (*p).wanted) } else { String::new() },
                 if (*p).failed { " failed" } else { "" },
-                (*p).lost_datagrams,
-                (*p).cwnd / 1024,
-                (*p).tokens,
-                ms((*p).srtt),
+                (*p).lost_datagrams, (*p).cwnd / 1024, (*p).tokens, ms((*p).srtt),
                 if (*p).dl[PACE].armed { "armed" } else { "-" },
-                (*p).drained,
-                (*p).gaps,
-                (*p).refused,
+                (*p).drained, (*p).gaps, (*p).refused,
                 if (*p).asked { " asked" } else { "" },
-                (*p).backoff,
-                ms(pto(p)),
+                (*p).backoff, ms(pto(p)),
                 position(p),
                 journal(p).map_or(String::from("null"), |j| j.to_string()),
             )
@@ -2012,13 +1978,7 @@ struct Moved {
 
 impl Peer {
     fn new(lp: &'static Loop, host: Arc<HostInner>, slot: u32, ext: Arc<ExternalConnection>) -> Self {
-        let off = Dl {
-            next: null_mut(),
-            at: 0,
-            due: 0,
-            armed: false,
-            linked: false,
-        };
+        let off = Dl { next: null_mut(), at: 0, due: 0, armed: false, linked: false };
         let keepalive = host.keepalive;
         Self {
             lp,
@@ -2143,11 +2103,7 @@ unsafe fn request(p: *mut Peer, what: u32) {
 
 unsafe fn serve(p: *mut Peer, what: u32) {
     if what & ABORT_ != 0 {
-        let ev = if (*p).ext.is_open.load(Ordering::Acquire) {
-            Event::THIS_CLOSE_ABRUPTLY
-        } else {
-            (*p).ext.close_event()
-        };
+        let ev = if (*p).ext.is_open.load(Ordering::Acquire) { Event::THIS_CLOSE_ABRUPTLY } else { (*p).ext.close_event() };
         // a loss (`lost`: REMOTE) goes as a broken link does - the peer is told nothing, so both
         // sides may park and go on, as over TCP; an abort tells it with a CLOSE of its own
         end(p, ev, if ev.is_remote() { -1 } else { 1 });
@@ -2203,6 +2159,7 @@ unsafe fn serve(p: *mut Peer, what: u32) {
         transmit(p);
     }
 }
+
 
 /// A graceful close is asked for: a negative timeout, or [`ExternalConnection::close_gracefully`] -
 /// both set the flag.
@@ -2289,10 +2246,7 @@ unsafe fn timed_out(p: *mut Peer, kind: usize, now: i64) {
                 return;
             }
             if (*p).connect_until - now <= 0 {
-                failed(
-                    p,
-                    io::Error::new(io::ErrorKind::TimedOut, format!("No answer from {} in time.", (*p).address.map_or(String::new(), |a| a.to_string()))),
-                );
+                failed(p, io::Error::new(io::ErrorKind::TimedOut, format!("No answer from {} in time.", (*p).address.map_or(String::new(), |a| a.to_string()))));
                 return;
             }
             send_initial(p);
@@ -2567,8 +2521,7 @@ unsafe fn open(p: *mut Peer, event: Event) {
     set_state(p, ACTIVE);
     (*p).closing_gracefully = false;
     ext.closing_gracefully.store(false, Ordering::Relaxed);
-    ext.receive_timeout_ms
-        .store(if (*p).host.idle_ms <= 0 { i32::MAX as i64 } else { (*p).host.idle_ms }, Ordering::Relaxed);
+    ext.receive_timeout_ms.store(if (*p).host.idle_ms <= 0 { i32::MAX as i64 } else { (*p).host.idle_ms }, Ordering::Relaxed);
     ext.transmit_timeout_ms.store(i32::MAX as i64, Ordering::Relaxed);
     ext.resumable.store(0, Ordering::Relaxed); // live again, if it was parked
     ext.set_addresses((*(*p).ep).socket.local_addr().ok(), (*p).address); // Publish local and peer socket addresses.
@@ -2719,7 +2672,7 @@ unsafe fn free(p: *mut Peer) {
     }
     forget_accepted(p);
     (*p).ext.reset(); // the session is over: its keys, its identity, its hooks, its deadline go - the next one finds the
-                      // slot new
+    // slot new
     set_state(p, FREE);
     (*p).address = None;
     (*p).ep = null_mut();
@@ -2774,7 +2727,7 @@ unsafe fn park(p: *mut Peer) {
 unsafe fn reap(p: *mut Peer) {
     if (*p).state == PARKED && !(*p).claimable.swap(false, Ordering::AcqRel) {
         return; // claimed by a connection that reclaimed the session: the slot is freed when it moved
-                // (`moved_out`)
+        // (`moved_out`)
     }
     (*p).ext.resumable.store(0, Ordering::Relaxed);
     set_state(p, CLOSING);
@@ -2993,11 +2946,7 @@ unsafe fn send(p: *mut Peer, mut len: usize, once: u64) -> bool {
 
 #[inline]
 unsafe fn payload_max(p: *mut Peer) -> usize {
-    if (*p).tx_key.is_none() {
-        (*p).host.mtu
-    } else {
-        (*p).host.mtu - TAG
-    }
+    if (*p).tx_key.is_none() { (*p).host.mtu } else { (*p).host.mtu - TAG }
 }
 
 /// The journal moved up: the silence is over.
@@ -3519,7 +3468,11 @@ unsafe fn reclaim(p: *mut Peer, token: u64) {
             // SAFETY: `host` and `ext` of a slot change only on its own loop after its session is
             // claimed; the rest of a parked slot is its loop's no more once the claim is won here -
             // the loser of the claim leaves the slot alone
-            if !q.is_null() && Arc::ptr_eq(&(*q).host, &(*p).host) && (*q).ext.session() as u32 == id && (*q).claimable.compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire).is_ok() {
+            if !q.is_null()
+                && Arc::ptr_eq(&(*q).host, &(*p).host)
+                && (*q).ext.session() as u32 == id
+                && (*q).claimable.compare_exchange(true, false, Ordering::AcqRel, Ordering::Acquire).is_ok()
+            {
                 (*p).moved = Some(Box::new(Moved {
                     sink: (*q).sink.take(),
                     source: (*q).source.take(),
@@ -3561,8 +3514,8 @@ unsafe fn install(p: *mut Peer) {
     }
     ext.unidentify();
     ext.identify(m.id); // the peer is asked to go on from the receive position of the session
-                        // the deadlines of the session - of its instances, of its stage - were the timer of the
-                        // connection it left: filed here; a connection still connecting files them as it opens
+    // the deadlines of the session - of its instances, of its stage - were the timer of the
+    // connection it left: filed here; a connection still connecting files them as it opens
     ext.refile_deadline();
     arm_deadline(p);
 }
@@ -3612,11 +3565,7 @@ unsafe fn ask(p: *mut Peer) {
 
 #[inline]
 unsafe fn window(p: *mut Peer) -> i64 {
-    if (*p).host.congestion {
-        (*p).cwnd.min((*p).host.window)
-    } else {
-        (*p).host.window
-    }
+    if (*p).host.congestion { (*p).cwnd.min((*p).host.window) } else { (*p).host.window }
 }
 
 unsafe fn grown(p: *mut Peer, bytes: i64) {
@@ -3773,10 +3722,7 @@ mod tests {
 
     impl Journaled {
         fn new(out: Outbox) -> Self {
-            Self {
-                out,
-                j: Journal::new(Resumable::new(1 << 20)),
-            }
+            Self { out, j: Journal::new(Resumable::new(1 << 20)) }
         }
     }
 
@@ -3911,11 +3857,7 @@ mod tests {
             if drop == 0 || dir != WireDir::Tx || pkt[0] & LONG != 0 || pkt[0] & DATA == 0 {
                 return WireAction::Pass;
             }
-            if s2.fetch_add(1, Ordering::Relaxed) % drop == drop - 1 {
-                WireAction::Drop
-            } else {
-                WireAction::Pass
-            }
+            if s2.fetch_add(1, Ordering::Relaxed) % drop == drop - 1 { WireAction::Drop } else { WireAction::Pass }
         });
         let server_got: Inbox = Default::default();
         let server_out: Outbox = Default::default();
@@ -3966,10 +3908,7 @@ mod tests {
             let ss = server_state.clone();
             let co = client_out.clone();
             let dump = || {
-                let (len, at) = {
-                    let o = co.lock().unwrap();
-                    (o.0.len(), o.1)
-                };
+                let (len, at) = { let o = co.lock().unwrap(); (o.0.len(), o.1) };
                 format!(
                     "client source gave {at} of {len}; live: client {} server {}; server sinks made {}\nclient: {}\nserver: {}",
                     client.connections_live(),
@@ -3984,9 +3923,7 @@ mod tests {
         let back = server_state.lock().unwrap().clone().unwrap();
         server_out.lock().unwrap().0.extend_from_slice(&payload);
         back.wake_transmit();
-        wait_for_dump(&format!("drop {drop}: the client"), &client_got, &payload, 30, || {
-            format!("client: {}\nserver: {}", client.dump(&state), server.dump(&back))
-        });
+        wait_for_dump(&format!("drop {drop}: the client"), &client_got, &payload, 30, || format!("client: {}\nserver: {}", client.dump(&state), server.dump(&back)));
         if 0 < drop {
             assert!(0 < client.stats(&state).unwrap().lost_datagrams + server.stats(&back).unwrap().lost_datagrams);
         }
@@ -4019,11 +3956,7 @@ mod tests {
                 return WireAction::Pass;
             }
             let at = *q.lock().unwrap().get_or_insert_with(std::time::Instant::now);
-            if at.elapsed() < Duration::from_millis(200) {
-                WireAction::Drop
-            } else {
-                WireAction::Pass
-            } // the request waits
+            if at.elapsed() < Duration::from_millis(200) { WireAction::Drop } else { WireAction::Pass } // the request waits
         });
         let d = Arc::new(AtomicUsize::new(0));
         let client_hook: WireHook = Arc::new(move |dir, pkt| {
@@ -4031,11 +3964,7 @@ mod tests {
                 return WireAction::Pass;
             }
             let word = u32::from_le_bytes([pkt[5], pkt[6], pkt[7], pkt[8]]);
-            if word & 0xFF == 0 && word >> 8 == 2 && d.fetch_add(1, Ordering::Relaxed) == 0 {
-                WireAction::Drop
-            } else {
-                WireAction::Pass
-            }
+            if word & 0xFF == 0 && word >> 8 == 2 && d.fetch_add(1, Ordering::Relaxed) == 0 { WireAction::Drop } else { WireAction::Pass }
         });
         let server_got: Inbox = Default::default();
         let sg = server_got.clone();
@@ -4044,10 +3973,7 @@ mod tests {
             .wire_hook(server_hook)
             .on_connect(Arc::new(move |state| {
                 state.identify(7);
-                (
-                    Box::new(Counting::new(sg.clone())) as Box<dyn BytesDst>,
-                    Box::new(Journaled::new(Default::default())) as Box<dyn BytesSrc>,
-                )
+                (Box::new(Counting::new(sg.clone())) as Box<dyn BytesDst>, Box::new(Journaled::new(Default::default())) as Box<dyn BytesSrc>)
             }))
             .build();
         let addr = server.bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).unwrap();
@@ -4103,23 +4029,13 @@ mod tests {
             }))
             .build();
         let addr = server.bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).unwrap();
-        let client = host::Builder::new("client")
-            .engine(engine.clone())
-            .wire_hook(hook)
-            .idle_timeout(Duration::from_millis(300))
-            .keepalive(Duration::from_millis(100))
-            .build();
+        let client = host::Builder::new("client").engine(engine.clone()).wire_hook(hook).idle_timeout(Duration::from_millis(300)).keepalive(Duration::from_millis(100)).build();
         let got: Inbox = Default::default();
         let g = got.clone();
         let (tx, rx) = std::sync::mpsc::channel();
-        client.connect(
-            addr,
-            Duration::from_secs(3),
-            move |_| (Box::new(Collect(g)) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>),
-            move |r| {
-                let _ = tx.send(r);
-            },
-        );
+        client.connect(addr, Duration::from_secs(3), move |_| (Box::new(Collect(g)) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>), move |r| {
+            let _ = tx.send(r);
+        });
         let cs = rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap();
         cs.set_resumable_seconds_hook(Arc::new(|_| 60));
         cs.identify(7);
@@ -4176,14 +4092,7 @@ mod tests {
         whole.extend_from_slice(&b);
         let until = std::time::Instant::now() + Duration::from_secs(10);
         while got.lock().unwrap().len() < whole.len() {
-            assert!(
-                std::time::Instant::now() < until,
-                "after the reclaim: {} of {}; server new {:?}; client {:?}",
-                got.lock().unwrap().len(),
-                whole.len(),
-                server.stats(&taker),
-                client.stats(&cs)
-            );
+            assert!(std::time::Instant::now() < until, "after the reclaim: {} of {}; server new {:?}; client {:?}", got.lock().unwrap().len(), whole.len(), server.stats(&taker), client.stats(&cs));
             std::thread::sleep(Duration::from_millis(5));
         }
         assert!(*got.lock().unwrap() == whole, "after the reclaim: other bytes");
@@ -4205,35 +4114,19 @@ mod tests {
             .wire_hook(hook.clone())
             .idle_timeout(Duration::from_millis(300))
             .keepalive(Duration::from_millis(100))
-            .on_connect(Arc::new(|_| {
-                (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
-            }))
+            .on_connect(Arc::new(|_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)))
             .build();
         let addr = server.bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).unwrap();
-        let client = host::Builder::new("client")
-            .engine(engine.clone())
-            .wire_hook(hook)
-            .idle_timeout(Duration::from_millis(300))
-            .keepalive(Duration::from_millis(100))
-            .build();
+        let client = host::Builder::new("client").engine(engine.clone()).wire_hook(hook).idle_timeout(Duration::from_millis(300)).keepalive(Duration::from_millis(100)).build();
         let (tx, rx) = std::sync::mpsc::channel();
-        client.connect(
-            addr,
-            Duration::from_secs(3),
-            |_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>),
-            move |r| {
-                let _ = tx.send(r);
-            },
-        );
+        client.connect(addr, Duration::from_secs(3), |_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>), move |r| {
+            let _ = tx.send(r);
+        });
         let cs = rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap();
         cs.set_resumable_seconds_hook(Arc::new(|_| 3)); // wide enough to be seen parked on a busy machine
         let closes = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let c = closes.clone();
-        cs.set_event_sink(Arc::new(move |_, e| {
-            if e.is_close() {
-                c.fetch_add(1, Ordering::Relaxed);
-            }
-        }));
+        cs.set_event_sink(Arc::new(move |_, e| if e.is_close() { c.fetch_add(1, Ordering::Relaxed); }));
         cs.identify(7);
         dark.store(true, Ordering::Relaxed); // the server is gone for good
         let until = std::time::Instant::now() + Duration::from_secs(10);
@@ -4242,19 +4135,13 @@ mod tests {
             std::thread::sleep(Duration::from_millis(10));
         }
         let (tx, rx) = std::sync::mpsc::channel();
-        client.reconnect(&cs, Duration::from_secs(4), None, move |r| {
-            // past the wait of the session
+        client.reconnect(&cs, Duration::from_secs(4), None, move |r| { // past the wait of the session
             let _ = tx.send(r.map(|_| ()));
         });
         assert!(rx.recv_timeout(Duration::from_secs(10)).unwrap().is_err(), "nobody answers");
         let until = std::time::Instant::now() + Duration::from_secs(10);
         while client.stats(&cs).unwrap().state != FREE || closes.load(Ordering::Relaxed) == 0 {
-            assert!(
-                std::time::Instant::now() < until,
-                "left {:?}, closes {}",
-                client.stats(&cs).map(|s| s.state),
-                closes.load(Ordering::Relaxed)
-            );
+            assert!(std::time::Instant::now() < until, "left {:?}, closes {}", client.stats(&cs).map(|s| s.state), closes.load(Ordering::Relaxed));
             std::thread::sleep(Duration::from_millis(10));
         }
         assert_eq!(closes.load(Ordering::Relaxed), 1, "its close is heard once");
@@ -4296,14 +4183,9 @@ mod tests {
         let client = host::Builder::new("client").engine(engine.clone()).build();
         let connect = |out: Outbox| {
             let (tx, rx) = std::sync::mpsc::channel();
-            client.connect(
-                addr,
-                Duration::from_secs(3),
-                move |_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(out)) as Box<dyn BytesSrc>),
-                move |r| {
-                    let _ = tx.send(r);
-                },
-            );
+            client.connect(addr, Duration::from_secs(3), move |_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(out)) as Box<dyn BytesSrc>), move |r| {
+                let _ = tx.send(r);
+            });
             rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap()
         };
         let (oa, ob): (Outbox, Outbox) = (Default::default(), Default::default());
@@ -4340,14 +4222,10 @@ mod tests {
     fn a_panicking_failure_handler_does_not_take_the_loop_with_it() {
         let told = Arc::new(AtomicUsize::new(0));
         let t = told.clone();
-        let engine = Engine::with_failure(
-            "t",
-            1,
-            Arc::new(move |_, _| {
-                t.fetch_add(1, Ordering::Relaxed);
-                panic!("the handler of the engine");
-            }),
-        )
+        let engine = Engine::with_failure("t", 1, Arc::new(move |_, _| {
+            t.fetch_add(1, Ordering::Relaxed);
+            panic!("the handler of the engine");
+        }))
         .unwrap();
         let lp = engine.loops[0];
         lp.submit(Box::new(|_| panic!("a task that panics")));
@@ -4381,33 +4259,22 @@ mod tests {
         let (g, o) = (got.clone(), offers.clone());
         let server = host::Builder::new("server")
             .engine(engine.clone())
-            .on_connect(Arc::new(move |_| {
-                (Box::new(Sticky(g.clone(), o.clone())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
-            }))
+            .on_connect(Arc::new(move |_| (Box::new(Sticky(g.clone(), o.clone())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)))
             .build();
         let addr = server.bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).unwrap();
         let client = host::Builder::new("client").engine(engine.clone()).build();
         let (tx, rx) = std::sync::mpsc::channel();
         let out: Outbox = Default::default();
         let o2 = out.clone();
-        client.connect(
-            addr,
-            Duration::from_secs(3),
-            move |_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(o2)) as Box<dyn BytesSrc>),
-            move |r| {
-                let _ = tx.send(r);
-            },
-        );
+        client.connect(addr, Duration::from_secs(3), move |_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(o2)) as Box<dyn BytesSrc>), move |r| {
+            let _ = tx.send(r);
+        });
         let a = rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap();
         out.lock().unwrap().0.extend_from_slice(&[1, 2, 0xFE, 3]);
         a.wake_transmit();
         let until = std::time::Instant::now() + Duration::from_secs(5);
         while client.stats(&a).map_or(false, |s| s.state == ACTIVE) {
-            assert!(
-                std::time::Instant::now() < until,
-                "the connection whose stream broke goes on: the sink was offered it {} times",
-                offers.load(Ordering::Relaxed)
-            );
+            assert!(std::time::Instant::now() < until, "the connection whose stream broke goes on: the sink was offered it {} times", offers.load(Ordering::Relaxed));
             std::thread::sleep(Duration::from_millis(5));
         }
         assert!(offers.load(Ordering::Relaxed) <= 3, "offered {} times", offers.load(Ordering::Relaxed));
@@ -4518,11 +4385,7 @@ mod tests {
             .engine(engine.clone())
             .on_failure(Arc::new(move |_, e| f.lock().unwrap().push(e.to_string())))
             .on_connect(Arc::new(move |state| {
-                state.secure(if rk.load(Ordering::Relaxed) {
-                    None
-                } else {
-                    Some(Chain::default().noise_keys(PATTERN_IK, &secret, &client_public).on_peer(|_| false))
-                });
+                state.secure(if rk.load(Ordering::Relaxed) { None } else { Some(Chain::default().noise_keys(PATTERN_IK, &secret, &client_public).on_peer(|_| false)) });
                 (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
             }))
             .build();
@@ -4530,17 +4393,12 @@ mod tests {
         let client = host::Builder::new("client").engine(engine.clone()).build();
         let dial = |declare: Option<Chain>| {
             let (tx, rx) = std::sync::mpsc::channel();
-            client.connect(
-                addr,
-                Duration::from_millis(600),
-                move |st| {
-                    st.secure(declare);
-                    (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
-                },
-                move |r| {
-                    let _ = tx.send(r.map(|_| ()));
-                },
-            );
+            client.connect(addr, Duration::from_millis(600), move |st| {
+                st.secure(declare);
+                (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
+            }, move |r| {
+                let _ = tx.send(r.map(|_| ()));
+            });
             rx.recv_timeout(Duration::from_secs(10)).unwrap()
         };
         let keys = || Some(Chain::default().noise_keys(PATTERN_IK, &client_secret, &public));
@@ -4548,11 +4406,7 @@ mod tests {
         assert_eq!(server.connections_live(), 0);
         refuse_keys.store(true, Ordering::Relaxed);
         assert!(dial(keys()).is_err(), "the server's layer has no keys");
-        assert!(
-            failures.lock().unwrap().iter().any(|e| e.contains("[Noise]")),
-            "the refusal goes to the host: {:?}",
-            failures.lock().unwrap()
-        );
+        assert!(failures.lock().unwrap().iter().any(|e| e.contains("[Noise]")), "the refusal goes to the host: {:?}", failures.lock().unwrap());
         assert_eq!(dial(None).unwrap_err().kind(), io::ErrorKind::PermissionDenied, "the client's layer has no keys: no INITIAL");
         assert_eq!(server.connections_live(), 0);
         client.shutdown();
@@ -4654,12 +4508,7 @@ mod tests {
             }))
             .build();
         let addr = server.bind(SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).unwrap();
-        let client = host::Builder::new("client")
-            .engine(engine.clone())
-            .wire_hook(hook)
-            .idle_timeout(Duration::from_millis(300))
-            .keepalive(Duration::from_millis(100))
-            .build();
+        let client = host::Builder::new("client").engine(engine.clone()).wire_hook(hook).idle_timeout(Duration::from_millis(300)).keepalive(Duration::from_millis(100)).build();
         let out: Outbox = Default::default();
         let o = out.clone();
         let (tx, rx) = std::sync::mpsc::channel();
@@ -4693,12 +4542,7 @@ mod tests {
         dark.store(true, Ordering::Relaxed); // nothing goes through: both sides time out and park
         let until = std::time::Instant::now() + Duration::from_secs(10);
         while client.stats(&cs).unwrap().state != PARKED || server.stats(&lost).unwrap().state != PARKED {
-            assert!(
-                std::time::Instant::now() < until,
-                "not parked: client {}, server {}",
-                client.stats(&cs).unwrap().state,
-                server.stats(&lost).unwrap().state
-            );
+            assert!(std::time::Instant::now() < until, "not parked: client {}, server {}", client.stats(&cs).unwrap().state, server.stats(&lost).unwrap().state);
             std::thread::sleep(Duration::from_millis(10));
         }
         // what the application reads of the connection says so too
@@ -4750,10 +4594,7 @@ mod tests {
         assert!(*first.lock().unwrap() == whole, "after the reclaim: other bytes");
         assert!(later.lock().unwrap().is_empty(), "the sink of the new connection got {} bytes", later.lock().unwrap().len());
         assert_eq!(server.stats(&lost).unwrap().state, FREE, "the slot of the parked session is freed");
-        assert!(
-            lost.session() as u32 == 0 && !lost.is_open(),
-            "the slot stays itself, cleared for its next session ( Java: a Peer for life )"
-        );
+        assert!(lost.session() as u32 == 0 && !lost.is_open(), "the slot stays itself, cleared for its next session ( Java: a Peer for life )");
         assert!(!Arc::ptr_eq(&lost.keys(), &taker.keys()), "the keys went with the session, the slot has its own");
         client.shutdown();
         server.shutdown();
@@ -4767,9 +4608,7 @@ mod tests {
         let engine = Engine::new("t", 1).unwrap();
         let server = host::Builder::new("server")
             .engine(engine.clone())
-            .on_connect(Arc::new(move |_| {
-                (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
-            }))
+            .on_connect(Arc::new(move |_| (Box::new(Collect(Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)))
             .build();
         let port = match server.bind(SocketAddr::new(std::net::Ipv6Addr::UNSPECIFIED.into(), 0)) {
             Ok(a) => a.port(),
@@ -4777,11 +4616,7 @@ mod tests {
         };
         let client = host::Builder::new("client").engine(engine.clone()).build();
         // an IPv4 peer named as IPv6-mapped (::ffff:127.0.0.1) too: it is the IPv4 one
-        for to in [
-            SocketAddr::new(Ipv4Addr::LOCALHOST.into(), port),
-            SocketAddr::new(std::net::Ipv6Addr::LOCALHOST.into(), port),
-            SocketAddr::new(Ipv4Addr::LOCALHOST.to_ipv6_mapped().into(), port),
-        ] {
+        for to in [SocketAddr::new(Ipv4Addr::LOCALHOST.into(), port), SocketAddr::new(std::net::Ipv6Addr::LOCALHOST.into(), port), SocketAddr::new(Ipv4Addr::LOCALHOST.to_ipv6_mapped().into(), port)] {
             let (tx, rx) = std::sync::mpsc::channel();
             client.connect(
                 to,

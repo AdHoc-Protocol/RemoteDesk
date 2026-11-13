@@ -13,12 +13,12 @@
 //! cached hashes. Indices are `u32`, or `u16` for two-byte key collections. `HASH_BITS` specifies
 //! the hash width preserved across rebuilds.
 
-use super::token::{dense_contains, dense_first, dense_next, Token};
 use core::iter::FusedIterator;
 use core::marker::PhantomData;
 use core::mem::{self, MaybeUninit};
 use core::ptr::{self, NonNull};
 use std::alloc::{alloc, dealloc, handle_alloc_error, Layout};
+use super::token::{dense_contains, dense_first, dense_next, Token};
 
 /// Minimum capacity of the first allocation.
 const MIN_CAPACITY: usize = 4;
@@ -139,14 +139,7 @@ fn parts<K, V, I>(cap: usize) -> Parts {
     let (l, keys) = l.extend(Layout::array::<K>(cap).unwrap()).unwrap();
     let (l, vals) = l.extend(Layout::array::<V>(cap).unwrap()).unwrap();
     let (layout, links) = l.extend(Layout::array::<I>(links_len).unwrap()).unwrap();
-    Parts {
-        layout,
-        filters,
-        keys,
-        vals,
-        links,
-        links_len,
-    }
+    Parts { layout, filters, keys, vals, links, links_len }
 }
 
 /// Frees links of their own allocation ([`RawTable::grow_links`]).
@@ -248,20 +241,12 @@ impl<K, V, I: RawIndex, const HASH_BITS: u32> RawTable<K, V, I, HASH_BITS> {
 
     #[inline(always)]
     pub fn get_by_token(&self, token: Token) -> Option<(&K, &V)> {
-        if self.contains_token(token) {
-            Some(unsafe { (self.key(token), self.val(token)) })
-        } else {
-            None
-        }
+        if self.contains_token(token) { Some(unsafe { (self.key(token), self.val(token)) }) } else { None }
     }
 
     #[inline(always)]
     pub fn get_by_token_mut(&mut self, token: Token) -> Option<&mut V> {
-        if self.contains_token(token) {
-            Some(unsafe { self.val_mut(token) })
-        } else {
-            None
-        }
+        if self.contains_token(token) { Some(unsafe { self.val_mut(token) }) } else { None }
     }
 
     #[inline(always)]
@@ -363,19 +348,9 @@ impl<K, V, I: RawIndex, const HASH_BITS: u32> RawTable<K, V, I, HASH_BITS> {
             if self.links_len != p.links_len {
                 unsafe { free_links(self.links, self.links_len) };
             }
-            Memory {
-                base: self.buckets.cast(),
-                layout: p.layout,
-                keys: self.keys,
-                vals: self.vals,
-            }
+            Memory { base: self.buckets.cast(), layout: p.layout, keys: self.keys, vals: self.vals }
         } else {
-            Memory {
-                base: NonNull::dangling(),
-                layout: Layout::new::<()>(),
-                keys: NonNull::dangling(),
-                vals: NonNull::dangling(),
-            }
+            Memory { base: NonNull::dangling(), layout: Layout::new::<()>(), keys: NonNull::dangling(), vals: NonNull::dangling() }
         };
         self.buckets = empty_buckets();
         self.filters = empty_filters();
@@ -557,7 +532,13 @@ impl<K, V, I: RawIndex, const HASH_BITS: u32> RawTable<K, V, I, HASH_BITS> {
     /// Returns the value of the key `eq` matches, or inserts `make()`. `true` when the entry
     /// existed.
     #[inline]
-    pub fn find_or_insert(&mut self, h: u64, eq: impl FnMut(&K) -> bool, make: impl FnOnce() -> (K, V), rehash: impl Fn(&K) -> u64) -> (bool, &mut V) {
+    pub fn find_or_insert(
+        &mut self,
+        h: u64,
+        eq: impl FnMut(&K) -> bool,
+        make: impl FnOnce() -> (K, V),
+        rehash: impl Fn(&K) -> u64,
+    ) -> (bool, &mut V) {
         if let Some(i) = self.find(h, eq) {
             return (true, unsafe { self.val_mut(i) });
         }
@@ -834,13 +815,7 @@ impl<K, V, I: RawIndex, const HASH_BITS: u32> RawTable<K, V, I, HASH_BITS> {
         let (lo_end, hi_start, remaining) = (self.lo_size, self.hi_start(), self.len());
         // the drop of `self` then frees nothing
         let memory = self.take_memory();
-        RawIntoIter {
-            memory,
-            cur: 0,
-            lo_end,
-            hi_start,
-            remaining,
-        }
+        RawIntoIter { memory, cur: 0, lo_end, hi_start, remaining }
     }
 }
 
@@ -913,7 +888,9 @@ impl<'a, K, V> Iterator for RawIter<'a, K, V> {
         if self.cur == self.lo_end {
             self.cur = self.hi_start; // the lo → hi bridge fires once
         }
-        let e = unsafe { (self.keys.get_unchecked(self.cur).assume_init_ref(), self.vals.get_unchecked(self.cur).assume_init_ref()) };
+        let e = unsafe {
+            (self.keys.get_unchecked(self.cur).assume_init_ref(), self.vals.get_unchecked(self.cur).assume_init_ref())
+        };
         self.cur += 1;
         self.remaining -= 1;
         Some(e)

@@ -18,58 +18,40 @@ macro_rules! float_key {
             /// The bits that decide equality and hash.
             #[inline(always)]
             pub fn key_bits(self) -> $bits {
-                if self.0 == 0.0 {
-                    0
-                } else if self.0.is_nan() {
-                    <$t>::NAN.to_bits()
-                } else {
-                    self.0.to_bits()
-                }
+                if self.0 == 0.0 { 0 } else if self.0.is_nan() { <$t>::NAN.to_bits() } else { self.0.to_bits() }
             }
         }
 
         impl PartialEq for $name {
             #[inline(always)]
-            fn eq(&self, other: &Self) -> bool {
-                self.key_bits() == other.key_bits()
-            }
+            fn eq(&self, other: &Self) -> bool { self.key_bits() == other.key_bits() }
         }
 
         impl Eq for $name {}
 
         impl Hash for $name {
             #[inline(always)]
-            fn hash<H: Hasher>(&self, state: &mut H) {
-                self.key_bits().hash(state)
-            }
+            fn hash<H: Hasher>(&self, state: &mut H) { self.key_bits().hash(state) }
         }
 
         impl Deref for $name {
             type Target = $t;
             #[inline(always)]
-            fn deref(&self) -> &$t {
-                &self.0
-            }
+            fn deref(&self) -> &$t { &self.0 }
         }
 
         impl From<$t> for $name {
             #[inline(always)]
-            fn from(v: $t) -> Self {
-                Self(v)
-            }
+            fn from(v: $t) -> Self { Self(v) }
         }
 
         impl From<$name> for $t {
             #[inline(always)]
-            fn from(k: $name) -> Self {
-                k.0
-            }
+            fn from(k: $name) -> Self { k.0 }
         }
 
         impl fmt::Debug for $name {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                fmt::Debug::fmt(&self.0, f)
-            }
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt::Debug::fmt(&self.0, f) }
         }
     };
 }

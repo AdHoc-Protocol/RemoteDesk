@@ -36,15 +36,11 @@ pub struct ByteMap<K, V> {
 impl<K, V> ByteMap<K, V> {
     /// First entry token. Compressed tokens pack value index and byte key; see [`super::token`].
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        self.keys.token()
-    }
+    pub fn token(&self) -> Option<Token> { self.keys.token() }
 
     #[inline(always)]
     pub fn next_token(&self, token: Token) -> Option<Token> {
-        if !self.contains_token(token) {
-            return None;
-        }
+        if !self.contains_token(token) { return None; }
         let next_byte = self.keys.next_from((token & 255) + 1)? as usize;
         match &self.store {
             Store::Compressed(values) => {
@@ -67,37 +63,26 @@ impl<K, V> ByteMap<K, V> {
     /// Direct value slot access: compressed tokens avoid repeating the key rank calculation.
     #[inline(always)]
     pub fn value_by_token(&self, token: Token) -> Option<&V> {
-        if !self.contains_token(token) {
-            return None;
-        }
-        Some(unsafe {
-            match &self.store {
-                Store::Compressed(values) => values.get_unchecked(token >> 8),
-                Store::Flat(values) => values.get_unchecked(token).assume_init_ref(),
-            }
-        })
+        if !self.contains_token(token) { return None; }
+        Some(unsafe { match &self.store {
+            Store::Compressed(values) => values.get_unchecked(token >> 8),
+            Store::Flat(values) => values.get_unchecked(token).assume_init_ref(),
+        } })
     }
 
     #[inline(always)]
     pub fn value_by_token_mut(&mut self, token: Token) -> Option<&mut V> {
-        if !self.contains_token(token) {
-            return None;
-        }
-        Some(unsafe {
-            match &mut self.store {
-                Store::Compressed(values) => values.get_unchecked_mut(token >> 8),
-                Store::Flat(values) => values.get_unchecked_mut(token).assume_init_mut(),
-            }
-        })
+        if !self.contains_token(token) { return None; }
+        Some(unsafe { match &mut self.store {
+            Store::Compressed(values) => values.get_unchecked_mut(token >> 8),
+            Store::Flat(values) => values.get_unchecked_mut(token).assume_init_mut(),
+        } })
     }
 
     /// Does not allocate.
     #[inline]
     pub const fn new() -> Self {
-        Self {
-            keys: ByteSet::new(),
-            store: Store::Compressed(Vec::new()),
-        }
+        Self { keys: ByteSet::new(), store: Store::Compressed(Vec::new()) }
     }
 
     /// Room for `capacity` entries (at most 256): the flat layout above 128.
@@ -166,13 +151,7 @@ impl<K, V> ByteMap<K, V> {
             Store::Compressed(v) => (v.as_ptr(), false),
             Store::Flat(f) => (f.as_ptr() as *const V, true),
         };
-        Iter {
-            keys: self.keys.iter(),
-            base,
-            flat,
-            n: 0,
-            _marker: PhantomData,
-        }
+        Iter { keys: self.keys.iter(), base, flat, n: 0, _marker: PhantomData }
     }
 
     #[inline]
@@ -181,13 +160,7 @@ impl<K, V> ByteMap<K, V> {
             Store::Compressed(v) => (v.as_mut_ptr(), false),
             Store::Flat(f) => (f.as_mut_ptr() as *mut V, true),
         };
-        IterMut {
-            keys: self.keys.iter(),
-            base,
-            flat,
-            n: 0,
-            _marker: PhantomData,
-        }
+        IterMut { keys: self.keys.iter(), base, flat, n: 0, _marker: PhantomData }
     }
 }
 
@@ -208,9 +181,7 @@ impl<K: ByteKey, V> ByteMap<K, V> {
     #[inline(always)]
     pub fn token_of(&self, key: K) -> Option<Token> {
         let byte = key.to_byte();
-        if !self.keys.contains_byte(byte) {
-            return None;
-        }
+        if !self.keys.contains_byte(byte) { return None; }
         Some(match &self.store {
             Store::Compressed(_) => (self.keys.rank_below(byte) << 8) | byte as usize,
             Store::Flat(_) => byte as usize,

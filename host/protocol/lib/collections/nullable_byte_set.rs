@@ -50,25 +50,17 @@ impl<K> Hash for NullableByteSet<K> {
 impl<K> NullableByteSet<K> {
     /// Keyed entries first, then `NULL_TOKEN`; see [`super::token`].
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        or_null(self.set.token(), self.has_null)
-    }
+    pub fn token(&self) -> Option<Token> { or_null(self.set.token(), self.has_null) }
 
     #[inline(always)]
     pub fn next_token(&self, token: Token) -> Option<Token> {
-        if token == NULL_TOKEN || !self.set.contains_token(token) {
-            return None;
-        }
+        if token == NULL_TOKEN || !self.set.contains_token(token) { return None; }
         or_null(self.set.next_token(token), self.has_null)
     }
 
     #[inline(always)]
     pub fn contains_token(&self, token: Token) -> bool {
-        if token == NULL_TOKEN {
-            self.has_null
-        } else {
-            self.set.contains_token(token)
-        }
+        if token == NULL_TOKEN { self.has_null } else { self.set.contains_token(token) }
     }
 
     #[inline(always)]
@@ -160,29 +152,20 @@ impl<K> NullableByteSet<K> {
     /// `None` first, then ascending keys.
     #[inline]
     pub fn iter(&self) -> Iter<K> {
-        Iter {
-            null: self.has_null,
-            inner: self.set.iter(),
-        }
+        Iter { null: self.has_null, inner: self.set.iter() }
     }
 }
 
 impl<K: ByteKey> NullableByteSet<K> {
     #[inline(always)]
     pub fn token_of(&self, key: Option<K>) -> Option<Token> {
-        match key {
-            Some(k) => self.set.token_of(k),
-            None => self.has_null.then_some(NULL_TOKEN),
-        }
+        match key { Some(k) => self.set.token_of(k), None => self.has_null.then_some(NULL_TOKEN) }
     }
 
     #[inline(always)]
     pub fn key_by_token(&self, token: Token) -> Option<Option<K>> {
-        if token == NULL_TOKEN {
-            self.has_null.then_some(None)
-        } else {
-            self.set.key_by_token(token).map(Some)
-        }
+        if token == NULL_TOKEN { self.has_null.then_some(None) }
+        else { self.set.key_by_token(token).map(Some) }
     }
 
     /// The `n`-th non-`None` key of a pass key after key (the generated sending), see
@@ -206,9 +189,7 @@ impl<K: ByteKey> NullableByteSet<K> {
 
     /// Key without `Option`, the null key separately: the serializer and the parser neither wrap a key nor check it for null.
     #[inline(always)]
-    pub fn insert_key(&mut self, k: K) -> bool {
-        self.set.insert(k)
-    }
+    pub fn insert_key(&mut self, k: K) -> bool { self.set.insert(k) }
 
     /// `true` if the key was not present.
     #[inline(always)]
@@ -269,10 +250,7 @@ pub struct Iter<K> {
 
 impl<K> Clone for Iter<K> {
     fn clone(&self) -> Self {
-        Self {
-            null: self.null,
-            inner: self.inner.clone(),
-        }
+        Self { null: self.null, inner: self.inner.clone() }
     }
 }
 

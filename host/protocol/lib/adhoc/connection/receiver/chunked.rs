@@ -6,9 +6,9 @@
 //! Stages run from the wire toward the destination. The receiver retains the stream and stage state
 //! at each nesting level, reusing the stages for subsequent streams.
 
-use super::string::RxText;
 use crate::lib::adhoc::chain::{CustomRx, Stage};
 use crate::lib::adhoc::connection::receiver::Rx;
+use super::string::RxText;
 
 /// A stage of the receiving side.
 pub(crate) enum RxStage {
@@ -94,12 +94,7 @@ impl RxChain {
             None => {
                 if let (true, Some(mut d)) = (whole, raw) {
                     if let Err(e) = std::io::Write::flush(&mut d) {
-                        crate::lib::adhoc::connection::receiver::on_error::rx_at(
-                            crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error,
-                            &"the sink of a stream",
-                            &"its flush failed",
-                            Some(&e),
-                        );
+                        crate::lib::adhoc::connection::receiver::on_error::rx_at(crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error, &"the sink of a stream", &"its flush failed", Some(&e));
                     }
                 } // a torn sink goes unflushed
             }
@@ -162,12 +157,7 @@ pub(crate) fn raw_sink(src: &mut Rx<'_>, dst: &mut Option<Box<dyn std::io::Write
         if let Err(e) = d.write_all(&src.buffer[src.byte_..src.byte_max]) {
             // the sink of the application failed: it is told, and the rest of the stream is read
             // unseen - the connection goes on
-            crate::lib::adhoc::connection::receiver::on_error::rx_at(
-                crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error,
-                &"the sink of a stream",
-                &"failed: the rest of the stream is read unseen",
-                Some(&e),
-            );
+            crate::lib::adhoc::connection::receiver::on_error::rx_at(crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error, &"the sink of a stream", &"failed: the rest of the stream is read unseen", Some(&e));
             *dst = None;
         }
     }
@@ -187,10 +177,7 @@ pub struct Producer {
 
 impl Producer {
     pub const fn new(name: &'static str) -> Self {
-        Self {
-            name,
-            make: parking_lot::RwLock::new(None),
-        }
+        Self { name, make: parking_lot::RwLock::new(None) }
     }
 
     /// Assigns the producer of the sinks: `scope` is the connection the stream comes on, `downcast_ref` gets it.

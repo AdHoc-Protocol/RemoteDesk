@@ -4,10 +4,10 @@
 //! A relay between two legs: frames in, frames out, the body unchanged, the regions re-framed.
 
 use super::*;
-use crate::lib::adhoc::connection::receiver::Receiver;
 use crate::lib::adhoc::connection::receiver::{RxHost, RxState};
-use crate::lib::adhoc::connection::transmitter::Transmitter;
 use crate::lib::adhoc::connection::transmitter::TxHost;
+use crate::lib::adhoc::connection::receiver::Receiver;
+use crate::lib::adhoc::connection::transmitter::Transmitter;
 use crate::lib::adhoc::{BytesDst, BytesSrc};
 use std::collections::VecDeque;
 use std::sync::Mutex;
@@ -69,14 +69,10 @@ impl RxHost for In {
     }
     fn put_bytes(&mut self, src: &mut Rx<'_>) -> bool {
         let out = self.out.clone();
-        self.relay.clone().put_bytes(
-            src,
-            move |r, _tid| {
-                out.q.lock().unwrap().0.push_back(r.clone());
-                Some(Arc::new(Wake) as Arc<dyn External>)
-            },
-            |_| {},
-        )
+        self.relay.clone().put_bytes(src, move |r, _tid| {
+            out.q.lock().unwrap().0.push_back(r.clone());
+            Some(Arc::new(Wake) as Arc<dyn External>)
+        }, |_| {})
     }
     fn on_received(&mut self, _st: &mut RxState) {}
 }
@@ -126,14 +122,7 @@ fn relay_forwards_frames() {
     }
     for step in [1usize, 3, 1000, 70_000] {
         let out = Arc::new(Out::default());
-        let mut sink = Receiver::new(
-            In {
-                relay: Relay::new(),
-                out: out.clone(),
-                on: false,
-            },
-            1,
-        );
+        let mut sink = Receiver::new(In { relay: Relay::new(), out: out.clone(), on: false }, 1);
         let mut source = Transmitter::new(out.clone());
         let mut got = vec![];
         let mut drain = |source: &mut Transmitter<Out>, got: &mut Vec<u8>| loop {
@@ -176,14 +165,7 @@ fn relay_takes_receive_buffers_over() {
     }
     for step in [1usize, 3, 1000, 8192, 70_000] {
         let out = Arc::new(Out::default());
-        let mut sink = Receiver::new(
-            In {
-                relay: Relay::new(),
-                out: out.clone(),
-                on: false,
-            },
-            1,
-        );
+        let mut sink = Receiver::new(In { relay: Relay::new(), out: out.clone(), on: false }, 1);
         let mut source = Transmitter::new(out.clone());
         let mut got = vec![];
         let mut tbuf = vec![0u8; 1024];
@@ -258,14 +240,10 @@ impl RxHost for InW {
     }
     fn put_bytes(&mut self, src: &mut Rx<'_>) -> bool {
         let out = self.out.clone();
-        self.relay.clone().put_bytes(
-            src,
-            move |r, _tid| {
-                out.q.lock().unwrap().0.push_back(r.clone());
-                Some(Arc::new(Wake) as Arc<dyn External>)
-            },
-            |_| {},
-        )
+        self.relay.clone().put_bytes(src, move |r, _tid| {
+            out.q.lock().unwrap().0.push_back(r.clone());
+            Some(Arc::new(Wake) as Arc<dyn External>)
+        }, |_| {})
     }
     fn on_received(&mut self, _st: &mut RxState) {}
 }
@@ -284,70 +262,57 @@ fn relay_survives_engine_wakes() {
         wire.extend(frame(*tid, b, [1, 100, 1000, 65_534][i % 4], *abort));
     }
     for rx_id in 1..=4usize {
-        for step in [1usize, 2, 3, 4, 5, 7, 64, 1000, 1014] {
-            for drain_room in [128usize, 200, 1014, 5000] {
-                let out = Arc::new(Out::default());
-                let wake = Arc::new(InboundWake(std::sync::atomic::AtomicBool::new(false)));
-                let mut sink = Receiver::new(
-                    InW {
-                        relay: Relay::new(),
-                        out: out.clone(),
-                        wake: wake.clone(),
-                        rx_id,
-                    },
-                    rx_id as i32,
-                );
-                let mut source = Transmitter::new(out.clone());
-                let mut got = vec![];
-                let mut drain_some = |source: &mut Transmitter<Out>, got: &mut Vec<u8>| {
-                    let mut o = vec![0u8; drain_room];
-                    let n = source.read(&mut o);
-                    if 0 < n {
-                        got.extend_from_slice(&o[..n as usize]);
-                    }
-                    n
-                };
-                for w in wire.chunks(step) {
-                    let mut buf = w.to_vec();
-                    let mut at = 0;
-                    let mut idle = 0;
-                    while at < buf.len() {
-                        let n = sink.on_slice(&mut buf[at..]).expect("the stream is broken");
-                        at += n;
-                        if at == buf.len() {
-                            break;
-                        }
-                        if 0 < n {
-                            continue;
-                        }
-                        // parked: only a wake offers the tail again
-                        wake.0.store(false, std::sync::atomic::Ordering::Release);
-                        loop {
-                            let d = drain_some(&mut source, &mut got);
-                            if wake.0.swap(false, std::sync::atomic::Ordering::AcqRel) {
-                                break;
-                            }
-                            if d <= 0 {
-                                idle += 1;
-                                assert!(idle < 3, "rx_id {rx_id} step {step} room {drain_room}: parked, the outbound is dry and nobody wakes the receive");
-                            }
-                        }
-                    }
-                    drain_some(&mut source, &mut got);
+    for step in [1usize, 2, 3, 4, 5, 7, 64, 1000, 1014] {
+        for drain_room in [128usize, 200, 1014, 5000] {
+            let out = Arc::new(Out::default());
+            let wake = Arc::new(InboundWake(std::sync::atomic::AtomicBool::new(false)));
+            let mut sink = Receiver::new(InW { relay: Relay::new(), out: out.clone(), wake: wake.clone(), rx_id }, rx_id as i32);
+            let mut source = Transmitter::new(out.clone());
+            let mut got = vec![];
+            let mut drain_some = |source: &mut Transmitter<Out>, got: &mut Vec<u8>| {
+                let mut o = vec![0u8; drain_room];
+                let n = source.read(&mut o);
+                if 0 < n {
+                    got.extend_from_slice(&o[..n as usize]);
                 }
-                for _ in 0..1_000_000 {
-                    if drain_some(&mut source, &mut got) < 0 {
+                n
+            };
+            for w in wire.chunks(step) {
+                let mut buf = w.to_vec();
+                let mut at = 0;
+                let mut idle = 0;
+                while at < buf.len() {
+                    let n = sink.on_slice(&mut buf[at..]).expect("the stream is broken");
+                    at += n;
+                    if at == buf.len() {
                         break;
                     }
+                    if 0 < n {
+                        continue;
+                    }
+                    // parked: only a wake offers the tail again
+                    wake.0.store(false, std::sync::atomic::Ordering::Release);
+                    loop {
+                        let d = drain_some(&mut source, &mut got);
+                        if wake.0.swap(false, std::sync::atomic::Ordering::AcqRel) {
+                            break;
+                        }
+                        if d <= 0 {
+                            idle += 1;
+                            assert!(idle < 3, "rx_id {rx_id} step {step} room {drain_room}: parked, the outbound is dry and nobody wakes the receive");
+                        }
+                    }
                 }
-                assert!(
-                    frames(&got) == bodies,
-                    "rx_id {rx_id} step {step} room {drain_room}: {} of {} frames came out",
-                    frames(&got).len(),
-                    bodies.len()
-                );
+                drain_some(&mut source, &mut got);
             }
+            for _ in 0..1_000_000 {
+                if drain_some(&mut source, &mut got) < 0 {
+                    break;
+                }
+            }
+            assert!(frames(&got) == bodies, "rx_id {rx_id} step {step} room {drain_room}: {} of {} frames came out", frames(&got).len(), bodies.len());
         }
+    }
     }
 }
 
@@ -423,13 +388,7 @@ fn gone_ends_the_frame_and_bids_farewell() {
         let out = Arc::new(Mutex::new(Arc::new(Out::default())));
         let o = out.lock().unwrap().clone();
         let relay = Relay::new();
-        let mut sink = Receiver::new(
-            InR {
-                relay: relay.clone(),
-                out: out.clone(),
-            },
-            1,
-        );
+        let mut sink = Receiver::new(InR { relay: relay.clone(), out: out.clone() }, 1);
         let mut source = Transmitter::new(o.clone());
         let mut got = vec![];
         let mut wire = frame(1, &body(10, 1), 100, false);
@@ -452,13 +411,7 @@ fn gone_ends_the_frame_and_bids_farewell() {
         let relay = Relay::new();
         let o = Arc::new(Out::default());
         *out.lock().unwrap() = o.clone();
-        let mut sink = Receiver::new(
-            InR {
-                relay: relay.clone(),
-                out: out.clone(),
-            },
-            1,
-        );
+        let mut sink = Receiver::new(InR { relay: relay.clone(), out: out.clone() }, 1);
         let mut source = Transmitter::new(o.clone());
         let mut got = vec![];
         let mut wire = frame(7, &body(30, 7), 100, false);
@@ -482,13 +435,7 @@ fn outbound_lost_drops_the_rest_of_the_frame() {
             let first = Arc::new(Out::default());
             let out = Arc::new(Mutex::new(first.clone()));
             let relay = Relay::new();
-            let mut sink = Receiver::new(
-                InR {
-                    relay: relay.clone(),
-                    out: out.clone(),
-                },
-                1,
-            );
+            let mut sink = Receiver::new(InR { relay: relay.clone(), out: out.clone() }, 1);
             let mut source = Transmitter::new(first.clone());
             let mut got = vec![];
             let lost = frame(1, &body(50_000, 1), 1000, false);
@@ -509,11 +456,7 @@ fn outbound_lost_drops_the_rest_of_the_frame() {
             wire.extend(frame(3, &body(10, 3), 100, true));
             feed(&mut sink, &mut source, &mut got, &wire, step);
             let f = frames(&got);
-            assert!(
-                f == vec![(2, body(3000, 2), false), (3, body(10, 3), true)],
-                "step {step} cut {cut}: {:?}",
-                f.iter().map(|x| (x.0, x.1.len(), x.2)).collect::<Vec<_>>()
-            );
+            assert!(f == vec![(2, body(3000, 2), false), (3, body(10, 3), true)], "step {step} cut {cut}: {:?}", f.iter().map(|x| (x.0, x.1.len(), x.2)).collect::<Vec<_>>());
         }
     }
 }
@@ -528,13 +471,7 @@ fn a_frame_abandoned_mid_way_ends_and_the_stream_goes_on() {
             let o = Arc::new(Out::default());
             let out = Arc::new(Mutex::new(o.clone()));
             let relay = Relay::new();
-            let mut sink = Receiver::new(
-                InR {
-                    relay: relay.clone(),
-                    out: out.clone(),
-                },
-                1,
-            );
+            let mut sink = Receiver::new(InR { relay: relay.clone(), out: out.clone() }, 1);
             let mut source = Transmitter::new(o.clone());
             let mut got = vec![];
             let half = frame(2, &body(50_000, 2), 1000, false);
@@ -605,13 +542,7 @@ fn a_tunnel_its_source_ended_hears_no_farewell() {
     let o = Arc::new(Out::default());
     let out = Arc::new(Mutex::new(o.clone()));
     let relay = Relay::new();
-    let mut sink = Receiver::new(
-        InR {
-            relay: relay.clone(),
-            out: out.clone(),
-        },
-        1,
-    );
+    let mut sink = Receiver::new(InR { relay: relay.clone(), out: out.clone() }, 1);
     let mut source = Transmitter::new(o.clone());
     let mut got = vec![];
     let mut wire = frame(1, &body(30, 1), 100, false);
@@ -640,14 +571,10 @@ fn a_frame_that_ends_in_the_bytes_read_with_its_id_goes_out_at_once() {
         }
         fn put_bytes(&mut self, src: &mut Rx<'_>) -> bool {
             let out = self.out.clone();
-            self.relay.clone().put_bytes(
-                src,
-                move |r, _tid| {
-                    out.q.lock().unwrap().0.push_back(r.clone());
-                    Some(Arc::new(Wake) as Arc<dyn External>)
-                },
-                |_| {},
-            )
+            self.relay.clone().put_bytes(src, move |r, _tid| {
+                out.q.lock().unwrap().0.push_back(r.clone());
+                Some(Arc::new(Wake) as Arc<dyn External>)
+            }, |_| {})
         }
         fn on_received(&mut self, _st: &mut RxState) {}
     }
@@ -656,13 +583,7 @@ fn a_frame_that_ends_in_the_bytes_read_with_its_id_goes_out_at_once() {
         (vec![ID as u8, 7, 0xFF, 0xFF], vec![ID as u8, 7, 0xFF, 0xFF]), // a farewell: ABORT in the id
     ] {
         let out = Arc::new(Out::default());
-        let mut sink = Receiver::new(
-            Wide {
-                relay: Relay::new(),
-                out: out.clone(),
-            },
-            4,
-        );
+        let mut sink = Receiver::new(Wide { relay: Relay::new(), out: out.clone() }, 4);
         let mut source = Transmitter::new(out.clone());
         assert_eq!(sink.on_part(&wire).expect("the stream is broken"), wire.len());
         let mut got = vec![];
@@ -677,14 +598,7 @@ fn a_frame_that_ends_in_the_bytes_read_with_its_id_goes_out_at_once() {
 fn a_closed_relay_ends_its_frame_and_lets_nothing_through() {
     let out = Arc::new(Out::default());
     let relay = Relay::new();
-    let mut sink = Receiver::new(
-        In {
-            relay: relay.clone(),
-            out: out.clone(),
-            on: false,
-        },
-        1,
-    );
+    let mut sink = Receiver::new(In { relay: relay.clone(), out: out.clone(), on: false }, 1);
     let mut source = Transmitter::new(out.clone());
     let a = frame(5, &[1; 300], 100, false);
     let b = frame(6, &[2; 50], 100, false);
@@ -751,14 +665,7 @@ fn a_tunnel_nothing_serves_hears_its_end_once() {
     }
     let back = Arc::new(Out::default());
     let relay = Relay::new();
-    let mut sink = Receiver::new(
-        Lost {
-            relay: relay.clone(),
-            back: back.clone(),
-            refuses: 8,
-        },
-        1,
-    );
+    let mut sink = Receiver::new(Lost { relay: relay.clone(), back: back.clone(), refuses: 8 }, 1);
     let mut source = Transmitter::new(back.clone());
     let mut wire = frame(7, &[1, 2, 3], 2, false);
     wire.extend(frame(7, &[4], 1, false)); // told already: nothing
@@ -807,13 +714,7 @@ fn gone_tells_each_far_end_where_its_frames_went() {
     }
     let outs = [Arc::new(Out::default()), Arc::new(Out::default())];
     let relay = Relay::new();
-    let mut sink = Receiver::new(
-        Two {
-            relay: relay.clone(),
-            outs: outs.clone(),
-        },
-        1,
-    );
+    let mut sink = Receiver::new(Two { relay: relay.clone(), outs: outs.clone() }, 1);
     let mut sources = [Transmitter::new(outs[0].clone()), Transmitter::new(outs[1].clone())];
     let mut got = [vec![], vec![]];
     let mut wire = frame(4, &[1; 10], 100, false); // to the first far end
@@ -871,17 +772,7 @@ fn relay_opens_circuits() {
     }
     impl RxHost for Leg {
         fn on_receiving(&mut self, _src: &mut Rx<'_>, id: u32) -> bool {
-            self.relay.arm(
-                id,
-                1,
-                2,
-                1,
-                Some(if self.mode == 1 {
-                    Arc::new(Dialed) as Arc<dyn External>
-                } else {
-                    Arc::new(Wake) as Arc<dyn External>
-                }),
-            );
+            self.relay.arm(id, 1, 2, 1, Some(if self.mode == 1 { Arc::new(Dialed) as Arc<dyn External> } else { Arc::new(Wake) as Arc<dyn External> }));
             self.relay.carrier(&self.me);
             id == ID
         }
@@ -927,16 +818,7 @@ fn relay_opens_circuits() {
     let mut wire = frame(5, b"hello", 2, false);
     wire.extend(frame(5, b"again", 100, false));
     wire.extend(frame(5, b"", 100, true));
-    let on = pump(
-        Leg {
-            relay: Relay::new(),
-            out: Arc::new(Out::default()),
-            me: a.clone(),
-            to: n2.clone(),
-            mode: 0,
-        },
-        &wire,
-    );
+    let on = pump(Leg { relay: Relay::new(), out: Arc::new(Out::default()), me: a.clone(), to: n2.clone(), mode: 0 }, &wire);
     assert_eq!(&on[..3], &[ID as u8, 0xFF, 0xFF], "the first frame opens the circuit");
     let label = u16::from_le_bytes([on[3], on[4]]);
     assert_eq!(u16::from_le_bytes([on[5], on[6]]), 7, "the tunnel id on the far relay");
@@ -947,16 +829,7 @@ fn relay_opens_circuits() {
     assert_eq!(frames(&plain), vec![(label, b"hello".to_vec(), false), (label, b"again".to_vec(), false), (label, vec![], true)]);
 
     // N2: the open names tunnel 7 - the end gets a label of N2
-    let at_b = pump(
-        Leg {
-            relay: Relay::new(),
-            out: Arc::new(Out::default()),
-            me: n1.clone(),
-            to: b.clone(),
-            mode: 1,
-        },
-        &on,
-    );
+    let at_b = pump(Leg { relay: Relay::new(), out: Arc::new(Out::default()), me: n1.clone(), to: b.clone(), mode: 1 }, &on);
     let got = frames(&at_b);
     let m = got[0].0;
     assert_ne!(m, label);
@@ -965,16 +838,7 @@ fn relay_opens_circuits() {
     // B answers on its label: back to N1 under N1's label, and its end closes the circuit
     let mut back = frame(m, b"heard", 100, false);
     back.extend(frame(m, b"", 100, true));
-    let at_n1 = pump(
-        Leg {
-            relay: Relay::new(),
-            out: Arc::new(Out::default()),
-            me: b.clone(),
-            to: n1.clone(),
-            mode: 2,
-        },
-        &back,
-    );
+    let at_n1 = pump(Leg { relay: Relay::new(), out: Arc::new(Out::default()), me: b.clone(), to: n1.clone(), mode: 2 }, &back);
     assert_eq!(frames(&at_n1), vec![(label, b"heard".to_vec(), false), (label, vec![], true)]);
     let m_index = ((m as u32 - 0x4000) >> 1) as u32;
     assert!(!labels_().lock().given.contains_key(&m_index), "both sides ended: the circuit of N2 is over");

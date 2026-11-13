@@ -28,29 +28,17 @@ pub(crate) fn dense_contains(token: Token, lo_end: usize, hi_start: usize, cap: 
 
 #[inline(always)]
 pub(crate) fn dense_first(lo_end: usize, hi_start: usize, cap: usize) -> Option<Token> {
-    if lo_end != 0 {
-        Some(0)
-    } else if hi_start < cap {
-        Some(hi_start)
-    } else {
-        None
-    }
+    if lo_end != 0 { Some(0) } else if hi_start < cap { Some(hi_start) } else { None }
 }
 
 #[inline(always)]
 pub(crate) fn dense_next(token: Token, lo_end: usize, hi_start: usize, cap: usize) -> Option<Token> {
-    if !dense_contains(token, lo_end, hi_start, cap) {
-        return None;
-    }
+    if !dense_contains(token, lo_end, hi_start, cap) { return None; }
     // A live index is below capacity, so increment cannot overflow.
     let next = token + 1;
-    if next < lo_end {
-        Some(next)
-    } else if next < hi_start {
-        (hi_start < cap).then_some(hi_start)
-    } else {
-        (next < cap).then_some(next)
-    }
+    if next < lo_end { Some(next) }
+    else if next < hi_start { (hi_start < cap).then_some(hi_start) }
+    else { (next < cap).then_some(next) }
 }
 
 #[inline(always)]

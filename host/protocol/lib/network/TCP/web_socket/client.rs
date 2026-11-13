@@ -12,11 +12,11 @@ use std::time::Duration;
 
 use super::super::super::admission::SocketOptions;
 use super::super::super::engine::Engine;
-use super::super::client::{Core, Upgrade};
-use super::super::external_connection::ExternalConnection;
-use super::super::ConnectionFactory;
-use super::{Codec, WebSocket};
 use crate::lib::adhoc::{BytesDst, BytesSrc};
+use super::super::external_connection::ExternalConnection;
+use super::{Codec, WebSocket};
+use super::super::client::{Core, Upgrade};
+use super::super::ConnectionFactory;
 
 /// What a WebSocket client hears of its connect: the connection once the server's 101 came and
 /// checked out, or what went wrong.
@@ -126,21 +126,12 @@ pub fn connect_with_options(
         Ok(c) => c,
         Err(e) => return on_connected(Err(e)),
     };
-    super::super::dial(
-        engine,
-        addr,
-        timeout,
-        ws,
-        opts,
-        super::super::SlotOf::Clients,
-        false,
-        super::super::SeatBy::Fn(Box::new(move |s| {
-            s.set_chain(chain); // the slot may have had another connection
-            Some(seat(s))
-        })),
-        super::super::Report::of(Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| on_connected(r.map(|state| WebSocket { state })))),
-        None,
-    );
+    super::super::dial(engine, addr, timeout, ws, opts, super::super::SlotOf::Clients, false, super::super::SeatBy::Fn(Box::new(move |s| {
+        s.set_chain(chain); // the slot may have had another connection
+        Some(seat(s))
+    })), super::super::Report::of(Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| {
+        on_connected(r.map(|state| WebSocket { state }))
+    })), None);
 }
 
 /// Continues the parked session of the WebSocket client connection `state` on a new socket to
@@ -148,21 +139,22 @@ pub fn connect_with_options(
 /// position go on on the new connection, which takes the identity of the session; once the 101 came
 /// the peer is asked to go on from where the receiver of the session is. A failed attempt parks the
 /// session again.
-pub fn reconnect(state: &Arc<ExternalConnection>, url: &str, timeout: Option<Duration>, engine: &Arc<Engine>, masking: bool, on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static) {
+pub fn reconnect(
+    state: &Arc<ExternalConnection>,
+    url: &str,
+    timeout: Option<Duration>,
+    engine: &Arc<Engine>,
+    masking: bool,
+    on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static,
+) {
     let (addr, header, target, _) = match resolve(url) {
         Ok(a) => a,
         Err(e) => return on_connected(Err(e)),
     };
     let ws = Some(Codec::client(&header, &target, masking));
-    super::super::redial(
-        state,
-        engine,
-        addr,
-        timeout,
-        ws,
-        SocketOptions::default(),
-        super::super::Report::of(Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| on_connected(r.map(|state| WebSocket { state })))),
-    );
+    super::super::redial(state, engine, addr, timeout, ws, SocketOptions::default(), super::super::Report::of(Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| {
+        on_connected(r.map(|state| WebSocket { state }))
+    })));
 }
 
 /// A WebSocket client of one connection: as [`super::super::Client`], every socket upgraded first.
@@ -182,10 +174,7 @@ impl Client {
     /// other hosts. Panics when the buffers of `engine` are less than [`super::MIN_BUFFER`].
     pub fn with_engine(name: &str, engine: &Arc<Engine>, seat: ConnectionFactory) -> Self {
         super::fits(engine, name).unwrap();
-        Self {
-            core: Core::new(name, engine, seat),
-            masking: std::sync::atomic::AtomicBool::new(true),
-        }
+        Self { core: Core::new(name, engine, seat), masking: std::sync::atomic::AtomicBool::new(true) }
     }
 
     /// How long a read after our own FIN waits for the peer's, in milliseconds.
@@ -200,24 +189,21 @@ impl Client {
 
     /// Connects to `server` and upgrades, naming no target: the root of whoever answers there, its
     /// address the `Host`. As [`connect`](Self::connect) otherwise.
-    pub fn connect_addr(&self, server: SocketAddr, timeout: Option<Duration>, on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static) -> std::io::Result<()> {
+    pub fn connect_addr(
+        &self,
+        server: SocketAddr,
+        timeout: Option<Duration>,
+        on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static,
+    ) -> std::io::Result<()> {
         let header = match server.ip() {
             std::net::IpAddr::V6(a) => format!("[{a}]"),
             a => a.to_string(),
         };
         self.core.add_tls(None);
-        let upgrade = Arc::new(Upgrade {
-            header,
-            target: "/".to_string(),
-            masking: self.masking.load(std::sync::atomic::Ordering::Relaxed),
-            name: None,
-        });
-        self.core.connect(
-            server,
-            timeout,
-            Some(upgrade),
-            Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| on_connected(r.map(|state| WebSocket { state }))),
-        )
+        let upgrade = Arc::new(Upgrade { header, target: "/".to_string(), masking: self.masking.load(std::sync::atomic::Ordering::Relaxed), name: None });
+        self.core.connect(server, timeout, Some(upgrade), Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| {
+            on_connected(r.map(|state| WebSocket { state }))
+        }))
     }
 
     /// Stops at once: the connection is torn down where it stands, and the engine's threads end -
@@ -244,10 +230,7 @@ impl Client {
     /// Its failures - of its connection, of the connects - go to `on_failure`; the engine's handler
     /// when none. Before the first connect.
     pub fn on_failure(self, on_failure: crate::lib::network::failure::OnFailure) -> Self {
-        Self {
-            core: self.core.with_failure(on_failure),
-            ..self
-        }
+        Self { core: self.core.with_failure(on_failure), ..self }
     }
 
     /// The engine its connection runs on.
@@ -270,7 +253,12 @@ impl Client {
     /// thread of the connection's loop once the server's 101 came and checked out, or what went
     /// wrong. A parked session goes on on the new socket. `Err`: a bad URL, a host with no address,
     /// or connected already.
-    pub fn connect(&self, url: &str, timeout: Option<Duration>, on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static) -> std::io::Result<()> {
+    pub fn connect(
+        &self,
+        url: &str,
+        timeout: Option<Duration>,
+        on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static,
+    ) -> std::io::Result<()> {
         let (addr, header, target, name) = resolve(url)?;
         if is_wss(url) {
             let (host, ..) = parse(url)?;
@@ -278,25 +266,23 @@ impl Client {
         } else {
             self.core.add_tls(None);
         }
-        let upgrade = Arc::new(Upgrade {
-            header,
-            target,
-            masking: self.masking.load(std::sync::atomic::Ordering::Relaxed),
-            name,
-        });
-        self.core.connect(
-            addr,
-            timeout,
-            Some(upgrade),
-            Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| on_connected(r.map(|state| WebSocket { state }))),
-        )
+        let upgrade = Arc::new(Upgrade { header, target, masking: self.masking.load(std::sync::atomic::Ordering::Relaxed), name });
+        self.core.connect(addr, timeout, Some(upgrade), Box::new(move |r: std::io::Result<Arc<ExternalConnection>>| {
+            on_connected(r.map(|state| WebSocket { state }))
+        }))
     }
 
     /// As [`connect`](Self::connect), with a chain chosen - TLS: `wss://` puts it under the
     /// WebSocket. It holds for the connects after it, a parked session going on included, until
     /// another is given. The Noise inside the frames is of the protocol layer (`[Noise]` of its
     /// description).
-    pub fn connect_chain(&self, chain: crate::lib::chain::Chain, url: &str, timeout: Option<Duration>, on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static) -> std::io::Result<()> {
+    pub fn connect_chain(
+        &self,
+        chain: crate::lib::chain::Chain,
+        url: &str,
+        timeout: Option<Duration>,
+        on_connected: impl FnOnce(std::io::Result<WebSocket>) + Send + 'static,
+    ) -> std::io::Result<()> {
         self.core.set_chain(chain);
         self.connect(url, timeout, on_connected)
     }
@@ -419,30 +405,23 @@ mod tests {
         }
     }
 
-    /// A peer that breaks the protocol - a frame with an RSV bit and no extension negotiated: the
-    /// server hears WEBSOCKET_PROTOCOL_ERROR, why goes to its handler of failures, and the connection
-    /// is closed.
+/// A peer that breaks the protocol - a frame with an RSV bit and no extension negotiated: the
+/// server hears WEBSOCKET_PROTOCOL_ERROR, why goes to its handler of failures, and the connection
+/// is closed.
     #[test]
     fn a_protocol_error_is_an_event_and_a_failure() {
         use std::io::{Read, Write};
         let events = Arc::new(Mutex::new(Vec::new()));
         let failures = Arc::new(Mutex::new(Vec::<String>::new()));
         let (ev, fl) = (events.clone(), failures.clone());
-        let server = crate::lib::network::TCP::server::Builder::new("ws-fail", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
-            .on_connect(Arc::new(move |_| {
-                (
-                    Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(Default::default())) as Box<dyn BytesSrc>,
-                )
-            }))
+        let server = crate::lib::network::TCP::server::Builder::new("ws-fail", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket()
+            .on_connect(Arc::new(move |_| (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)))
             .on_event(Arc::new(move |_, e| ev.lock().unwrap().push(e)))
             .on_failure(Arc::new(move |_, e| fl.lock().unwrap().push(e.to_string())))
             .build()
             .unwrap();
         let mut c = std::net::TcpStream::connect(server.local_addr().unwrap()).unwrap();
-        c.write_all(b"GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n")
-            .unwrap();
+        c.write_all(b"GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n").unwrap();
         c.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
         let mut answer = Vec::new();
         let mut b = [0u8; 256];
@@ -456,7 +435,7 @@ mod tests {
         loop {
             match c.read(&mut one) {
                 Ok(0) | Err(_) => break, // closed
-                Ok(_) => continue,       // what the server sends before it closes
+                Ok(_) => continue,      // what the server sends before it closes
             }
         }
         for _ in 0..200 {
@@ -477,20 +456,15 @@ mod tests {
         use std::io::{Read, Write};
         let seated = Arc::new(Mutex::new(None::<Arc<ExternalConnection>>));
         let st = seated.clone();
-        let server = crate::lib::network::TCP::server::Builder::new("ws-close", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
+        let server = crate::lib::network::TCP::server::Builder::new("ws-close", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket()
             .on_connect(Arc::new(move |state| {
                 *st.lock().unwrap() = Some(state.clone());
-                (
-                    Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(Default::default())) as Box<dyn BytesSrc>,
-                )
+                (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
             }))
             .build()
             .unwrap();
         let mut c = std::net::TcpStream::connect(server.local_addr().unwrap()).unwrap();
-        c.write_all(b"GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n")
-            .unwrap();
+        c.write_all(b"GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n").unwrap();
         c.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
         let mut answer = Vec::new();
         let mut b = [0u8; 512];
@@ -501,9 +475,7 @@ mod tests {
         }
         let at = answer.windows(4).position(|w| w == b"\r\n\r\n").unwrap() + 4;
         let mut frames = answer[at..].to_vec();
-        let ws = super::super::WebSocket {
-            state: seated.lock().unwrap().clone().unwrap(),
-        };
+        let ws = super::super::WebSocket { state: seated.lock().unwrap().clone().unwrap() };
         let reason = "x".repeat(200);
         assert!(ws.close_graceful(1001, &reason).is_ok(), "a long reason is cut, not refused");
         assert!(ws.close_graceful(1000, "again").is_ok());
@@ -525,34 +497,20 @@ mod tests {
     /// for it hears why, not a close.
     #[test]
     fn an_upgrade_request_too_long_fails_the_connect_with_why() {
-        let server = crate::lib::network::TCP::server::Builder::new("ws-long", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
-            .on_connect(Arc::new(move |_| {
-                (
-                    Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(Default::default())) as Box<dyn BytesSrc>,
-                )
-            }))
+        let server = crate::lib::network::TCP::server::Builder::new("ws-long", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket()
+            .on_connect(Arc::new(move |_| (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)))
             .build()
             .unwrap();
-        let client = Client::new(
-            "ws-long",
-            super::super::MIN_BUFFER,
-            Arc::new(move |_| {
-                (
-                    Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(Default::default())) as Box<dyn BytesSrc>,
-                )
-            }),
-        )
+        let client = Client::new("ws-long", super::super::MIN_BUFFER, Arc::new(move |_| {
+            (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)
+        }))
         .on_failure(Arc::new(|_: &dyn std::fmt::Display, _: &(dyn std::error::Error + 'static)| {}));
         let (tx, rx) = std::sync::mpsc::channel();
         let url = format!("ws://{}/{}", server.local_addr().unwrap(), "a".repeat(super::super::MIN_BUFFER));
-        client
-            .connect(&url, Some(Duration::from_secs(5)), move |r| {
-                let _ = tx.send(r.map(|_| ()));
-            })
-            .unwrap();
+        client.connect(&url, Some(Duration::from_secs(5)), move |r| {
+            let _ = tx.send(r.map(|_| ()));
+        })
+        .unwrap();
         let e = rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap_err();
         assert_eq!(e.kind(), std::io::ErrorKind::InvalidInput, "the connect hears why: {e}");
         client.shutdown();
@@ -565,36 +523,22 @@ mod tests {
     fn a_client_connects_by_address() {
         let got = Arc::new(Mutex::new(Vec::new()));
         let g = got.clone();
-        let server = crate::lib::network::TCP::server::Builder::new("ws-addr", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
-            .on_connect(Arc::new(move |_| {
-                (
-                    Box::new(Collect(g.clone(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(Default::default())) as Box<dyn BytesSrc>,
-                )
-            }))
+        let server = crate::lib::network::TCP::server::Builder::new("ws-addr", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket()
+            .on_connect(Arc::new(move |_| (Box::new(Collect(g.clone(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)))
             .build()
             .unwrap();
         let outbox = Arc::new(Mutex::new(b"by address".to_vec()));
         let ob = outbox.clone();
-        let client = Client::new(
-            "ws-addr",
-            super::super::MIN_BUFFER,
-            Arc::new(move |_| {
-                (
-                    Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(ob.clone())) as Box<dyn BytesSrc>,
-                )
-            }),
-        )
+        let client = Client::new("ws-addr", super::super::MIN_BUFFER, Arc::new(move |_| {
+            (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(ob.clone())) as Box<dyn BytesSrc>)
+        }))
         .on_failure(Arc::new(|_: &dyn std::fmt::Display, _: &(dyn std::error::Error + 'static)| {}));
         assert!(!client.engine().is_shared());
         let (tx, rx) = std::sync::mpsc::channel();
-        client
-            .connect_addr(server.local_addr().unwrap(), Some(Duration::from_secs(5)), move |r| {
-                let _ = tx.send(r);
-            })
-            .unwrap();
+        client.connect_addr(server.local_addr().unwrap(), Some(Duration::from_secs(5)), move |r| {
+            let _ = tx.send(r);
+        })
+        .unwrap();
         let conn = rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap();
         conn.wake_transmit();
         for _ in 0..400 {
@@ -615,33 +559,19 @@ mod tests {
         let got = Arc::new(Mutex::new(Vec::new()));
         let g = got.clone();
         let (core, pool, engine, slot) = {
-            let server = crate::lib::network::TCP::server::Builder::new("ws-gone", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-                .web_socket()
-                .on_connect(Arc::new(move |_| {
-                    (
-                        Box::new(Collect(g.clone(), None, Default::default())) as Box<dyn BytesDst>,
-                        Box::new(Out(Default::default())) as Box<dyn BytesSrc>,
-                    )
-                }))
+            let server = crate::lib::network::TCP::server::Builder::new("ws-gone", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket()
+                .on_connect(Arc::new(move |_| (Box::new(Collect(g.clone(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>)))
                 .build()
                 .unwrap();
-            let client = Client::new(
-                "ws-gone",
-                super::super::MIN_BUFFER,
-                Arc::new(move |_| {
-                    (
-                        Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                        Box::new(Out(Arc::new(Mutex::new(b"gone".to_vec())))) as Box<dyn BytesSrc>,
-                    )
-                }),
-            )
+            let client = Client::new("ws-gone", super::super::MIN_BUFFER, Arc::new(move |_| {
+                (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Arc::new(Mutex::new(b"gone".to_vec())))) as Box<dyn BytesSrc>)
+            }))
             .on_failure(Arc::new(|_: &dyn std::fmt::Display, _: &(dyn std::error::Error + 'static)| {}));
             let (tx, rx) = std::sync::mpsc::channel();
-            client
-                .connect_addr(server.local_addr().unwrap(), Some(Duration::from_secs(5)), move |r| {
-                    let _ = tx.send(r);
-                })
-                .unwrap();
+            client.connect_addr(server.local_addr().unwrap(), Some(Duration::from_secs(5)), move |r| {
+                let _ = tx.send(r);
+            })
+            .unwrap();
             let conn = rx.recv_timeout(Duration::from_secs(10)).unwrap().unwrap();
             conn.wake_transmit();
             for _ in 0..400 {
@@ -651,12 +581,7 @@ mod tests {
                 std::thread::sleep(Duration::from_millis(5));
             }
             assert_eq!(&got.lock().unwrap()[..], b"gone");
-            let watch = (
-                Arc::downgrade(&client.core),
-                Arc::downgrade(&client.core.pool),
-                Arc::downgrade(&client.core.engine),
-                Arc::downgrade(&conn),
-            );
+            let watch = (Arc::downgrade(&client.core), Arc::downgrade(&client.core.pool), Arc::downgrade(&client.core.engine), Arc::downgrade(&conn));
             client.shutdown();
             server.shutdown();
             watch
@@ -678,20 +603,15 @@ mod tests {
         let seated = Arc::new(Mutex::new(None::<Arc<ExternalConnection>>));
         let outbox = Arc::new(Mutex::new(Vec::<u8>::new()));
         let (st, ob) = (seated.clone(), outbox.clone());
-        let server = crate::lib::network::TCP::server::Builder::new("ws-order", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
+        let server = crate::lib::network::TCP::server::Builder::new("ws-order", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket()
             .on_connect(Arc::new(move |state| {
                 *st.lock().unwrap() = Some(state.clone());
-                (
-                    Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(ob.clone())) as Box<dyn BytesSrc>,
-                )
+                (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(ob.clone())) as Box<dyn BytesSrc>)
             }))
             .build()
             .unwrap();
         let mut c = std::net::TcpStream::connect(server.local_addr().unwrap()).unwrap();
-        c.write_all(b"GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n")
-            .unwrap();
+        c.write_all(b"GET / HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n").unwrap();
         c.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
         let mut got = Vec::new();
         let mut b = [0u8; 4096];
@@ -759,12 +679,7 @@ mod tests {
         connect(
             &format!("ws://127.0.0.1:{port}/"),
             Some(Duration::from_millis(300)),
-            |_| {
-                (
-                    Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>,
-                    Box::new(Out(Default::default())) as Box<dyn BytesSrc>,
-                )
-            },
+            |_| (Box::new(Collect(Default::default(), None, Default::default())) as Box<dyn BytesDst>, Box::new(Out(Default::default())) as Box<dyn BytesSrc>),
             move |r| {
                 let _ = tx.send(r.map(|_| ()));
             },
@@ -783,8 +698,7 @@ mod tests {
         let gs = got_server.clone();
         let events = Arc::new(Mutex::new(Vec::new()));
         let ev = events.clone();
-        let server = crate::lib::network::TCP::server::Builder::new("ws-test", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0))
-            .web_socket()
+        let server = crate::lib::network::TCP::server::Builder::new("ws-test", SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 0)).web_socket()
             .on_connect(Arc::new(move |state| {
                 let echo = Arc::new(Mutex::new(Vec::new()));
                 (
@@ -809,10 +723,7 @@ mod tests {
             Some(Duration::from_secs(5)),
             move |st| {
                 st.set_event_sink(Arc::new(move |_, e| cev.lock().unwrap().push(e)));
-                (
-                    Box::new(Collect(gc, None, Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesDst>,
-                    Box::new(Out(ob)) as Box<dyn BytesSrc>,
-                )
+                (Box::new(Collect(gc, None, Arc::new(Mutex::new(Vec::new())))) as Box<dyn BytesDst>, Box::new(Out(ob)) as Box<dyn BytesSrc>)
             },
             move |r| {
                 let _ = tx.send(r);
@@ -839,14 +750,8 @@ mod tests {
         // the socket first, the 101 then: the actors start on the first
         let at = |v: &Vec<Event>, e: Event| v.iter().position(|x| *x == e);
         let (sv, cv) = (events.lock().unwrap().clone(), client_events.lock().unwrap().clone());
-        assert!(
-            at(&sv, Event::REMOTE_CONNECT).is_some() && at(&sv, Event::REMOTE_CONNECT) < at(&sv, Event::WEBSOCKET_REMOTE_CONNECTED),
-            "server: {sv:?}"
-        );
-        assert!(
-            at(&cv, Event::THIS_CONNECT).is_some() && at(&cv, Event::THIS_CONNECT) < at(&cv, Event::WEBSOCKET_THIS_CONNECT),
-            "client: {cv:?}"
-        );
+        assert!(at(&sv, Event::REMOTE_CONNECT).is_some() && at(&sv, Event::REMOTE_CONNECT) < at(&sv, Event::WEBSOCKET_REMOTE_CONNECTED), "server: {sv:?}");
+        assert!(at(&cv, Event::THIS_CONNECT).is_some() && at(&cv, Event::THIS_CONNECT) < at(&cv, Event::WEBSOCKET_THIS_CONNECT), "client: {cv:?}");
         assert!(events.lock().unwrap().contains(&Event::WEBSOCKET_PING));
         for _ in 0..100 {
             if client_events.lock().unwrap().contains(&Event::WEBSOCKET_PONG) {
@@ -854,11 +759,7 @@ mod tests {
             }
             std::thread::sleep(Duration::from_millis(10));
         }
-        assert!(
-            client_events.lock().unwrap().contains(&Event::WEBSOCKET_PONG),
-            "the server answers the PING: {:?}",
-            client_events.lock().unwrap()
-        );
+        assert!(client_events.lock().unwrap().contains(&Event::WEBSOCKET_PONG), "the server answers the PING: {:?}", client_events.lock().unwrap());
         conn.close().unwrap();
         for _ in 0..200 {
             if !conn.state.is_open.load(std::sync::atomic::Ordering::Acquire) {

@@ -46,10 +46,7 @@ impl Keys {
     /// No key and no Envelope: one ring for all, nothing is made.
     pub fn none() -> Self {
         static NONE: std::sync::OnceLock<Arc<Keyring>> = std::sync::OnceLock::new();
-        Self {
-            keys: NONE.get_or_init(|| Arc::new(Keyring::new())).clone(),
-            envelope: None,
-        }
+        Self { keys: NONE.get_or_init(|| Arc::new(Keyring::new())).clone(), envelope: None }
     }
 }
 
@@ -71,10 +68,7 @@ pub struct Staged {
 
 impl Staged {
     pub fn new(make: impl FnOnce() -> Box<dyn BytesSrc> + Send + 'static) -> Self {
-        Self {
-            make: Some(Box::new(make)),
-            made: None,
-        }
+        Self { make: Some(Box::new(make)), made: None }
     }
 }
 
@@ -148,11 +142,7 @@ impl BytesDst for Lent {
 impl Unstaged {
     /// `make` puts the stages over the sink it is given: the innermost first.
     pub fn new(make: impl FnOnce(Box<dyn BytesDst>) -> Box<dyn BytesDst> + Send + 'static) -> Self {
-        Self {
-            slot: Default::default(),
-            make: Some(Box::new(make)),
-            made: None,
-        }
+        Self { slot: Default::default(), make: Some(Box::new(make)), made: None }
     }
 
     /// `f` with the stages over `sink`: what they give goes there.
@@ -273,13 +263,7 @@ impl Native {
     fn new(tx: bool, run: Run) -> Self {
         // SAFETY: a call with no arguments
         let size = unsafe { (api().stages_size)() } as usize;
-        let mut s = Self {
-            mem: Mem::new(size),
-            staging: Vec::new(),
-            in_place: false,
-            kinds: 0,
-            envelope: 0,
-        };
+        let mut s = Self { mem: Mem::new(size), staging: Vec::new(), in_place: false, kinds: 0, envelope: 0 };
         s.set_i(TX, tx as i32);
         s.set_i(EXT, 1);
         let n = if run.kind2 == 0 { 1 } else { 2 };
@@ -289,13 +273,7 @@ impl Native {
         s.set_i(KIND + 4, run.kind2);
         s.set_i(LEVEL + 4, run.level2);
         s.kinds = 1 << run.kind1 | if run.kind2 == 0 { 0 } else { 1 << run.kind2 };
-        s.envelope = if run.kind1 == ENVELOPE {
-            run.level1
-        } else if run.kind2 == ENVELOPE {
-            run.level2
-        } else {
-            0
-        };
+        s.envelope = if run.kind1 == ENVELOPE { run.level1 } else if run.kind2 == ENVELOPE { run.level2 } else { 0 };
         s.in_place = n == 1 && (run.kind1 == CHACHA20 || run.kind1 == CHACHA20_PACK);
         if s.has(ZSTD) {
             s.room(128 * 1024 + 64); // what Zstd decompresses into at once
@@ -382,10 +360,7 @@ impl Native {
     fn keyed_tx(&mut self, dst: &mut Out<'_>, own: Option<&Keys>) {
         if self.has(CHACHA20_PACK) {
             let k = match own {
-                None => dst
-                    .keys
-                    .current()
-                    .expect("A pack chain with ChaCha20 on a connection without keys: add a key to its transmitter's and receiver's keys."),
+                None => dst.keys.current().expect("A pack chain with ChaCha20 on a connection without keys: add a key to its transmitter's and receiver's keys."),
                 Some(o) => o.keys.current().expect(NO_OWN_KEY),
             };
             self.key(0, &k);
@@ -395,18 +370,11 @@ impl Native {
         if self.has(ENVELOPE) {
             let flags = self.envelope;
             let e = match own {
-                None => dst
-                    .envelope
-                    .as_ref()
-                    .and_then(|e| e.tx.load_full())
-                    .expect("A pack chain with Envelope and no keys of it: set the connection's envelope ( chain::Envelope::transmitter: chain::Pack pair, signed_by ) before the pack goes."),
+                None => dst.envelope.as_ref().and_then(|e| e.tx.load_full()).expect("A pack chain with Envelope and no keys of it: set the connection's envelope ( chain::Envelope::transmitter: chain::Pack pair, signed_by ) before the pack goes."),
                 Some(o) => o.envelope.as_ref().and_then(|e| e.tx.load_full()).expect(NO_OWN_ENVELOPE),
             };
             assert!(flags & 1 == 0 || e.ctx != 0, "The Envelope of the pack is to be sealed - its pair is not set ( chain::Pack::pair )");
-            assert!(
-                flags & 2 == 0 || e.secret != 0,
-                "The Envelope of the pack is to be signed - the key to sign with is not set ( chain::Pack::signed_by )"
-            );
+            assert!(flags & 2 == 0 || e.secret != 0, "The Envelope of the pack is to be signed - the key to sign with is not set ( chain::Pack::signed_by )");
             let (ctx, secret, n, id) = (if flags & 1 != 0 { e.ctx } else { 0 }, if flags & 2 != 0 { e.secret } else { 0 }, e.next(), e.id);
             self.set_l(ENV_CTX, ctx);
             self.set_l(ENV_KEY, secret);
@@ -431,18 +399,11 @@ impl Native {
         if self.has(ENVELOPE) {
             let flags = self.envelope;
             let e = match own {
-                None => src
-                    .envelope
-                    .as_ref()
-                    .and_then(|e| e.rx.load_full())
-                    .expect("A pack chain with Envelope and no keys of it: set the connection's envelope ( chain::Envelope::receiver: chain::Pack pair, signer_of ) before the pack comes."),
+                None => src.envelope.as_ref().and_then(|e| e.rx.load_full()).expect("A pack chain with Envelope and no keys of it: set the connection's envelope ( chain::Envelope::receiver: chain::Pack pair, signer_of ) before the pack comes."),
                 Some(o) => o.envelope.as_ref().and_then(|e| e.rx.load_full()).expect(NO_OWN_ENVELOPE),
             };
             assert!(flags & 1 == 0 || e.ctx != 0, "The Envelope of the pack is sealed - its pair is not set ( chain::Pack::pair )");
-            assert!(
-                flags & 2 == 0 || e.public != 0,
-                "The Envelope of the pack is signed - whose key it is signed by is not set ( chain::Pack::signer_of )"
-            );
+            assert!(flags & 2 == 0 || e.public != 0, "The Envelope of the pack is signed - whose key it is signed by is not set ( chain::Pack::signer_of )");
             let (ctx, public, id) = (if flags & 1 != 0 { e.ctx } else { 0 }, if flags & 2 != 0 { e.public } else { 0 }, e.id);
             self.set_l(ENV_CTX, ctx);
             self.set_l(ENV_KEY, public);
@@ -494,13 +455,7 @@ pub(crate) struct Tx {
 
 impl Tx {
     pub(crate) fn new(run: Run) -> Self {
-        let mut t = Self {
-            s: Native::new(true, run),
-            eof: false,
-            hdr: [0; HEADER],
-            hdr_put: HEADER as isize,
-            own: None,
-        };
+        let mut t = Self { s: Native::new(true, run), eof: false, hdr: [0; HEADER], hdr_put: HEADER as isize, own: None };
         t.rearm();
         t
     }
@@ -614,17 +569,7 @@ pub(crate) struct Rx {
 
 impl Rx {
     pub(crate) fn new(run: Run) -> Self {
-        let mut r = Self {
-            s: Native::new(false, run),
-            left: 0,
-            left_to: 0,
-            discard: false,
-            hdr: [0; HEADER],
-            hdr_got: HEADER,
-            wire: Vec::new(),
-            wpos: 0,
-            own: None,
-        };
+        let mut r = Self { s: Native::new(false, run), left: 0, left_to: 0, discard: false, hdr: [0; HEADER], hdr_got: HEADER, wire: Vec::new(), wpos: 0, own: None };
         r.rearm();
         r
     }
@@ -795,23 +740,14 @@ pub mod transmitter {
         /// `key` and `nonce` - of a ChaCha20 in the run, 32 and 12 bytes: the runtime arguments of the stage.
         pub fn new(inner: S, run: Run, key: Option<(&[u8; 32], &[u8; 12])>) -> Self {
             let mut s = Native::new(true, run);
-            assert!(
-                !s.has(ENVELOPE) && !s.has(CHACHA20_PACK),
-                "An Envelope, and a ChaCha20 of the session's keys, take packs: not the stream of a connection."
-            );
+            assert!(!s.has(ENVELOPE) && !s.has(CHACHA20_PACK), "An Envelope, and a ChaCha20 of the session's keys, take packs: not the stream of a connection.");
             if let Some((k, n)) = key {
                 s.stream_key(k, n);
             }
             if !s.in_place {
                 s.room(PLAIN);
             }
-            Self {
-                inner,
-                s,
-                dirty: false,
-                plain_bytes: 0,
-                wire_bytes: 0,
-            }
+            Self { inner, s, dirty: false, plain_bytes: 0, wire_bytes: 0 }
         }
     }
 
@@ -857,11 +793,7 @@ pub mod transmitter {
                 }
             }
             self.wire_bytes += put as u64;
-            if 0 < put {
-                put as isize
-            } else {
-                last
-            }
+            if 0 < put { put as isize } else { last }
         }
 
         /// Another source may take the transport only between frames, and when the upper layer is between packs.
@@ -900,25 +832,11 @@ pub mod receiver {
         /// `key` and `nonce` - of a ChaCha20 in the run, 32 and 12 bytes: the runtime arguments of the stage.
         pub fn new(inner: K, run: Run, key: Option<(&[u8; 32], &[u8; 12])>) -> Self {
             let mut s = Native::new(false, run);
-            assert!(
-                !s.has(ENVELOPE) && !s.has(CHACHA20_PACK),
-                "An Envelope, and a ChaCha20 of the session's keys, take packs: not the stream of a connection."
-            );
+            assert!(!s.has(ENVELOPE) && !s.has(CHACHA20_PACK), "An Envelope, and a ChaCha20 of the session's keys, take packs: not the stream of a connection.");
             if let Some((k, n)) = key {
                 s.stream_key(k, n);
             }
-            Self {
-                inner,
-                s,
-                at: 0,
-                len: 0,
-                more: false,
-                skip: 0,
-                held: Vec::new(),
-                held_at: 0,
-                wire_bytes: 0,
-                plain_bytes: 0,
-            }
+            Self { inner, s, at: 0, len: 0, more: false, skip: 0, held: Vec::new(), held_at: 0, wire_bytes: 0, plain_bytes: 0 }
         }
 
         /// The plaintext the sink did not take yet: `false` - it still holds some.
@@ -1187,12 +1105,7 @@ mod tests {
             sink.retry(); // the sink refused: what is held goes on
             idle = if sink.inner.0.len() == before { idle + 1 } else { 0 };
         }
-        assert!(
-            sink.inner.0 == all,
-            "chunk {chunk} room {room} refuse {refuse} writable {writable}: {} of {}",
-            sink.inner.0.len(),
-            all.len()
-        );
+        assert!(sink.inner.0 == all, "chunk {chunk} room {room} refuse {refuse} writable {writable}: {} of {}", sink.inner.0.len(), all.len());
     }
 
     fn round_trip(r: Run, key: bool) {

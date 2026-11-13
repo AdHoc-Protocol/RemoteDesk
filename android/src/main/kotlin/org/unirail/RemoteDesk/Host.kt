@@ -109,4 +109,22 @@ object Host {
     }
 
     @JvmStatic fun soundStop() { runCatching { service?.soundStop() } }
+
+    // ── the marks of the viewers, over the other apps ──
+
+    /** A new image of a stroke: its number; -1 - the app may not display over the other apps. */
+    @JvmStatic fun markNew(): Int = try {
+        service?.markNew() ?: -1
+    } catch (e: Throwable) {
+        -1
+    }
+
+    /** The image of stroke `id`: `pixels` RGBA premultiplied, valid during the call only - copied at once. */
+    @JvmStatic fun markShow(id: Int, x: Int, y: Int, width: Int, height: Int, pixels: ByteBuffer, alpha: Float) {
+        runCatching { service?.markShow(id, x, y, width, height, pixels, alpha) }
+    }
+
+    @JvmStatic fun markFade(id: Int, alpha: Float) { runCatching { service?.markFade(id, alpha) } }
+
+    @JvmStatic fun markGone(id: Int) { runCatching { service?.markGone(id) } }
 }

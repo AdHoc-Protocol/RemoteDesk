@@ -26,6 +26,8 @@ impl std::fmt::Display for ConnId {
     }
 }
 
+
+
 // Timeout question + deadline
 
 /// Which side's wait expired.
@@ -197,6 +199,7 @@ pub struct ExternalConnection {
     pub buffer_size: std::sync::atomic::AtomicUsize,
 
     // --- parked sessions ---------------------------------------------------
+
     /// The session identity: `index << 32 | id`, `0` = unidentified. An unidentified connection is
     /// never parked.
     session_id: AtomicU64,
@@ -368,10 +371,7 @@ impl ExternalConnection {
             linger_timeout_ms: AtomicI64::new(5_000),
             linger_deadline: AtomicI64::new(0),
             link: AtomicU64::new(0),
-            asks: crossbeam_utils::CachePadded::new(Asks {
-                requests: std::sync::atomic::AtomicU32::new(0),
-                next_task: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()),
-            }),
+            asks: crossbeam_utils::CachePadded::new(Asks { requests: std::sync::atomic::AtomicU32::new(0), next_task: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()) }),
             dial: parking_lot::Mutex::new(None),
             close_ev: std::sync::atomic::AtomicU32::new(Event::THIS_CLOSE_ABRUPTLY.0),
             ws_urgent: parking_lot::Mutex::new(None),
@@ -443,10 +443,7 @@ impl ExternalConnection {
     pub fn secure(&self, chain: Option<crate::lib::chain::Chain>) {
         if let Some(c) = &chain {
             assert!(!c.has_tls_for(true) && !c.has_tls_for(false), "TLS of a connection is chosen by its host or client, not by [Noise]");
-            assert!(
-                c.pattern != crate::lib::noise::PATTERN_XX || self.udp.get().is_none(),
-                "Noise XX takes three messages, a UDP handshake two: [Noise] of a UDP connection is NK, IK or KK"
-            );
+            assert!(c.pattern != crate::lib::noise::PATTERN_XX || self.udp.get().is_none(), "Noise XX takes three messages, a UDP handshake two: [Noise] of a UDP connection is NK, IK or KK");
         }
         *self.secured.lock() = Some(chain.map(Arc::new));
     }
@@ -459,11 +456,7 @@ impl ExternalConnection {
     /// The chain the protocol layer seated last declared, taken; a refusal stays for the transport to hear.
     pub(crate) fn take_secured_chain(&self) -> Option<Arc<crate::lib::chain::Chain>> {
         let mut s = self.secured.lock();
-        if matches!(*s, Some(Some(_))) {
-            s.take().flatten()
-        } else {
-            None
-        }
+        if matches!(*s, Some(Some(_))) { s.take().flatten() } else { None }
     }
 
     /// A protocol layer is about to be seated for a new socket: nothing of the Noise of the last one is left.
@@ -493,8 +486,7 @@ impl ExternalConnection {
         }
         if let Some(h) = self.host.upgrade() {
             h.connections_live.fetch_add(1, Ordering::AcqRel);
-            self.linger_timeout_ms.store(h.linger_timeout_ms.load(Ordering::Relaxed), Ordering::Relaxed);
-            // the host's
+            self.linger_timeout_ms.store(h.linger_timeout_ms.load(Ordering::Relaxed), Ordering::Relaxed); // the host's
         }
         let now = now_ms();
         self.last_rx_ms.store(now, Ordering::Relaxed);
@@ -861,8 +853,7 @@ impl ExternalConnection {
     fn on_loop(&self, kind: u64, f: impl FnOnce(*mut crate::lib::network::engine::Slot)) {
         let Some((lp, key)) = self.link() else { return self.on_udp(kind) };
         if lp.in_loop() {
-            unsafe { crate::lib::network::engine::on_slot_kind(lp, key, kind, f) };
-        // as the request from another thread: the same at any thread
+            unsafe { crate::lib::network::engine::on_slot_kind(lp, key, kind, f) }; // as the request from another thread: the same at any thread
         } else {
             self.request(lp, kind);
         }
@@ -1054,8 +1045,7 @@ impl ExternalConnection {
         let s = ((self.index.0 as u64) << 32) | (id as u64);
         if self.session_id.swap(s, Ordering::AcqRel) != s {
             if let Some(u) = self.udp.get() {
-                u.request(crate::lib::network::UDP::CONTINUE_ | crate::lib::network::UDP::TX_);
-                // a UDP session resumes: the peer is asked to go on from this side's position
+                u.request(crate::lib::network::UDP::CONTINUE_ | crate::lib::network::UDP::TX_); // a UDP session resumes: the peer is asked to go on from this side's position
             }
         }
         s
@@ -1312,7 +1302,11 @@ impl ExternalConnection {
             return false;
         }
         // Claim the firing: exactly one caller gets the hook.
-        if self.deadline_at.compare_exchange(at, 0, Ordering::AcqRel, Ordering::Acquire).is_err() {
+        if self
+            .deadline_at
+            .compare_exchange(at, 0, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
             return false;
         }
         let hook = self.deadline_hook.lock().clone();
@@ -1431,20 +1425,15 @@ impl std::fmt::Display for ExternalConnection {
 }
 
 impl ExternalConnection {
-    #[inline]
-    pub fn receive_timeout_ms(&self) -> i32 {
+
+    #[inline] pub fn receive_timeout_ms(&self) -> i32 {
         if !self.is_open.load(Ordering::Acquire) {
             return i32::MIN;
         }
         let ms = self.receive_timeout_ms.load(Ordering::Acquire) as i32;
-        if self.closing_gracefully.load(Ordering::Acquire) {
-            -ms
-        } else {
-            ms
-        }
+        if self.closing_gracefully.load(Ordering::Acquire) { -ms } else { ms }
     }
-    #[inline]
-    pub fn set_receive_timeout_ms(&self, ms: i32) {
+    #[inline] pub fn set_receive_timeout_ms(&self, ms: i32) {
         self.timeout(&self.receive_timeout_ms, ms);
         if let Some(u) = self.udp.get() {
             // negative: the graceful close, asked at once; else the wait is filed anew on the loop
@@ -1452,17 +1441,11 @@ impl ExternalConnection {
         }
     }
 
-    #[inline]
-    pub fn transmit_timeout_ms(&self) -> i32 {
+    #[inline] pub fn transmit_timeout_ms(&self) -> i32 {
         let ms = self.transmit_timeout_ms.load(Ordering::Acquire) as i32;
-        if self.closing_gracefully.load(Ordering::Acquire) {
-            -ms
-        } else {
-            ms
-        }
+        if self.closing_gracefully.load(Ordering::Acquire) { -ms } else { ms }
     }
-    #[inline]
-    pub fn set_transmit_timeout_ms(&self, ms: i32) {
+    #[inline] pub fn set_transmit_timeout_ms(&self, ms: i32) {
         self.timeout(&self.transmit_timeout_ms, ms);
         if ms < 0 {
             if let Some(u) = self.udp.get() {
@@ -1471,8 +1454,7 @@ impl ExternalConnection {
         }
     }
 
-    #[inline]
-    pub fn is_open(&self) -> bool {
+    #[inline] pub fn is_open(&self) -> bool {
         self.is_open.load(Ordering::Acquire)
     }
 

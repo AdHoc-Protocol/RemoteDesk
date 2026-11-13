@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- the sound the phone plays: Android asks for it by the permission of the microphone -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- the marks the viewer draws, shown over the other apps -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:label="RemoteDesk"

@@ -163,6 +163,7 @@ pub fn run() {
     crate::gen::session::OnEvent.add(on_event);
     crate::video::register();
     crate::input::register();
+    crate::marks::register();
     crate::clipboard::register();
     crate::files::register();
     crate::audio::register();

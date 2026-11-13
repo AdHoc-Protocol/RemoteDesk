@@ -19,10 +19,7 @@ unsafe impl<T: Send> Sync for OwnCell<T> {}
 
 impl<T> OwnCell<T> {
     pub const fn new(v: T) -> Self {
-        Self {
-            v: std::cell::UnsafeCell::new(v),
-            lent: std::cell::Cell::new(false),
-        }
+        Self { v: std::cell::UnsafeCell::new(v), lent: std::cell::Cell::new(false) }
     }
 
     /// The value, the cell gone: nothing lends it any more.
@@ -81,7 +78,9 @@ impl NullableBool {
 
     #[inline]
     pub fn from_bool(v: bool) -> Self {
-        Self { value: if v { 1 } else { 0 } }
+        Self {
+            value: if v { 1 } else { 0 },
+        }
     }
 
     #[inline]
@@ -212,8 +211,8 @@ pub fn array_hash<T: std::hash::Hash>(list: &[T]) -> u64 {
 
 static CHAR2BYTE: [u8; 256] = {
     let mut t = [0u8; 256]; // Bytes outside the Base64 alphabet map to zero.
-                            // Build at const time is not trivial in Rust; use a runtime init approach via a function. For
-                            // now, a lookup table:
+    // Build at const time is not trivial in Rust; use a runtime init approach via a function. For
+    // now, a lookup table:
     t[b'A' as usize] = 0;
     t[b'B' as usize] = 1;
     t[b'C' as usize] = 2;
@@ -303,7 +302,9 @@ pub fn base64decode(bytes: &mut [u8], mut src_index: usize, mut dst_index: usize
     }
     match new_len & 3 {
         3 => {
-            let b = (CHAR2BYTE[bytes[src_index] as usize] as u32) << 12 | (CHAR2BYTE[bytes[src_index + 1] as usize] as u32) << 6 | (CHAR2BYTE[bytes[src_index + 2] as usize] as u32);
+            let b = (CHAR2BYTE[bytes[src_index] as usize] as u32) << 12
+                | (CHAR2BYTE[bytes[src_index + 1] as usize] as u32) << 6
+                | (CHAR2BYTE[bytes[src_index + 2] as usize] as u32);
             bytes[dst_index] = (b >> 10) as u8;
             bytes[dst_index + 1] = (b >> 2) as u8;
             dst_index += 2;
@@ -439,6 +440,7 @@ pub fn boyer_moore_case_insensitive(bytes: &[u8], pattern: &[u32]) -> i32 {
     -1
 }
 
+
 // Tests
 
 #[cfg(test)]
@@ -509,24 +511,18 @@ mod tests {
     fn boyer_moore_tables_preserve_last_occurrences() {
         for len in [0, 1, 2, 7, 15, 16, 17, 31, 32, 33, 255, 256, 257, 1024, 4096] {
             let bytes: Vec<u8> = (0..len).map(|i| (i * 73) as u8).collect();
-            let expected: Vec<u32> = bytes
-                .iter()
-                .map(|ch| {
-                    let last = bytes.iter().rposition(|other| other == ch).unwrap();
-                    ((last as u32) << 8) | *ch as u32
-                })
-                .collect();
+            let expected: Vec<u32> = bytes.iter().map(|ch| {
+                let last = bytes.iter().rposition(|other| other == ch).unwrap();
+                ((last as u32) << 8) | *ch as u32
+            }).collect();
             assert_eq!(boyer_moore_pattern(&bytes), expected);
         }
         for text in ["", "\0", "ab\0aba\0", "hello hello", "éé水𝄞\0水"] {
             let units: Vec<u16> = text.encode_utf16().collect();
-            let expected: Vec<u32> = units
-                .iter()
-                .map(|ch| {
-                    let last = units.iter().rposition(|other| other == ch).unwrap();
-                    ((last as u32) << 8) | (*ch & 0xFF) as u32
-                })
-                .collect();
+            let expected: Vec<u32> = units.iter().map(|ch| {
+                let last = units.iter().rposition(|other| other == ch).unwrap();
+                ((last as u32) << 8) | (*ch & 0xFF) as u32
+            }).collect();
             assert_eq!(boyer_moore_pattern_text(text), expected);
         }
         // a unit past 0xFF keeps the index whole: `水` (U+6C34) first is index 0, not 0x6C
@@ -542,5 +538,6 @@ mod tests {
         assert_eq!(boyer_moore_case_sensitive(text, &pattern), -1);
         assert_eq!(boyer_moore_case_insensitive(text, &pattern), 0);
         assert_eq!(boyer_moore_case_insensitive(b"x HeLLo", &pattern), 2);
+
     }
 }

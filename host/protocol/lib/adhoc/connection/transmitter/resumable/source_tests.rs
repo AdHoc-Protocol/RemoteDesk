@@ -263,36 +263,15 @@ fn tell(receiver: &Receiver, sender: &Sender) {
 }
 
 fn packs(n: u32) -> Vec<P> {
-    (0..n)
-        .map(|i| P {
-            id: if i % 3 == 2 { 8 } else { 7 },
-            n: i,
-            s: "x".repeat((i as usize * 97) % 3000),
-        })
-        .collect()
+    (0..n).map(|i| P { id: if i % 3 == 2 { 8 } else { 7 }, n: i, s: "x".repeat((i as usize * 97) % 3000) }).collect()
 }
 
 #[test]
 fn guaranteed_across_a_lost_socket() {
     for cut_at in [1usize, 100, 5000, 40_000, 77_777] {
         let dir = std::env::temp_dir().join(format!("adhoc-session-test-{}-{cut_at}", std::process::id()));
-        let sender = Arc::new(Sender {
-            q: Mutex::new((packs(120).into(), None)),
-            journal: Journal::new(Resumable::with_dir(100 << 20, dir)),
-            control: control(),
-            ext: None,
-            parked: Default::default(),
-        });
-        let mut receiver = Receiver {
-            p: P::default(),
-            id: 0,
-            service: 0,
-            value: 0,
-            got: vec![],
-            position: Position::default(),
-            control: control(),
-            lost: None,
-        };
+        let sender = Arc::new(Sender { q: Mutex::new((packs(120).into(), None)), journal: Journal::new(Resumable::with_dir(100 << 20, dir)), control: control(), ext: None, parked: Default::default() });
+        let mut receiver = Receiver { p: P::default(), id: 0, service: 0, value: 0, got: vec![], position: Position::default(), control: control(), lost: None };
 
         // the first connection: the receiver has no position, the sender tells it where its journal
         // starts
@@ -356,23 +335,8 @@ fn guaranteed_across_a_lost_socket() {
 fn a_pack_the_lost_socket_cut_goes_on_with_the_next() {
     for stop in [1usize, 2, 3, 40, 700, 2999, 6000] {
         let dir = std::env::temp_dir().join(format!("adhoc-session-cut-{}-{stop}", std::process::id()));
-        let sender = Arc::new(Sender {
-            q: Mutex::new((packs(30).into(), None)),
-            journal: Journal::new(Resumable::with_dir(100 << 20, dir)),
-            control: control(),
-            ext: None,
-            parked: Default::default(),
-        });
-        let mut receiver = Receiver {
-            p: P::default(),
-            id: 0,
-            service: 0,
-            value: 0,
-            got: vec![],
-            position: Position::default(),
-            control: control(),
-            lost: None,
-        };
+        let sender = Arc::new(Sender { q: Mutex::new((packs(30).into(), None)), journal: Journal::new(Resumable::with_dir(100 << 20, dir)), control: control(), ext: None, parked: Default::default() });
+        let mut receiver = Receiver { p: P::default(), id: 0, service: 0, value: 0, got: vec![], position: Position::default(), control: control(), lost: None };
         receiver.control.continue_from(receiver.position.received(), false);
         tell(&receiver, &sender);
         let mut source = ResumableSource::new(sender.clone());
@@ -421,23 +385,8 @@ fn a_pack_the_lost_socket_cut_goes_on_with_the_next() {
 fn a_pack_cut_by_the_end_of_the_session_is_not_kept() {
     for event_first in [true, false] {
         let dir = std::env::temp_dir().join(format!("adhoc-session-over-{}-{event_first}", std::process::id()));
-        let sender = Arc::new(Sender {
-            q: Mutex::new((packs(30).into(), None)),
-            journal: Journal::new(Resumable::with_dir(100 << 20, dir)),
-            control: control(),
-            ext: None,
-            parked: Default::default(),
-        });
-        let receiver = Receiver {
-            p: P::default(),
-            id: 0,
-            service: 0,
-            value: 0,
-            got: vec![],
-            position: Position::default(),
-            control: control(),
-            lost: None,
-        };
+        let sender = Arc::new(Sender { q: Mutex::new((packs(30).into(), None)), journal: Journal::new(Resumable::with_dir(100 << 20, dir)), control: control(), ext: None, parked: Default::default() });
+        let receiver = Receiver { p: P::default(), id: 0, service: 0, value: 0, got: vec![], position: Position::default(), control: control(), lost: None };
         receiver.control.continue_from(receiver.position.received(), false);
         tell(&receiver, &sender);
         let mut source = ResumableSource::new(sender.clone());
@@ -464,23 +413,8 @@ fn a_failed_journal_aborts_the_socket() {
     let file = std::env::temp_dir().join(format!("adhoc-session-test-{}-not-a-dir", std::process::id()));
     std::fs::write(&file, b"x").unwrap(); // its segments go under a file: they cannot be made
     let ext = Arc::new(Ext::default());
-    let sender = Arc::new(Sender {
-        q: Mutex::new((packs(30).into(), None)),
-        journal: Journal::new(Resumable::with_dir(100 << 20, file.join("j"))),
-        control: control(),
-        ext: Some(ext.clone()),
-        parked: Default::default(),
-    });
-    let receiver = Receiver {
-        p: P::default(),
-        id: 0,
-        service: 0,
-        value: 0,
-        got: vec![],
-        position: Position::default(),
-        control: control(),
-        lost: None,
-    };
+    let sender = Arc::new(Sender { q: Mutex::new((packs(30).into(), None)), journal: Journal::new(Resumable::with_dir(100 << 20, file.join("j"))), control: control(), ext: Some(ext.clone()), parked: Default::default() });
+    let receiver = Receiver { p: P::default(), id: 0, service: 0, value: 0, got: vec![], position: Position::default(), control: control(), lost: None };
     receiver.control.continue_from(receiver.position.received(), false);
     tell(&receiver, &sender);
     let mut source = ResumableSource::new(sender.clone());
@@ -499,23 +433,8 @@ fn a_failed_journal_aborts_the_socket() {
 fn the_cap_holds_a_pack_in_the_middle() {
     const CAP: i64 = 16 << 10;
     let dir = std::env::temp_dir().join(format!("adhoc-session-test-{}-cap", std::process::id()));
-    let sender = Arc::new(Sender {
-        q: Mutex::new((packs(60).into(), None)),
-        journal: Journal::new(Resumable::with_dir(CAP, dir)),
-        control: control(),
-        ext: None,
-        parked: Default::default(),
-    });
-    let mut receiver = Receiver {
-        p: P::default(),
-        id: 0,
-        service: 0,
-        value: 0,
-        got: vec![],
-        position: Position::default(),
-        control: control(),
-        lost: None,
-    };
+    let sender = Arc::new(Sender { q: Mutex::new((packs(60).into(), None)), journal: Journal::new(Resumable::with_dir(CAP, dir)), control: control(), ext: None, parked: Default::default() });
+    let mut receiver = Receiver { p: P::default(), id: 0, service: 0, value: 0, got: vec![], position: Position::default(), control: control(), lost: None };
     receiver.control.continue_from(receiver.position.received(), false);
     tell(&receiver, &sender);
     let mut source = ResumableSource::new(sender.clone());
@@ -566,23 +485,8 @@ impl crate::lib::adhoc::connection::external::External for Parked {
 /// A sender with `queued` and a journal of `cap`, and a receiver that names no position yet.
 fn parked_pair(cap: i64, name: &str, queued: Vec<P>) -> (Arc<Sender>, Receiver) {
     let dir = std::env::temp_dir().join(format!("adhoc-session-offline-{}-{name}", std::process::id()));
-    let sender = Arc::new(Sender {
-        q: Mutex::new((queued.into(), None)),
-        journal: Journal::new(Resumable::with_dir(cap, dir)),
-        control: control(),
-        ext: None,
-        parked: Default::default(),
-    });
-    let receiver = Receiver {
-        p: P::default(),
-        id: 0,
-        service: 0,
-        value: 0,
-        got: vec![],
-        position: Position::default(),
-        control: control(),
-        lost: None,
-    };
+    let sender = Arc::new(Sender { q: Mutex::new((queued.into(), None)), journal: Journal::new(Resumable::with_dir(cap, dir)), control: control(), ext: None, parked: Default::default() });
+    let receiver = Receiver { p: P::default(), id: 0, service: 0, value: 0, got: vec![], position: Position::default(), control: control(), lost: None };
     (sender, receiver)
 }
 
@@ -746,10 +650,7 @@ fn a_confirmation_while_holding_is_taken() {
     let source = sent_all(&sender, &receiver);
     drop(source);
     let mut source = ResumableSource::new(sender.clone()); // holds: the peer of this socket named no position
-    let (base, next) = {
-        let j = unsafe { sender.journal.get() };
-        (j.base(), j.next())
-    };
+    let (base, next) = { let j = unsafe { sender.journal.get() }; (j.base(), j.next()) };
     for _ in 0..(next >> 12) - (base >> 12) {
         sender.control.heard(CONFIRM, 0, || -1, false); // a step more: from where the journal answered
     }
@@ -791,8 +692,7 @@ fn a_continue_for_the_replay_in_progress_does_not_restart_it() {
         assert!(0 <= rx.write_all(&b[..n as usize], &mut receiver), "{:?}", rx.error);
         if !said {
             said = true;
-            sender.control.heard(CONTINUE, named as u64 & 0xFFFF_FFFF, || -1, false);
-            // the same position again, mid-replay
+            sender.control.heard(CONTINUE, named as u64 & 0xFFFF_FFFF, || -1, false); // the same position again, mid-replay
         }
     }
     assert!(said);
@@ -857,13 +757,7 @@ struct Host {
 
 impl Host {
     fn of(kept: &Arc<Kept>) -> Self {
-        Self {
-            kept: kept.clone(),
-            p: P::default(),
-            id: 0,
-            service: 0,
-            value: 0,
-        }
+        Self { kept: kept.clone(), p: P::default(), id: 0, service: 0, value: 0 }
     }
     fn control(&self) -> &Control {
         self.kept.control.as_ref().unwrap()
@@ -961,27 +855,13 @@ fn pump(source: &mut ResumableSource<Sender>, sink: &mut crate::lib::adhoc::conn
 /// pack once, whole, in order.
 #[test]
 fn a_guaranteed_pack_goes_on_from_the_byte_a_lost_socket_cut_it() {
-    use crate::lib::adhoc::connection::receiver::Receiver as Rcv;
     use crate::lib::adhoc::BytesDst as _;
+    use crate::lib::adhoc::connection::receiver::Receiver as Rcv;
     for cut in [5usize, 40, 333, 1500, 2700, 9000] {
         let dir = std::env::temp_dir().join(format!("adhoc-midpack-{}-{cut}", std::process::id()));
-        let all = vec![
-            P { id: 7, n: 1, s: "a".repeat(10) },
-            P { id: 7, n: 2, s: "b".repeat(20_000) },
-            P { id: 8, n: 3, s: "c".repeat(50) },
-            P { id: 7, n: 4, s: "d".repeat(700) },
-        ];
-        let sender = Arc::new(Sender {
-            q: Mutex::new((all.into(), None)),
-            journal: Journal::new(Resumable::with_dir(100 << 20, dir)),
-            control: control(),
-            ext: None,
-            parked: Default::default(),
-        });
-        let kept = Arc::new(Kept {
-            control: Some(control()),
-            ..Default::default()
-        });
+        let all = vec![P { id: 7, n: 1, s: "a".repeat(10) }, P { id: 7, n: 2, s: "b".repeat(20_000) }, P { id: 8, n: 3, s: "c".repeat(50) }, P { id: 7, n: 4, s: "d".repeat(700) }];
+        let sender = Arc::new(Sender { q: Mutex::new((all.into(), None)), journal: Journal::new(Resumable::with_dir(100 << 20, dir)), control: control(), ext: None, parked: Default::default() });
+        let kept = Arc::new(Kept { control: Some(control()), ..Default::default() });
 
         // the first socket: the receiver names that it has no position, the sender answers where
         // its journal starts
@@ -1003,7 +883,7 @@ fn a_guaranteed_pack_goes_on_from_the_byte_a_lost_socket_cut_it() {
         tell_kept(&kept, &sender);
         let mut source = ResumableSource::new(sender.clone());
         sender.control.confirm(1); // the sender receives too: a confirmation of its own is due when it answers - it goes behind the
-                                   // replay
+        // replay
         let second = pump(&mut source, &mut sink, &kept, &sender, 211, usize::MAX);
 
         let got: Vec<(u32, usize)> = kept.got.lock().unwrap().iter().filter(|p| p.id == 7).map(|p| (p.n, p.s.len())).collect();
@@ -1020,20 +900,11 @@ fn a_guaranteed_pack_goes_on_from_the_byte_a_lost_socket_cut_it() {
 /// the peer's journal does.
 #[test]
 fn a_guaranteed_pack_the_peer_no_longer_holds_is_dropped_and_told() {
-    use crate::lib::adhoc::connection::receiver::Receiver as Rcv;
     use crate::lib::adhoc::BytesDst as _;
+    use crate::lib::adhoc::connection::receiver::Receiver as Rcv;
     let dir = std::env::temp_dir().join(format!("adhoc-midpack-lost-{}", std::process::id()));
-    let sender = Arc::new(Sender {
-        q: Mutex::new((vec![P { id: 7, n: 2, s: "b".repeat(20_000) }].into(), None)),
-        journal: Journal::new(Resumable::with_dir(100 << 20, dir.clone())),
-        control: control(),
-        ext: None,
-        parked: Default::default(),
-    });
-    let kept = Arc::new(Kept {
-        control: Some(control()),
-        ..Default::default()
-    });
+    let sender = Arc::new(Sender { q: Mutex::new((vec![P { id: 7, n: 2, s: "b".repeat(20_000) }].into(), None)), journal: Journal::new(Resumable::with_dir(100 << 20, dir.clone())), control: control(), ext: None, parked: Default::default() });
+    let kept = Arc::new(Kept { control: Some(control()), ..Default::default() });
     kept.control.as_ref().unwrap().continue_from(-1, false);
     tell_kept(&kept, &sender);
     let mut source = ResumableSource::new(sender.clone());
@@ -1045,13 +916,7 @@ fn a_guaranteed_pack_the_peer_no_longer_holds_is_dropped_and_told() {
     assert!(unsafe { kept.position.lend(|__p| __p.in_pack()) });
 
     // a new session of the peer: a journal of its own
-    let fresh = Arc::new(Sender {
-        q: Mutex::new((vec![P { id: 7, n: 9, s: "z".repeat(30) }].into(), None)),
-        journal: Journal::new(Resumable::with_dir(100 << 20, dir.join("fresh"))),
-        control: control(),
-        ext: None,
-        parked: Default::default(),
-    });
+    let fresh = Arc::new(Sender { q: Mutex::new((vec![P { id: 7, n: 9, s: "z".repeat(30) }].into(), None)), journal: Journal::new(Resumable::with_dir(100 << 20, dir.join("fresh"))), control: control(), ext: None, parked: Default::default() });
     kept.control.as_ref().unwrap().silent();
     let mut sink = Rcv::new(Host::of(&kept), 1);
     let named = unsafe { kept.position.lend(|__p| __p.named()) };
@@ -1093,8 +958,7 @@ impl Session for Filed {
     }
     fn load(&self, from: &mut &[u8]) -> std::io::Result<()> {
         self.s.control.load(self, from)?;
-        self.word
-            .store(crate::lib::adhoc::connection::transmitter::resumable::take_u32(from)?, std::sync::atomic::Ordering::Relaxed);
+        self.word.store(crate::lib::adhoc::connection::transmitter::resumable::take_u32(from)?, std::sync::atomic::Ordering::Relaxed);
         Ok(())
     }
 }
@@ -1126,19 +990,8 @@ fn a_session_in_its_files_goes_on_in_the_next_process() {
     let root = std::env::temp_dir().join(format!("adhoc-session-files-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     crate::lib::adhoc::connection::transmitter::resumable::set_dir(root.clone());
-    let sender = |queued: Vec<P>, start: i64| {
-        Arc::new(Sender {
-            q: Mutex::new((queued.into(), None)),
-            journal: Journal::new(Resumable::with_start(100 << 20, root.join("tmp"), start)),
-            control: control(),
-            ext: None,
-            parked: std::sync::atomic::AtomicBool::new(true),
-        })
-    };
-    let one = Filed {
-        s: sender(packs(30), 1 << 50),
-        word: std::sync::atomic::AtomicU32::new(7),
-    };
+    let sender = |queued: Vec<P>, start: i64| Arc::new(Sender { q: Mutex::new((queued.into(), None)), journal: Journal::new(Resumable::with_start(100 << 20, root.join("tmp"), start)), control: control(), ext: None, parked: std::sync::atomic::AtomicBool::new(true) });
+    let one = Filed { s: sender(packs(30), 1 << 50), word: std::sync::atomic::AtomicU32::new(7) };
     assert!(!one.s.control.open(&one, "one"), "no files yet: a fresh session");
     assert!(root.join("one.head").is_file() && root.join("one.ring").is_file());
     journal_queue(&one); // what is queued while parked goes into the journal, in the files
@@ -1146,39 +999,17 @@ fn a_session_in_its_files_goes_on_in_the_next_process() {
     one.s.control.stop(&one);
     drop(one);
 
-    let other = Filed {
-        s: sender(Vec::new(), 1 << 40),
-        word: std::sync::atomic::AtomicU32::new(0),
-    };
+    let other = Filed { s: sender(Vec::new(), 1 << 40), word: std::sync::atomic::AtomicU32::new(0) };
     assert!(!other.s.control.open(&other, "other") && !other.s.control.open(&other, "one"), "a session has its files once");
     other.s.control.ended(&other); // its journal still maps its ring: the files go all the same
-    let files = |prefix: &str| {
-        std::fs::read_dir(&root)
-            .unwrap()
-            .flatten()
-            .map(|e| e.file_name().to_string_lossy().into_owned())
-            .filter(|n| n.starts_with(prefix))
-            .collect::<Vec<_>>()
-    };
+    let files = |prefix: &str| std::fs::read_dir(&root).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with(prefix)).collect::<Vec<_>>();
     assert!(files("other.").is_empty(), "{:?}", files("other."));
-    let two = Filed {
-        s: sender(Vec::new(), 1 << 40),
-        word: std::sync::atomic::AtomicU32::new(0),
-    };
+    let two = Filed { s: sender(Vec::new(), 1 << 40), word: std::sync::atomic::AtomicU32::new(0) };
     assert!(two.s.control.open(&two, "one"), "the files of the process before");
     assert_eq!(two.word.load(std::sync::atomic::Ordering::Relaxed), 7, "what save wrote");
     assert_eq!(two.s.journal.next(), next, "the journal up to its end");
 
-    let mut receiver = Receiver {
-        p: P::default(),
-        id: 0,
-        service: 0,
-        value: 0,
-        got: vec![],
-        position: Position::default(),
-        control: control(),
-        lost: None,
-    };
+    let mut receiver = Receiver { p: P::default(), id: 0, service: 0, value: 0, got: vec![], position: Position::default(), control: control(), lost: None };
     reconnect(&two.s, &mut receiver);
     let guaranteed: Vec<u32> = receiver.got.iter().filter(|p| p.id == 7).map(|p| p.n).collect();
     let expected: Vec<u32> = packs(30).iter().filter(|p| p.id == 7).map(|p| p.n).collect();
@@ -1190,10 +1021,7 @@ fn a_session_in_its_files_goes_on_in_the_next_process() {
 
     // the process falls - no stop: the header is not clean, this boot of the system left it, the journal is taken up; a
     // pack the transmitter had begun is told lost
-    let fall = Filed {
-        s: sender(packs(20), 1 << 45),
-        word: std::sync::atomic::AtomicU32::new(3),
-    };
+    let fall = Filed { s: sender(packs(20), 1 << 45), word: std::sync::atomic::AtomicU32::new(3) };
     assert!(!fall.s.control.open(&fall, "fall"));
     journal_queue(&fall);
     let next = fall.s.journal.next();
@@ -1204,10 +1032,7 @@ fn a_session_in_its_files_goes_on_in_the_next_process() {
         h.write_all(&8i32.to_le_bytes()).unwrap(); // id + 1 of the pack begun
     }
     drop(fall);
-    let after = Filed {
-        s: sender(Vec::new(), 1 << 41),
-        word: std::sync::atomic::AtomicU32::new(0),
-    };
+    let after = Filed { s: sender(Vec::new(), 1 << 41), word: std::sync::atomic::AtomicU32::new(0) };
     assert!(after.s.control.open(&after, "fall"));
     if crate::lib::adhoc::connection::transmitter::resumable::boot() != 0 {
         assert_eq!(after.s.journal.next(), next, "left by this boot: trusted");

@@ -165,19 +165,7 @@ impl NoiseNK {
         let mem = Arc::new(Mem::new(unsafe { (a.noise_size)() } as usize));
         let or_null = |k: Option<&[u8; KEY]>| k.map_or(std::ptr::null(), |k| k.as_ptr());
         // SAFETY: the memory is of the size the library said, the keys of 32 bytes
-        unsafe {
-            (a.noise_init)(
-                mem.at(),
-                pattern,
-                initiator as i32,
-                prologue.as_ptr(),
-                prologue.len() as i32,
-                or_null(static_secret),
-                or_null(static_public),
-                or_null(peer),
-                or_null(ephemeral),
-            )
-        };
+        unsafe { (a.noise_init)(mem.at(), pattern, initiator as i32, prologue.as_ptr(), prologue.len() as i32, or_null(static_secret), or_null(static_public), or_null(peer), or_null(ephemeral)) };
         Self { mem }
     }
 
@@ -197,11 +185,7 @@ impl NoiseNK {
     pub fn write_message(&mut self, dst: &mut [u8], payload: &[u8]) -> Result<usize, NoiseError> {
         // SAFETY: the bounds go with the pointers
         let n = unsafe { (api().noise_write)(self.mem.at(), dst.as_mut_ptr(), dst.len() as i32, payload.as_ptr(), payload.len() as i32) };
-        if n < 0 {
-            Err(NoiseError)
-        } else {
-            Ok(n as usize)
-        }
+        if n < 0 { Err(NoiseError) } else { Ok(n as usize) }
     }
 
     /// Reads the peer's handshake message; its payload is decrypted into `payload`. A message that
@@ -210,11 +194,7 @@ impl NoiseNK {
     pub fn read_message(&mut self, msg: &[u8], payload: &mut [u8]) -> Result<usize, NoiseError> {
         // SAFETY: the bounds go with the pointers
         let n = unsafe { (api().noise_read)(self.mem.at(), msg.as_ptr(), msg.len() as i32, payload.as_mut_ptr(), payload.len() as i32) };
-        if n < 0 {
-            Err(NoiseError)
-        } else {
-            Ok(n as usize)
-        }
+        if n < 0 { Err(NoiseError) } else { Ok(n as usize) }
     }
 
     /// All the messages are exchanged (`Done`).
@@ -379,10 +359,7 @@ unsafe impl Send for NoiseStream {}
 impl NoiseStream {
     /// Any pattern. `first`: this side writes the first message.
     pub fn of(mut hs: NoiseNK, first: bool, wake: Option<Box<dyn FnMut() + Send>>, on_peer: Option<OnPeer>) -> Self {
-        let mut buffers = Box::new(HsBuffers {
-            out: [0; HS_BUFFER],
-            came: [0; HS_BUFFER],
-        });
+        let mut buffers = Box::new(HsBuffers { out: [0; HS_BUFFER], came: [0; HS_BUFFER] });
         let mut hs_out_len = 0;
         if first {
             hs_out_len = 1 + hs.write_message(&mut buffers.out[1..], &[]).expect("a fresh initiator can always write message 1");
@@ -772,11 +749,7 @@ impl NoiseStream {
         } else {
             if self.rec.is_none() {
                 // SAFETY: on the loop of the connection
-                self.rec = Some(if self.lp.is_null() {
-                    vec![0u8; HEADER + RECORD + TAG].into_boxed_slice()
-                } else {
-                    unsafe { (*self.lp).take_record() }
-                });
+                self.rec = Some(if self.lp.is_null() { vec![0u8; HEADER + RECORD + TAG].into_boxed_slice() } else { unsafe { (*self.lp).take_record() } });
             }
             self.rec.as_mut().unwrap()[self.got..self.got + k].copy_from_slice(&bytes[..k]);
         }
@@ -849,8 +822,7 @@ impl NoiseStream {
             }
         }
         let key = h.peer_key();
-        if key != [0u8; KEY] {
-            // a side that does not learn the key of the other ( the server of NK ) has nothing to ask about
+        if key != [0u8; KEY] { // a side that does not learn the key of the other ( the server of NK ) has nothing to ask about
             self.peer_key = Some(key);
             if self.on_peer.as_ref().is_some_and(|on_peer| !on_peer(&key)) {
                 return self.fail();
@@ -915,13 +887,9 @@ mod stream_tests {
         let mut server = NoiseStream::server(&secret, &public, None);
         let mut buf = vec![0u8; room];
         let mut nothing = Data(Vec::new(), 0);
-        let Pull::Bytes(n) = client.pull_from(&mut nothing, &mut buf).unwrap() else {
-            panic!("no message 1")
-        };
+        let Pull::Bytes(n) = client.pull_from(&mut nothing, &mut buf).unwrap() else { panic!("no message 1") };
         assert_eq!(server.push_to(&mut Slow(Vec::new(), usize::MAX, 1), &buf[..n]).unwrap(), n);
-        let Pull::Bytes(n) = server.pull_from(&mut nothing, &mut buf).unwrap() else {
-            panic!("no message 2")
-        };
+        let Pull::Bytes(n) = server.pull_from(&mut nothing, &mut buf).unwrap() else { panic!("no message 2") };
         assert_eq!(client.push_to(&mut Slow(Vec::new(), usize::MAX, 1), &buf[..n]).unwrap(), n);
         assert!(client.ready() && server.ready());
         let mut src = Data(data.to_vec(), 0);
@@ -946,11 +914,7 @@ mod stream_tests {
                         while at < w.len() {
                             let end = (at + chunk).min(w.len());
                             let before = sink.0.len();
-                            let n = if in_place {
-                                server.push_slice(&mut sink, &mut w[at..end]).unwrap()
-                            } else {
-                                server.push_to(&mut sink, &w[at..end]).unwrap()
-                            };
+                            let n = if in_place { server.push_slice(&mut sink, &mut w[at..end]).unwrap() } else { server.push_to(&mut sink, &w[at..end]).unwrap() };
                             at += n;
                             stalls = if n == 0 && sink.0.len() == before { stalls + 1 } else { 0 };
                             assert!(stalls < 10, "stuck at {at}");
@@ -1038,13 +1002,9 @@ mod stream_tests {
         let mut server = NoiseStream::server(&secret, &public, None);
         let mut buf = vec![0u8; 256];
         let mut nothing = Data(Vec::new(), 0);
-        let Pull::Bytes(n) = client.pull_from(&mut nothing, &mut buf).unwrap() else {
-            panic!("no message 1")
-        };
+        let Pull::Bytes(n) = client.pull_from(&mut nothing, &mut buf).unwrap() else { panic!("no message 1") };
         server.push_to(&mut Slow(Vec::new(), usize::MAX, 1), &buf[..n]).unwrap();
-        let Pull::Bytes(n) = server.pull_from(&mut nothing, &mut buf).unwrap() else {
-            panic!("no message 2")
-        };
+        let Pull::Bytes(n) = server.pull_from(&mut nothing, &mut buf).unwrap() else { panic!("no message 2") };
         client.push_to(&mut Slow(Vec::new(), usize::MAX, 1), &buf[..n]).unwrap();
         (client, server)
     }
@@ -1064,10 +1024,7 @@ mod stream_tests {
     #[test]
     fn records_in_the_clear_between_sealed_ones() {
         let all = pieces();
-        let (sealed, clear): (Vec<u8>, Vec<u8>) = (
-            all.iter().filter(|p| !p.1).flat_map(|p| p.0.clone()).collect(),
-            all.iter().filter(|p| p.1).flat_map(|p| p.0.clone()).collect(),
-        );
+        let (sealed, clear): (Vec<u8>, Vec<u8>) = (all.iter().filter(|p| !p.1).flat_map(|p| p.0.clone()).collect(), all.iter().filter(|p| p.1).flat_map(|p| p.0.clone()).collect());
         for room in [100usize, 4096, 1 << 16] {
             let (mut client, _) = pair();
             let mut src = Mixed(all.clone(), 0, 0, false);

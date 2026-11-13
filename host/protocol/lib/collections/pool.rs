@@ -80,12 +80,7 @@ impl<T, F: Fn() -> T> Pool<T, F> {
         let m = capacity.min(M);
         let places = || (0..capacity / m).map(|_| AtomicPtr::new(ptr::null_mut())).collect();
         Self {
-            locals: (0..THREADS)
-                .map(|_| Local {
-                    loaded: UnsafeCell::new(Vec::new()),
-                    prev: UnsafeCell::new(Vec::new()),
-                })
-                .collect(),
+            locals: (0..THREADS).map(|_| Local { loaded: UnsafeCell::new(Vec::new()), prev: UnsafeCell::new(Vec::new()) }).collect(),
             full: places(),
             empty: places(),
             m,
@@ -190,10 +185,7 @@ impl<T, F: Fn() -> T> Pool<T, F> {
     /// [`acquire`](Self::acquire) behind a guard that releases the object when dropped.
     #[inline]
     pub fn get(&self) -> Pooled<'_, T, F> {
-        Pooled {
-            item: ManuallyDrop::new(self.acquire()),
-            pool: self,
-        }
+        Pooled { item: ManuallyDrop::new(self.acquire()), pool: self }
     }
 }
 

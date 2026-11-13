@@ -1,26 +1,11 @@
 use super::*;
-use std::{
-    collections::HashSet,
-    hash::{BuildHasher, Hasher},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
-};
+use std::{collections::HashSet, hash::{BuildHasher, Hasher}, sync::{Arc, atomic::{AtomicBool, Ordering}}};
 
 macro_rules! owned_key {
-    (plain, $key:expr) => {
-        Some($key as u64)
-    };
-    (borrow, $key:expr) => {
-        Some(*$key as u64)
-    };
-    (nullable, $key:expr) => {
-        $key.map(|k| k as u64)
-    };
-    (nullable_borrow, $key:expr) => {
-        $key.map(|k| *k as u64)
-    };
+    (plain, $key:expr) => { Some($key as u64) };
+    (borrow, $key:expr) => { Some(*$key as u64) };
+    (nullable, $key:expr) => { $key.map(|k| k as u64) };
+    (nullable_borrow, $key:expr) => { $key.map(|k| *k as u64) };
 }
 
 macro_rules! walk_map {
@@ -62,40 +47,20 @@ macro_rules! walk_map {
 macro_rules! insert_null_map {
     (plain, $m:ident) => {};
     (borrow, $m:ident) => {};
-    (nullable, $m:ident) => {
-        $m.insert(None, 999);
-    };
-    (nullable_borrow, $m:ident) => {
-        $m.insert(None, 999);
-    };
+    (nullable, $m:ident) => { $m.insert(None, 999); };
+    (nullable_borrow, $m:ident) => { $m.insert(None, 999); };
 }
 macro_rules! insert_map {
-    (plain, $m:ident, $k:expr, $v:expr) => {
-        $m.insert($k, $v)
-    };
-    (borrow, $m:ident, $k:expr, $v:expr) => {
-        $m.insert($k, $v)
-    };
-    (nullable, $m:ident, $k:expr, $v:expr) => {
-        $m.insert(Some($k), $v)
-    };
-    (nullable_borrow, $m:ident, $k:expr, $v:expr) => {
-        $m.insert(Some($k), $v)
-    };
+    (plain, $m:ident, $k:expr, $v:expr) => { $m.insert($k, $v) };
+    (borrow, $m:ident, $k:expr, $v:expr) => { $m.insert($k, $v) };
+    (nullable, $m:ident, $k:expr, $v:expr) => { $m.insert(Some($k), $v) };
+    (nullable_borrow, $m:ident, $k:expr, $v:expr) => { $m.insert(Some($k), $v) };
 }
 macro_rules! remove_map {
-    (plain, $m:ident, $k:expr) => {
-        $m.remove($k)
-    };
-    (borrow, $m:ident, $k:expr) => {
-        $m.remove(&$k)
-    };
-    (nullable, $m:ident, $k:expr) => {
-        $m.remove(Some($k))
-    };
-    (nullable_borrow, $m:ident, $k:expr) => {
-        $m.remove(Some(&$k))
-    };
+    (plain, $m:ident, $k:expr) => { $m.remove($k) };
+    (borrow, $m:ident, $k:expr) => { $m.remove(&$k) };
+    (nullable, $m:ident, $k:expr) => { $m.remove(Some($k)) };
+    (nullable_borrow, $m:ident, $k:expr) => { $m.remove(Some(&$k)) };
 }
 macro_rules! exercise_map {
     ($new:expr, $key:ty, $kind:ident) => {{
@@ -103,17 +68,11 @@ macro_rules! exercise_map {
         walk_map!(map, $kind);
         insert_null_map!($kind, map);
         walk_map!(map, $kind); // Includes null-only maps without allocated keyed storage.
-        for i in 0..30 {
-            insert_map!($kind, map, (i * 193 % 256) as $key, i as i64);
-        }
+        for i in 0..30 { insert_map!($kind, map, (i * 193 % 256) as $key, i as i64); }
         walk_map!(map, $kind);
-        for i in 30..256 {
-            insert_map!($kind, map, (i * 193 % 256) as $key, i as i64);
-        }
+        for i in 30..256 { insert_map!($kind, map, (i * 193 % 256) as $key, i as i64); }
         walk_map!(map, $kind);
-        for i in 0..246 {
-            remove_map!($kind, map, (i * 193 % 256) as $key);
-        }
+        for i in 0..246 { remove_map!($kind, map, (i * 193 % 256) as $key); }
         walk_map!(map, $kind);
         map.shrink_to_fit();
         walk_map!(map, $kind);
@@ -126,46 +85,16 @@ macro_rules! exercise_map {
     }};
 }
 
-#[test]
-fn primitive_map_token_access() {
-    exercise_map!(PrimitiveMap::<u64, i64>::new(), u64, plain);
-}
-#[test]
-fn map_token_access() {
-    exercise_map!(Map::<u64, i64>::new(), u64, borrow);
-}
-#[test]
-fn nullable_map_token_access() {
-    exercise_map!(NullableMap::<u64, i64>::new(), u64, nullable_borrow);
-}
-#[test]
-fn nullable_primitive_map_token_access() {
-    exercise_map!(NullablePrimitiveMap::<u64, i64>::new(), u64, nullable);
-}
-#[test]
-fn byte_map_token_access_in_both_layouts() {
-    exercise_map!(ByteMap::<u8, i64>::new(), u8, plain);
-}
-#[test]
-fn nullable_byte_map_token_access_in_both_layouts() {
-    exercise_map!(NullableByteMap::<u8, i64>::new(), u8, nullable);
-}
-#[test]
-fn two_bytes_map_token_access() {
-    exercise_map!(TwoBytesMap::<u16, i64>::new(), u16, plain);
-}
-#[test]
-fn nullable_two_bytes_map_token_access() {
-    exercise_map!(NullableTwoBytesMap::<u16, i64>::new(), u16, nullable);
-}
-#[test]
-fn two_bytes_map_flat_then_hash_token_access() {
-    exercise_map!(TwoBytesMap::<u16, i64>::with_capacity(65536), u16, plain);
-}
-#[test]
-fn nullable_two_bytes_map_flat_then_hash_token_access() {
-    exercise_map!(NullableTwoBytesMap::<u16, i64>::with_capacity(65536), u16, nullable);
-}
+#[test] fn primitive_map_token_access() { exercise_map!(PrimitiveMap::<u64, i64>::new(), u64, plain); }
+#[test] fn map_token_access() { exercise_map!(Map::<u64, i64>::new(), u64, borrow); }
+#[test] fn nullable_map_token_access() { exercise_map!(NullableMap::<u64, i64>::new(), u64, nullable_borrow); }
+#[test] fn nullable_primitive_map_token_access() { exercise_map!(NullablePrimitiveMap::<u64, i64>::new(), u64, nullable); }
+#[test] fn byte_map_token_access_in_both_layouts() { exercise_map!(ByteMap::<u8, i64>::new(), u8, plain); }
+#[test] fn nullable_byte_map_token_access_in_both_layouts() { exercise_map!(NullableByteMap::<u8, i64>::new(), u8, nullable); }
+#[test] fn two_bytes_map_token_access() { exercise_map!(TwoBytesMap::<u16, i64>::new(), u16, plain); }
+#[test] fn nullable_two_bytes_map_token_access() { exercise_map!(NullableTwoBytesMap::<u16, i64>::new(), u16, nullable); }
+#[test] fn two_bytes_map_flat_then_hash_token_access() { exercise_map!(TwoBytesMap::<u16, i64>::with_capacity(65536), u16, plain); }
+#[test] fn nullable_two_bytes_map_flat_then_hash_token_access() { exercise_map!(NullableTwoBytesMap::<u16, i64>::with_capacity(65536), u16, nullable); }
 
 macro_rules! walk_set {
     ($set:ident, $kind:ident, $iter:ident, $lookup:ident) => {{
@@ -193,34 +122,18 @@ macro_rules! walk_set {
 }
 macro_rules! insert_null_set {
     (plain, $s:ident) => {};
-    (nullable, $s:ident) => {
-        $s.insert(None);
-    };
-    (nullable_borrow, $s:ident) => {
-        $s.insert_null();
-    };
+    (nullable, $s:ident) => { $s.insert(None); };
+    (nullable_borrow, $s:ident) => { $s.insert_null(); };
 }
 macro_rules! insert_set {
-    (plain, $s:ident, $k:expr) => {
-        $s.insert($k)
-    };
-    (nullable, $s:ident, $k:expr) => {
-        $s.insert(Some($k))
-    };
-    (nullable_borrow, $s:ident, $k:expr) => {
-        $s.insert($k)
-    };
+    (plain, $s:ident, $k:expr) => { $s.insert($k) };
+    (nullable, $s:ident, $k:expr) => { $s.insert(Some($k)) };
+    (nullable_borrow, $s:ident, $k:expr) => { $s.insert($k) };
 }
 macro_rules! remove_set {
-    (plain, $s:ident, $k:expr) => {
-        $s.remove($k)
-    };
-    (nullable, $s:ident, $k:expr) => {
-        $s.remove(Some($k))
-    };
-    (nullable_borrow, $s:ident, $k:expr) => {
-        $s.remove(&$k)
-    };
+    (plain, $s:ident, $k:expr) => { $s.remove($k) };
+    (nullable, $s:ident, $k:expr) => { $s.remove(Some($k)) };
+    (nullable_borrow, $s:ident, $k:expr) => { $s.remove(&$k) };
 }
 macro_rules! exercise_set {
     ($new:expr, $key:ty, $kind:ident, $iter:ident, $lookup:ident) => {{
@@ -228,13 +141,9 @@ macro_rules! exercise_set {
         walk_set!(set, $kind, $iter, $lookup);
         insert_null_set!($kind, set);
         walk_set!(set, $kind, $iter, $lookup);
-        for i in 0..256 {
-            insert_set!($kind, set, (i * 193 % 256) as $key);
-        }
+        for i in 0..256 { insert_set!($kind, set, (i * 193 % 256) as $key); }
         walk_set!(set, $kind, $iter, $lookup);
-        for i in 0..246 {
-            remove_set!($kind, set, (i * 193 % 256) as $key);
-        }
+        for i in 0..246 { remove_set!($kind, set, (i * 193 % 256) as $key); }
         walk_set!(set, $kind, $iter, $lookup);
         let clone = set.clone();
         walk_set!(clone, $kind, $iter, $lookup);
@@ -245,34 +154,13 @@ macro_rules! exercise_set {
     }};
 }
 
-#[test]
-fn primitive_set_token_access() {
-    exercise_set!(PrimitiveSet::<u64>::new(), u64, plain, iter, token_of);
-}
-#[test]
-fn nullable_primitive_set_token_access() {
-    exercise_set!(NullablePrimitiveSet::<u64>::new(), u64, nullable, iter, token_of);
-}
-#[test]
-fn nullable_set_token_access() {
-    exercise_set!(NullableSet::<u64>::new(), u64, nullable_borrow, iter_opt, token_of_opt);
-}
-#[test]
-fn byte_set_token_access() {
-    exercise_set!(ByteSet::<u8>::new(), u8, plain, iter, token_of);
-}
-#[test]
-fn nullable_byte_set_token_access() {
-    exercise_set!(NullableByteSet::<u8>::new(), u8, nullable, iter, token_of);
-}
-#[test]
-fn two_bytes_set_token_access() {
-    exercise_set!(TwoBytesSet::<u16>::new(), u16, plain, iter, token_of);
-}
-#[test]
-fn nullable_two_bytes_set_token_access() {
-    exercise_set!(NullableTwoBytesSet::<u16>::new(), u16, nullable, iter, token_of);
-}
+#[test] fn primitive_set_token_access() { exercise_set!(PrimitiveSet::<u64>::new(), u64, plain, iter, token_of); }
+#[test] fn nullable_primitive_set_token_access() { exercise_set!(NullablePrimitiveSet::<u64>::new(), u64, nullable, iter, token_of); }
+#[test] fn nullable_set_token_access() { exercise_set!(NullableSet::<u64>::new(), u64, nullable_borrow, iter_opt, token_of_opt); }
+#[test] fn byte_set_token_access() { exercise_set!(ByteSet::<u8>::new(), u8, plain, iter, token_of); }
+#[test] fn nullable_byte_set_token_access() { exercise_set!(NullableByteSet::<u8>::new(), u8, nullable, iter, token_of); }
+#[test] fn two_bytes_set_token_access() { exercise_set!(TwoBytesSet::<u16>::new(), u16, plain, iter, token_of); }
+#[test] fn nullable_two_bytes_set_token_access() { exercise_set!(NullableTwoBytesSet::<u16>::new(), u16, nullable, iter, token_of); }
 
 #[test]
 fn two_bytes_sets_flat_then_hash_token_access() {
@@ -291,10 +179,7 @@ fn two_bytes_sets_flat_then_hash_token_access() {
     assert!(!set.is_flat() && !nullable.is_flat());
     walk_set!(set, plain, iter, token_of);
     walk_set!(nullable, nullable, iter, token_of);
-    for key in 0..600 {
-        set.insert(key);
-        nullable.insert(Some(key));
-    }
+    for key in 0..600 { set.insert(key); nullable.insert(Some(key)); }
     assert!(set.is_flat() && nullable.is_flat());
     walk_set!(set, plain, iter, token_of);
     walk_set!(nullable, nullable, iter, token_of);
@@ -311,13 +196,8 @@ impl BuildHasher for HashGate {
     }
 }
 impl Hasher for GatedHasher {
-    fn finish(&self) -> u64 {
-        assert!(!self.0.load(Ordering::Relaxed));
-        0
-    } // Force a long chain.
-    fn write(&mut self, _: &[u8]) {
-        assert!(!self.0.load(Ordering::Relaxed));
-    }
+    fn finish(&self) -> u64 { assert!(!self.0.load(Ordering::Relaxed)); 0 } // Force a long chain.
+    fn write(&mut self, _: &[u8]) { assert!(!self.0.load(Ordering::Relaxed)); }
 }
 
 #[test]
@@ -382,9 +262,7 @@ fn collision_tokens_skip_the_gap_and_do_not_hash() {
     assert_eq!(map.key_by_token(target), Some(10));
     // Structural operations are followed by obtaining fresh tokens.
     gate.store(false, Ordering::Relaxed);
-    for key in [0, 10, 19, 1, 18] {
-        map.remove(key);
-    }
+    for key in [0, 10, 19, 1, 18] { map.remove(key); }
     map.reserve(300);
     walk_map!(map, plain);
     map.shrink_to_fit();
@@ -429,9 +307,7 @@ fn signed_keys_and_flat_map_last_slot() {
     exercise_map!(ByteMap::<i8, i64>::new(), i8, plain);
     exercise_set!(NullableByteSet::<i8>::new(), i8, nullable, iter, token_of);
     let mut map = TwoBytesMap::<i16, i64>::with_capacity(65536);
-    for (key, value) in [(-32768, 1), (-1, 2), (0, 3), (32767, 4)] {
-        map.insert(key, value);
-    }
+    for (key, value) in [(-32768, 1), (-1, 2), (0, 3), (32767, 4)] { map.insert(key, value); }
     assert_eq!(map.token_of(-1), Some(65535));
     assert_eq!(map.entry_by_token(65535), Some((-1, &2)));
     assert_eq!(map.next_token(65535), None);

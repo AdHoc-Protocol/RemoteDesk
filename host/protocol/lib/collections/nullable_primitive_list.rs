@@ -43,32 +43,17 @@ impl<T: Copy + Default> NullablePrimitiveList<T> {
     /// Does not allocate.
     #[inline]
     pub const fn new() -> Self {
-        Self {
-            nulls: BitList::new(),
-            values: Vec::new(),
-            count: 0,
-            ranks: Vec::new(),
-            flat: false,
-            flat_threshold: DEFAULT_FLAT_THRESHOLD,
-        }
+        Self { nulls: BitList::new(), values: Vec::new(), count: 0, ranks: Vec::new(), flat: false, flat_threshold: DEFAULT_FLAT_THRESHOLD }
     }
 
     /// Room for `capacity` values.
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            nulls: BitList::with_capacity(capacity),
-            values: Vec::with_capacity(capacity),
-            ..Self::new()
-        }
+        Self { nulls: BitList::with_capacity(capacity), values: Vec::with_capacity(capacity), ..Self::new() }
     }
 
     /// `len` nulls.
     pub fn with_nulls(len: usize) -> Self {
-        Self {
-            nulls: BitList::filled(false, len),
-            ranks: vec![0; len.div_ceil(64)],
-            ..Self::new()
-        }
+        Self { nulls: BitList::filled(false, len), ranks: vec![0; len.div_ceil(64)], ..Self::new() }
     }
 
     #[inline(always)]
@@ -234,11 +219,7 @@ impl<T: Copy + Default> NullablePrimitiveList<T> {
         let v = value?;
         // SAFETY: `i < len`: compressed has a rank for its word; the place of a set bit is below
         // `values.len()` (`count` compressed, `len` flat)
-        let p = if self.flat {
-            i
-        } else {
-            unsafe { *self.ranks.get_unchecked(i >> 6) + (w & ((1u64 << b) - 1)).count_ones() as usize }
-        };
+        let p = if self.flat { i } else { unsafe { *self.ranks.get_unchecked(i >> 6) + (w & ((1u64 << b) - 1)).count_ones() as usize } };
         Some(mem::replace(unsafe { self.values.get_unchecked_mut(p) }, v))
     }
 
@@ -478,14 +459,7 @@ impl<T: Copy + Default> NullablePrimitiveList<T> {
 
     #[inline]
     pub fn iter(&self) -> Iter<'_, T> {
-        Iter {
-            nulls: self.nulls.iter(),
-            bits: &self.nulls,
-            values: &self.values,
-            pos: 0,
-            n: 0,
-            flat: self.flat,
-        }
+        Iter { nulls: self.nulls.iter(), bits: &self.nulls, values: &self.values, pos: 0, n: 0, flat: self.flat }
     }
 }
 

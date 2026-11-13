@@ -25,7 +25,7 @@
  * A TypeScript implementation of a ring buffer (circular buffer) with a fixed capacity.
  * @template T The type of elements stored in the buffer.
  */
-export class RingBuffer<T> {
+export class RingBuffer<T>{
     /**
      * The final array that stores the buffer's elements. Its length is always a power of two.
      */
@@ -52,50 +52,46 @@ export class RingBuffer<T> {
      * @param fillWith If provided, the buffer is pre-filled with this value. Useful for recycling objects.
      * @throws Error if powerOf2 is negative or greater than 30 (to prevent overflow).
      */
-    constructor(powerOf2: number, fillWith?: () => T) {
-        if (powerOf2 < 0) throw new Error("powerOf2 must be non-negative");
+    constructor( powerOf2: number, fillWith?: () => T ){
+        if( powerOf2 < 0 ) throw new Error( "powerOf2 must be non-negative" );
 
-        if (powerOf2 > 30) throw new Error("powerOf2 must not exceed 30 to avoid integer overflow");
+        if( powerOf2 > 30 ) throw new Error( "powerOf2 must not exceed 30 to avoid integer overflow" );
 
         const capacity = 1 << powerOf2;
         this.mask = capacity - 1;
-        this.buffer = new Array<T>(capacity);
+        this.buffer = new Array<T>( capacity );
 
-        if (fillWith) for (let i = 0; i < capacity; i++) this.buffer[i] = fillWith();
+        if( fillWith )
+            for( let i = 0; i < capacity; i++ )
+                this.buffer[i] = fillWith();
     }
 
     /**
      * Returns the fixed capacity of the ring buffer.
      * @returns The buffer's capacity, which is always a power of 2.
      */
-    public capacity(): number {
-        return this.buffer.length;
-    }
+    public capacity(): number{ return this.buffer.length; }
 
     /**
      * Returns the approximate number of elements currently in the buffer.
      * Note: In a concurrent environment, this value can be stale as soon as it is returned.
      * @returns The approximate count of elements in the buffer.
      */
-    public size(): number {
-        return this.#put - this.#get;
-    }
+    public size(): number{ return this.#put - this.#get; }
 
     /**
      * Checks if the buffer is empty.
      * Note: In a concurrent environment, the buffer's state can change after this method returns.
      * @returns `true` if the head and tail pointers were equal at the time of the check.
      */
-    public isEmpty(): boolean {
-        return this.#get === this.#put;
-    }
+    public isEmpty(): boolean{ return this.#get === this.#put; }
 
     /**
      * Checks if the buffer is full.
      * Note: In a concurrent environment, the buffer's state can change after this method returns.
      * @returns `true` if the number of elements equals the capacity at the time of the check.
      */
-    public isFull(): boolean {
+    public isFull(): boolean{
         return this.#put - this.#get === this.buffer.length;
     }
 
@@ -105,7 +101,7 @@ export class RingBuffer<T> {
      * @param replacement The value to place in the buffer at the retrieved element's slot (optional).
      * @returns The retrieved element.
      */
-    public get(replacement?: T): T {
+    public get( replacement?: T ): T{
         const index = this.#get++ & this.mask;
         const item = this.buffer[index];
         this.buffer[index] = replacement as T;
@@ -118,7 +114,7 @@ export class RingBuffer<T> {
      * @param value The element to add.
      * @returns The element that was previously at the insertion index.
      */
-    public put(value: T): T {
+    public put( value: T ): T{
         const index = this.#put++ & this.mask;
         const result = this.buffer[index];
         this.buffer[index] = value;
@@ -131,25 +127,19 @@ export class RingBuffer<T> {
      * Precondition: The caller must ensure the buffer is not full (use `isFull()`).
      * @param value The element to add.
      */
-    public put_(value: T): void {
-        this.buffer[this.#put++ & this.mask] = value;
-    }
+    public put_( value: T ): void{ this.buffer[this.#put++ & this.mask] = value; }
 
     /** The place the next `put` takes: `& ( capacity() - 1 )` - its slot. */
-    public get putting(): number {
-        return this.#put;
-    }
+    public get putting(): number{ return this.#put; }
 
     /** The place the last `get` took: `& ( capacity() - 1 )` - its slot. */
-    public get taken(): number {
-        return this.#get - 1;
-    }
+    public get taken(): number{ return this.#get - 1; }
 
     /**
      * Resets the buffer to an empty state by setting the head and tail pointers to zero.
      * @returns The internal array for advanced cleaning.
      */
-    public clear(): T[] {
+    public clear(): T[]{
         this.#get = 0;
         this.#put = 0;
         return this.buffer;
@@ -160,9 +150,7 @@ export class RingBuffer<T> {
      * Intended for debugging and logging.
      * @returns A string summarizing the buffer's capacity, size, and pointer positions.
      */
-    public toString(): string {
-        return `RingBuffer{capacity=${this.capacity()}, size=${this.size()}, get=${this.#get}, put=${this.#put}}`;
-    }
+    public toString(): string{ return `RingBuffer{capacity=${ this.capacity() }, size=${ this.size() }, get=${ this.#get }, put=${ this.#put }}`; }
 }
 
 export default RingBuffer;

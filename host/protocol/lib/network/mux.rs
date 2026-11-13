@@ -13,9 +13,9 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 
 use super::TCP::external_connection::Event;
+use crate::lib::adhoc::{BytesDst, BytesSrc};
 use super::TCP::external_connection::{ExternalConnection, Incumbent};
 use super::TCP::ConnectionFactory;
-use crate::lib::adhoc::{BytesDst, BytesSrc};
 
 /// The listening side: the factory of the connection a caller names by the uid of its host; `None`
 /// — an unknown one: the socket closes.
@@ -108,9 +108,7 @@ impl Drop for MuxSink {
         if self.seated.is_none() || self.state.resumable.load(std::sync::atomic::Ordering::Acquire) != 0 {
             return;
         }
-        let (Some(keeper), Some(seat)) = (self.state.session_keeper(), self.state.seat_hook()) else {
-            return;
-        };
+        let (Some(keeper), Some(seat)) = (self.state.session_keeper(), self.state.seat_hook()) else { return };
         let Some(keep) = keeper() else { return }; // the connection is still alive: what is seated holds it yet
         *self.state.incumbent.lock() = Some(Incumbent { uid, keep, seat });
     }
@@ -296,7 +294,10 @@ impl BytesSrc for MuxSource {
 /// before everything it sends. The write half is woken at once: the byte goes even when the
 /// connection has nothing to send yet. The Noise the protocol layer declares goes inside, behind
 /// the byte; a refusal is left for the transport, which does not dial then.
-pub fn dialing(uid: u8, seat: impl Fn(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>)) -> impl Fn(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) {
+pub fn dialing(
+    uid: u8,
+    seat: impl Fn(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>),
+) -> impl Fn(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) {
     move |state| {
         let (sink, source) = noised_inside(state, seat(state));
         named_reseat(state, uid);
@@ -363,6 +364,7 @@ impl BytesSrc for MuxNamed {
         dst[0] = uid;
         1 + self.inner.read(&mut dst[1..]).max(0)
     }
+
 }
 
 #[cfg(test)]
@@ -391,7 +393,9 @@ mod tests {
     fn the_first_byte_names_the_connection() {
         let got = Arc::new(Mutex::new(Vec::new()));
         let g = got.clone();
-        let seated: ConnectionFactory = Arc::new(move |_| (Box::new(Collect(g.clone())) as Box<dyn BytesDst>, Box::new(Nothing) as Box<dyn BytesSrc>));
+        let seated: ConnectionFactory = Arc::new(move |_| {
+            (Box::new(Collect(g.clone())) as Box<dyn BytesDst>, Box::new(Nothing) as Box<dyn BytesSrc>)
+        });
         let pick: MuxPick = Arc::new(move |uid| (uid == 7).then(|| seated.clone()));
         let state = ExternalConnection::new(ConnId(1));
         let (mut sink, _) = factory(pick.clone(), Event::REMOTE_CONNECT)(&state);

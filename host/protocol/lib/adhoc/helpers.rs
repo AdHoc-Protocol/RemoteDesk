@@ -114,7 +114,7 @@ pub fn zig_zag_encode(src: i64, right: u32) -> u64 {
 /// Decodes a signed integer encoded by [`zig_zag_encode`].
 #[inline]
 pub fn zig_zag_decode(src: u64) -> i64 {
-    -((src & 1) as i64) ^ ((src >> 1) as i64)
+    -(((src & 1) as i64)) ^ ((src >> 1) as i64)
 }
 
 // CRC-32C (Castagnoli): the check of a framed pack
@@ -551,15 +551,7 @@ pub fn date_time(date_time: &str, format: &str) -> Result<std::time::SystemTime,
         match c {
             b'y' => {
                 let v = digits(&mut di, run.max(1).min(4), if run <= 2 { 2 } else { run.max(4) })? as i64;
-                year = if run <= 2 {
-                    if v < 50 {
-                        2000 + v
-                    } else {
-                        1900 + v
-                    }
-                } else {
-                    v
-                }; // InvariantCulture TwoDigitYearMax 2049
+                year = if run <= 2 { if v < 50 { 2000 + v } else { 1900 + v } } else { v }; // InvariantCulture TwoDigitYearMax 2049
             }
             b'M' if run <= 2 => month = digits(&mut di, run, 2)? as u32,
             b'M' => month = name(src, &mut di, if run == 3 { &MONTHS_ABBR } else { &MONTHS }).ok_or_else(bad)? as u32 + 1,
@@ -922,11 +914,7 @@ pub mod decimal {
     #[inline]
     pub fn to_chars(units: i128, scale: u32, dst: &mut [u8; MAX_CHARS]) -> &str {
         let m = units.unsigned_abs();
-        let i = if m >> 64 == 0 {
-            digits(units < 0, 0, m as u64, scale, dst)
-        } else {
-            digits(units < 0, (m / P19) as u64, (m % P19) as u64, scale, dst)
-        };
+        let i = if m >> 64 == 0 { digits(units < 0, 0, m as u64, scale, dst) } else { digits(units < 0, (m / P19) as u64, (m % P19) as u64, scale, dst) };
         // only ASCII is there
         unsafe { std::str::from_utf8_unchecked(&dst[i..]) }
     }
@@ -1044,11 +1032,7 @@ pub mod decimal {
             RoundingMode::HalfEven => half == Greater || half == Equal && q & 1 == 1,
             RoundingMode::Unnecessary => return None,
         };
-        if up {
-            q.checked_add(1)
-        } else {
-            Some(q)
-        }
+        if up { q.checked_add(1) } else { Some(q) }
     }
 
     /// The signed value of the magnitude `m`: `None` — beyond `i128`.
@@ -1150,11 +1134,7 @@ pub mod decimal {
     /// The units `u` at the scale `from` — at the scale `to`.
     #[inline]
     pub fn rescale(u: i128, from: u32, to: u32, mode: RoundingMode) -> Option<i128> {
-        if from <= to {
-            u.checked_mul(*POW10.get((to - from) as usize)? as i128)
-        } else {
-            div_pow10(u, from - to, mode)
-        }
+        if from <= to { u.checked_mul(*POW10.get((to - from) as usize)? as i128) } else { div_pow10(u, from - to, mode) }
     }
 
     /// The value of the units `u` at `scale` as `f64`: for showing only, the nearest `f64` may differ from it.
@@ -1195,27 +1175,9 @@ pub mod decimal {
             hi << (128 - k) | lo >> k
         };
         let h = k - 1; // the bit of the half of the step
-        let half_bit = if h < 128 {
-            lo >> h & 1 != 0
-        } else if h < 256 {
-            hi >> (h - 128) & 1 != 0
-        } else {
-            false
-        };
-        let below = if h <= 128 {
-            h != 0 && lo << (128 - h) != 0
-        } else if h < 256 {
-            lo != 0 || hi << (256 - h) != 0
-        } else {
-            true
-        };
-        let half = if !half_bit {
-            Less
-        } else if below {
-            Greater
-        } else {
-            Equal
-        };
+        let half_bit = if h < 128 { lo >> h & 1 != 0 } else if h < 256 { hi >> (h - 128) & 1 != 0 } else { false };
+        let below = if h <= 128 { h != 0 && lo << (128 - h) != 0 } else if h < 256 { lo != 0 || hi << (256 - h) != 0 } else { true };
+        let half = if !half_bit { Less } else if below { Greater } else { Equal };
         signed(round(q, !half_bit && !below, half, neg, mode)?, neg)
     }
 
@@ -1236,11 +1198,7 @@ pub mod decimal {
         /// The value of `u` units: `None` — beyond ±(10^`PRECISION` - 1).
         #[inline]
         fn of_units(u: i128) -> Option<Self> {
-            if u.unsigned_abs() < POW10[Self::PRECISION as usize] {
-                Some(Self::from_units128(u))
-            } else {
-                None
-            }
+            if u.unsigned_abs() < POW10[Self::PRECISION as usize] { Some(Self::from_units128(u)) } else { None }
         }
 
         /// -1, 0 or 1.
@@ -1495,6 +1453,8 @@ mod tests {
         }
     }
 
+    
+
     /// CRC-32C check vector: `123456789` must produce `0xE3069283`.
     #[test]
     fn crc32c_canonical_check() {
@@ -1596,14 +1556,23 @@ mod tests {
         let src: Vec<u8> = (0..20u8).collect();
         let dump = hex_dump(&src);
         let mut lines = dump.lines();
-        assert_eq!(lines.next().unwrap(), "       0: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F :       16");
-        assert_eq!(lines.next().unwrap(), "      10: 10 11 12 13                                     :       20");
+        assert_eq!(
+            lines.next().unwrap(),
+            "       0: 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F :       16"
+        );
+        assert_eq!(
+            lines.next().unwrap(),
+            "      10: 10 11 12 13                                     :       20"
+        );
     }
 
     #[test]
     fn date_time_parses_exact() {
         let t = date_time("2024-03-05 12:30:45", "yyyy-MM-dd HH:mm:ss").unwrap();
-        let secs = t.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let secs = t
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
         // 2024-03-05 12:30:45 UTC
         assert_eq!(secs, 1709641845);
         let with_millis = date_time("1970-01-01T00:00:00.123", "yyyy-MM-ddTHH:mm:ss.fff").unwrap();

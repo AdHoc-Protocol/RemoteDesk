@@ -37,35 +37,24 @@ pub struct NullableSet<K, S = FxBuildHasher> {
 impl<K, S> NullableSet<K, S> {
     /// Keyed slots first, then `NULL_TOKEN`; see [`super::token`].
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        or_null(self.raw.token(), self.has_null)
-    }
+    pub fn token(&self) -> Option<Token> { or_null(self.raw.token(), self.has_null) }
 
     #[inline(always)]
     pub fn next_token(&self, token: Token) -> Option<Token> {
-        if token == NULL_TOKEN || !self.raw.contains_token(token) {
-            return None;
-        }
+        if token == NULL_TOKEN || !self.raw.contains_token(token) { return None; }
         or_null(self.raw.next_token(token), self.has_null)
     }
 
     #[inline(always)]
     pub fn contains_token(&self, token: Token) -> bool {
-        if token == NULL_TOKEN {
-            self.has_null
-        } else {
-            self.raw.contains_token(token)
-        }
+        if token == NULL_TOKEN { self.has_null } else { self.raw.contains_token(token) }
     }
 
     /// `Some(None)` denotes the null key; outer `None` means an unoccupied slot.
     #[inline(always)]
     pub fn key_by_token(&self, token: Token) -> Option<Option<&K>> {
-        if token == NULL_TOKEN {
-            self.has_null.then_some(None)
-        } else {
-            self.raw.get_by_token(token).map(|(e, _)| Some(&e.key))
-        }
+        if token == NULL_TOKEN { self.has_null.then_some(None) }
+        else { self.raw.get_by_token(token).map(|(e, _)| Some(&e.key)) }
     }
 
     #[inline(always)]
@@ -148,10 +137,7 @@ impl<K, S> NullableSet<K, S> {
     /// All the keys as `Option`: the null one first.
     #[inline]
     pub fn iter_opt(&self) -> IterOpt<'_, K> {
-        IterOpt {
-            null: self.has_null,
-            inner: self.raw.iter(),
-        }
+        IterOpt { null: self.has_null, inner: self.raw.iter() }
     }
 }
 
@@ -177,42 +163,25 @@ impl<K: Eq + Hash> Default for NullableSet<K, FxBuildHasher> {
 impl<K: Eq + Hash, S: BuildHasher> NullableSet<K, S> {
     #[inline(always)]
     pub fn token_of<Q>(&self, key: &Q) -> Option<Token>
-    where
-        K: Borrow<Q>,
-        Q: Hash + Eq + ?Sized,
-    {
+    where K: Borrow<Q>, Q: Hash + Eq + ?Sized {
         let h = self.hash_of(key);
         self.raw.find(h, |e| e.hash as u64 == h && e.key.borrow() == key)
     }
 
     #[inline(always)]
     pub fn token_of_opt<Q>(&self, key: Option<&Q>) -> Option<Token>
-    where
-        K: Borrow<Q>,
-        Q: Hash + Eq + ?Sized,
-    {
-        match key {
-            Some(k) => self.token_of(k),
-            None => self.has_null.then_some(NULL_TOKEN),
-        }
+    where K: Borrow<Q>, Q: Hash + Eq + ?Sized {
+        match key { Some(k) => self.token_of(k), None => self.has_null.then_some(NULL_TOKEN) }
     }
 
     /// Does not allocate.
     #[inline]
     pub fn with_hasher(hasher: S) -> Self {
-        Self {
-            raw: RawTable::new(),
-            has_null: false,
-            hasher,
-        }
+        Self { raw: RawTable::new(), has_null: false, hasher }
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> Self {
-        Self {
-            raw: RawTable::with_capacity(capacity),
-            has_null: false,
-            hasher,
-        }
+        Self { raw: RawTable::with_capacity(capacity), has_null: false, hasher }
     }
 
     /// The table uses the low 32 bits only: the bucket index and the cached hash.
@@ -257,9 +226,7 @@ impl<K: Eq + Hash, S: BuildHasher> NullableSet<K, S> {
 
     /// Key without `Option`, the null key separately: the serializer and the parser neither wrap a key nor check it for null.
     #[inline(always)]
-    pub fn insert_key(&mut self, k: K) -> bool {
-        self.insert(k)
-    }
+    pub fn insert_key(&mut self, k: K) -> bool { self.insert(k) }
 
     /// `true` if the key was not present; a present key is kept and `k` is dropped.
     #[inline]
@@ -354,7 +321,9 @@ impl<K: Eq + Hash, S: BuildHasher> NullableSet<K, S> {
     }
 
     pub fn is_subset<S2: BuildHasher>(&self, other: &NullableSet<K, S2>) -> bool {
-        (!self.has_null || other.has_null) && self.raw.len() <= other.raw.len() && self.raw.iter().all(|(e, _)| other.contains(&e.key))
+        (!self.has_null || other.has_null)
+            && self.raw.len() <= other.raw.len()
+            && self.raw.iter().all(|(e, _)| other.contains(&e.key))
     }
 
     pub fn is_superset<S2: BuildHasher>(&self, other: &NullableSet<K, S2>) -> bool {
@@ -376,11 +345,7 @@ impl<K: Eq + Hash, S: BuildHasher> NullableSet<K, S> {
 
 impl<K: Clone, S: Clone> Clone for NullableSet<K, S> {
     fn clone(&self) -> Self {
-        Self {
-            raw: self.raw.clone(),
-            has_null: self.has_null,
-            hasher: self.hasher.clone(),
-        }
+        Self { raw: self.raw.clone(), has_null: self.has_null, hasher: self.hasher.clone() }
     }
 }
 
@@ -481,10 +446,7 @@ pub struct IterOpt<'a, K> {
 
 impl<K> Clone for IterOpt<'_, K> {
     fn clone(&self) -> Self {
-        Self {
-            null: self.null,
-            inner: self.inner.clone(),
-        }
+        Self { null: self.null, inner: self.inner.clone() }
     }
 }
 

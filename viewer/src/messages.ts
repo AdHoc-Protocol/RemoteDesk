@@ -43,6 +43,8 @@ export const enum W {
     FILE_CANCEL,
     /** This viewer takes the control of the machine. */
     TAKE_CONTROL,
+    /** A piece of a mark drawn over the screen of the machine: every viewer draws, not only the one that controls. */
+    MARK,
 }
 
 /** What the worker tells the page. */
@@ -143,7 +145,9 @@ export type ToWorker =
     | { t: W.FILES; files: File[] }
     | { t: W.FILE_REQUEST }
     | { t: W.FILE_CANCEL }
-    | { t: W.TAKE_CONTROL };
+    | { t: W.TAKE_CONTROL }
+    /** `kind`: 0 a line, 1 a ring, 2 an arrow; `points`: x, y, … added to the stroke, fractions of the canvas, 0 … 65535. */
+    | { t: W.MARK; kind: number; stroke: number; done: boolean; color: number; points: number[] };
 
 export type ToMain =
     /** `checked` - by the check of the line, not by the key kept: `accepted` - it is the machine of the line. */

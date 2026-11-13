@@ -16,12 +16,28 @@ const kinds = [V.TouchEvent.Kind.START, V.TouchEvent.Kind.MOVE, V.TouchEvent.Kin
 
 export type Message = Extract<ToWorker, { t: W.POINTER | W.STAMP | W.KEY | W.TEXT | W.BUTTON | W.TOUCH }>;
 
+/** By `kind` of `W.MARK`. */
+const marks = [V.Mark.Kind.LINE, V.Mark.Kind.RING, V.Mark.Kind.ARROW];
+
 /** The page's `performance.now()` + `shift` - the worker's: the machine returns the time of the input, the worker measures by it. */
 let shift = 0;
 
 /** `page` - `performance.timeOrigin` of the page. */
 export function origin(page: number): void {
     shift = page - performance.timeOrigin;
+}
+
+/** A piece of a mark: to the display shown. */
+export function mark(m: Extract<ToWorker, { t: W.MARK }>, conn: Session, shown: Video): void {
+    const pack = new V.Mark();
+    pack.kind = marks[m.kind] ?? V.Mark.Kind.LINE;
+    pack.stroke = m.stroke & 0xff;
+    pack.done = m.done;
+    pack.color = m.color & 3;
+    pack.screen = shown.screen();
+    const points = pack.points_new(m.points.length);
+    for (let i = 0; i < m.points.length; i++) points.set1(i, m.points[i]);
+    send().send_Viewer_Mark(pack, conn);
 }
 
 /** Sends `m` to the machine on `conn`; `shown` - the video, its display and the pointer of the machine. */

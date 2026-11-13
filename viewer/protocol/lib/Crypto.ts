@@ -591,6 +591,8 @@ const CRYPTO_WASM =
     "4okA0aXU/ivLOP9Q2zr+VkfiAJPduf85+9gAx+I1/n0ZLQCUirgALA0v/ztXpf+RiWsARyTP/9Tt2wAsAUj/y3wF/3kgdv+4wpH/sESNAMRZFQCQ1M8BZkKp" +
     "/w==";
 
+
+
 export namespace org.unirail.Crypto {
     export const KEY = 32,
         TAG = 16,
@@ -653,7 +655,7 @@ export namespace org.unirail.Crypto {
     function bytes(): Uint8Array<ArrayBuffer> {
         const s = atob(CRYPTO_WASM);
         const b = new Uint8Array(s.length);
-        for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i);
+        for (let i = 0;i < s.length;i++) b[i] = s.charCodeAt(i);
         return b;
     }
 
@@ -685,14 +687,14 @@ export namespace org.unirail.Crypto {
         if (wasm) return Promise.resolve();
         // Byte compilation is the browser/Node path. Workers must use useModule instead;
         // their ambient declarations deliberately expose only the precompiled overload.
-        const instantiate = WebAssembly.instantiate as unknown as (bytes: Uint8Array<ArrayBuffer>, imports: WebAssembly.Imports) => Promise<{instance: WebAssembly.Instance}>;
+        const instantiate = WebAssembly.instantiate as unknown as (bytes: Uint8Array<ArrayBuffer>, imports: WebAssembly.Imports) => Promise<{ instance: WebAssembly.Instance }>;
         return (loading ??= instantiate(bytes(), {}).then((r) => {
             if (!wasm) install(r.instance);
         }));
     }
 
     function x(): Exports {
-        const Module = WebAssembly.Module as unknown as {new (bytes: Uint8Array<ArrayBuffer>): WebAssembly.Module};
+        const Module = WebAssembly.Module as unknown as { new(bytes: Uint8Array<ArrayBuffer>): WebAssembly.Module };
         if (!wasm) install(new WebAssembly.Instance(new Module(bytes()), {}));
         return wasm!;
     }
@@ -711,7 +713,7 @@ export namespace org.unirail.Crypto {
     /** Where `n` bytes lie for one call: the text of the io area, or what is grown past the static part, which stays for the next one. */
     function area(n: number): number {
         if (n <= MAX + TAG) return TEXT;
-        const at = (BIG ||= mem.length);
+        const at = BIG ||= mem.length;
         const short = at + n - mem.length;
         if (0 < short) {
             wasm!.memory.grow(Math.ceil(short / 65536));
@@ -1017,27 +1019,13 @@ export namespace org.unirail.Noise {
     export type PackKey = AdHoc.Connection.Keyring.Key;
 
     //What each message of a pattern does. NK: the client knows the server. IK: and proves itself in its first message. XX: neither knows the other beforehand. KK: both know.
-    const E = 0,
-        S = 1,
-        EE = 2,
-        ES = 3,
-        SE = 4,
-        SS = 5;
+    const E = 0, S = 1, EE = 2, ES = 3, SE = 4, SS = 5;
     const NAMES = ["NK", "IK", "XX", "KK"];
     const TOKENS = [
-        [
-            [E, ES],
-            [E, EE],
-        ],
-        [
-            [E, ES, S, SS],
-            [E, EE, SE],
-        ],
+        [[E, ES], [E, EE]],
+        [[E, ES, S, SS], [E, EE, SE]],
         [[E], [E, EE, S, ES], [S, SE]],
-        [
-            [E, ES, SS],
-            [E, EE, SE],
-        ],
+        [[E, ES, SS], [E, EE, SE]],
     ];
 
     const NO_BYTES = new Uint8Array(0);
@@ -1072,15 +1060,7 @@ export namespace org.unirail.Noise {
         private readonly tokens: number[][];
         private readonly cipher = new Crypto.Aead(new Uint8Array(KEY));
 
-        private constructor(
-            pattern: number,
-            private readonly initiator: boolean,
-            prologue: Uint8Array,
-            staticSecret?: Uint8Array,
-            peer?: Uint8Array,
-            ephemeral?: Uint8Array,
-            staticPublic?: Uint8Array,
-        ) {
+        private constructor(pattern: number, private readonly initiator: boolean, prologue: Uint8Array, staticSecret?: Uint8Array, peer?: Uint8Array, ephemeral?: Uint8Array, staticPublic?: Uint8Array) {
             this.tokens = TOKENS[pattern]!;
             const name = ascii(`Noise_${NAMES[pattern]}_25519_ChaChaPoly_SHA256`); //exactly HASHLEN: h is the name itself
             this.h.set(name);
@@ -1263,7 +1243,7 @@ export namespace org.unirail.Noise {
             for (const a of [this.ck, this.k, this.eSecret, this.sSecret]) a.fill(0);
             this.cipher.wipe();
         }
-//#region the symmetric state
+        //#region the symmetric state
         private mixHash(data: Uint8Array): void {
             Crypto.Sha256.mixHash(this.h, data);
         }
@@ -1297,7 +1277,7 @@ export namespace org.unirail.Noise {
             this.mixHash(c);
             return true;
         }
-//#endregion
+        //#endregion
     }
 
     /**
@@ -1399,7 +1379,7 @@ export namespace org.unirail.Noise {
             private readonly dst: () => AdHoc.BytesDst | undefined,
             private readonly wake: () => void,
             private readonly onPeer?: (key: Uint8Array) => boolean,
-        ) {}
+        ) { }
 
         /**
          * Any pattern. `first`: this side writes the first message.
@@ -1438,7 +1418,7 @@ export namespace org.unirail.Noise {
         get handshakePending(): boolean {
             return this.hsOutPos < this.hsOutLen;
         }
-//#region out
+        //#region out
         /** The bytes to send: the handshake message, then records of what the Internal's source gives. */
         read(dst: DataView, at: number, room: number): number {
             if (this.failed) return -1;
@@ -1533,7 +1513,7 @@ export namespace org.unirail.Noise {
         }
 
         private take(): Uint8Array {
-            const rec = (this.rec = Stream.POOL.pop() ?? new Uint8Array(Stream.HEADER + Stream.RECORD + TAG));
+            const rec = this.rec = Stream.POOL.pop() ?? new Uint8Array(Stream.HEADER + Stream.RECORD + TAG);
             this.recView = new DataView(rec.buffer);
             return rec;
         }
@@ -1542,8 +1522,8 @@ export namespace org.unirail.Noise {
             if (this.rec) Stream.POOL.push(this.rec);
             this.rec = undefined;
         }
-//#endregion
-//#region in
+        //#endregion
+        //#region in
         /**
          * The bytes received: the handshake message, then records, opened and handed on to the Internal's destination.
          * @returns how many were taken; fewer - the destination refuses now: offer the rest again later, and call again
@@ -1606,7 +1586,7 @@ export namespace org.unirail.Noise {
                     }
                 }
 
-                const buf = this.rx ? (this.rec ?? this.take()) : this.hsIn!;
+                const buf = this.rx ? this.rec ?? this.take() : this.hsIn!;
                 const k = Math.min(this.need - this.got, left);
                 Crypto.put(buf, this.got, bytes, p, k);
                 this.got += k;
@@ -1689,13 +1669,13 @@ export namespace org.unirail.Noise {
             this.onFail?.();
             return -1;
         }
-//#endregion
+        //#endregion
     }
 }
 
 import Noise = org.unirail.Noise;
 
-export {Noise};
+export { Noise };
 
 export namespace org.unirail {
     /**
@@ -1767,20 +1747,15 @@ export namespace org.unirail {
         }
 
         /** The Noise stream of a new socket, of a tunnel; `undefined` - no pattern: TLS alone. */
-        get codec(): Network.CodecFactory | undefined {
-            return this.pattern < 0 ? undefined : this.make;
-        }
+        get codec(): Network.CodecFactory | undefined { return this.pattern < 0 ? undefined : this.make; }
 
         /** The WebAssembly of the cipher, compiled asynchronously: a browser may refuse a synchronous compile on its main thread. */
-        ready(): Promise<void> {
-            return Crypto.ready();
-        }
+        ready(): Promise<void> { return Crypto.ready(); }
 
         //The initiator ( "client" ) writes the first message. Of the keys given the handshake takes what its role has it know ( noiseKeys ).
         private readonly make = (context: Network.CodecContext): Network.Codec => {
             const initiator = context.role === "client";
-            let secret = this.secret,
-                peer = this.peer;
+            let secret = this.secret, peer = this.peer;
             switch (this.pattern) {
                 case Noise.NK.PATTERN_NK:
                     if (initiator) secret = undefined;
@@ -1794,7 +1769,8 @@ export namespace org.unirail {
                     break;
             }
             if (secret !== undefined) this.pub ??= Crypto.X25519.publicKey(new Uint8Array(Crypto.KEY), secret); //computed once: not a curve multiplication a handshake
-            return Noise.Stream.of(Noise.NK.of(this.pattern, initiator, Noise.Stream.PROLOGUE, secret, peer, undefined, secret === undefined ? undefined : this.pub), initiator, context.source, context.destination, context.wake, this.heard);
+            return Noise.Stream.of(Noise.NK.of(this.pattern, initiator, Noise.Stream.PROLOGUE, secret, peer, undefined, secret === undefined ? undefined : this.pub), initiator,
+                context.source, context.destination, context.wake, this.heard);
         };
     }
 
@@ -1864,8 +1840,7 @@ export namespace org.unirail {
                 if ((flags & 1) !== 0 && !this.key) throw new Error("The Envelope of the pack is to be sealed - its pair is not set ( Chain.Pack.pair )");
                 if ((flags & 2) !== 0 && !this.secret) throw new Error("The Envelope of the pack is to be signed - the key to sign with is not set ( Chain.Pack.signedBy )");
                 if (buf.length - this.sizeAs(flags, len) < from) throw new RangeError("No room for the pack.");
-                const id = this.id,
-                    n = this.number;
+                const id = this.id, n = this.number;
                 buf[from] = id;
                 buf[from + 1] = id >>> 8;
                 buf[from + 2] = id >>> 16;
@@ -1898,7 +1873,7 @@ export namespace org.unirail {
         }
 
         /** A stream of a tunnel whose chain has Envelope, and the tunnel has no envelope of its own: the carrier's is never taken. */
-        export const NO_OWN_ENVELOPE = 'A tunnel\'s chain with Envelope and no keys of it: set the envelope of the virtual connection of the tunnel ( the envelope of its Transmitter and Receiver ), or return one in the region "The keys of the chain of the tunnel".';
+        export const NO_OWN_ENVELOPE = "A tunnel's chain with Envelope and no keys of it: set the envelope of the virtual connection of the tunnel ( the envelope of its Transmitter and Receiver ), or return one in the region \"The keys of the chain of the tunnel\".";
 
         /** Room for `need` bytes in `buf`, what it holds kept. */
         function room(buf: Uint8Array, len: number, need: number): Uint8Array {
@@ -1923,9 +1898,7 @@ export namespace org.unirail {
                 private outU8?: Uint8Array;
 
                 public _id = 0; // an inner stage: the outer framer carries the id
-                public get __id(): number {
-                    return this._id;
-                }
+                public get __id(): number { return this._id; }
 
                 /** `flags`: 1 - sealed, 2 - signed. */
                 public Init(src: AdHoc.Connection.Transmitter.BytesSrc, flags: number): Stage {
@@ -1953,14 +1926,12 @@ export namespace org.unirail {
 
                 public __get_bytes(dst: AdHoc.Connection.Transmitter): boolean {
                     if (this.out < 0) {
-                        for (;;) {
+                        for (; ;) {
                             if (this.buf.length - this.len < 256) {
                                 this.buf = room(this.buf, this.len, this.len + 256);
                                 this.view = new DataView(this.buf.buffer);
                             }
-                            const ob = dst.buffer,
-                                op = dst.byte,
-                                om = dst.byte_max;
+                            const ob = dst.buffer, op = dst.byte, om = dst.byte_max;
                             dst.buffer = this.view;
                             dst.byte = this.len;
                             dst.byte_max = this.buf.length;
@@ -1984,7 +1955,7 @@ export namespace org.unirail {
                         this.total = e.sealAs(this.flags, this.buf, 0, text);
                         this.out = 0;
                     }
-                    const out = (this.outU8 = bytes(this.outU8, dst.buffer!));
+                    const out = this.outU8 = bytes(this.outU8, dst.buffer!);
                     const n = Math.min(this.total - this.out, dst.byte_max - dst.byte);
                     out.set(this.buf.subarray(this.out, this.out + n), dst.byte);
                     dst.byte += n;
@@ -2010,9 +1981,7 @@ export namespace org.unirail {
                 private inU8?: Uint8Array;
 
                 public _id = 0; // an inner stage
-                public get __id(): number {
-                    return this._id;
-                }
+                public get __id(): number { return this._id; }
 
                 /** `flags`: 1 - sealed, 2 - signed. */
                 public Init(dst: AdHoc.Connection.Receiver.BytesDst, flags: number): Stage {
@@ -2044,7 +2013,7 @@ export namespace org.unirail {
                     if (0 < n) {
                         if (!this.discard) {
                             this.buf = room(this.buf, this.len, this.len + n);
-                            const in8 = (this.inU8 = bytes(this.inU8, src.buffer!));
+                            const in8 = this.inU8 = bytes(this.inU8, src.buffer!);
                             this.buf.set(in8.subarray(src.byte, src.byte_max), this.len);
                             this.len += n;
                         }
@@ -2056,15 +2025,12 @@ export namespace org.unirail {
                     if (!e) throw new Error(this.owned ? NO_OWN_ENVELOPE : "A pack chain with Envelope and no keys of it: set the Receiver's envelope ( Chain.Pack: pair, signerOf ) before the pack comes.");
                     const text = e.openAs(this.flags, this.buf, 0, this.len);
                     this.len = 0;
-                    if (text < 0) {
-                        // forged, or not of its signer: dropped whole
+                    if (text < 0) { // forged, or not of its signer: dropped whole
                         this.discard = true;
                         src.drop_received = true;
                         return false;
                     }
-                    const ib = src.buffer,
-                        ip = src.byte,
-                        im = src.byte_max;
+                    const ib = src.buffer, ip = src.byte, im = src.byte_max;
                     src.buffer = new DataView(this.buf.buffer, 0, Chain.Pack.HEADER + text);
                     src.byte = Chain.Pack.HEADER;
                     src.byte_max = Chain.Pack.HEADER + text;
@@ -2089,4 +2055,4 @@ export namespace org.unirail {
 import Chain = org.unirail.Chain;
 import Envelope = org.unirail.Envelope;
 
-export {Chain, Envelope};
+export { Chain, Envelope };

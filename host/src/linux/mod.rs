@@ -16,6 +16,7 @@ mod x11;
 pub mod clip;
 pub mod files;
 pub mod input;
+pub mod marks;
 pub mod mode;
 pub mod rights;
 pub mod sound;

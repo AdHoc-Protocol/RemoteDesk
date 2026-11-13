@@ -52,7 +52,7 @@ impl Tx<'_> {
         if self.st.str_phase == 0 {
             let (units, ascii) = crate::lib::adhoc::ascii::utf16_len_ascii(src);
             self.st.str_ascii = ascii;
-            if (max as usize) < units {
+            if ( max as usize ) < units {
                 overflow("a string", units as u64, max as u64); // above the limit of the description: nothing of it goes
             }
             self.st.str_pos = 0;
@@ -108,11 +108,7 @@ impl Tx<'_> {
             // looked for only as far as the buffer takes: a long string goes out in many buffers,
             // and a search to its end in each of them is quadratic
             let lim = (pos + room).min(bytes.len());
-            let run_end = if pos < self.st.str_ascii {
-                self.st.str_ascii.min(lim)
-            } else {
-                pos + crate::lib::adhoc::ascii::prefix(&bytes[pos..lim])
-            };
+            let run_end = if pos < self.st.str_ascii { self.st.str_ascii.min(lim) } else { pos + crate::lib::adhoc::ascii::prefix(&bytes[pos..lim]) };
             if pos < run_end {
                 let n = (run_end - pos).min(room);
                 self.buffer[self.byte_..self.byte_ + n].copy_from_slice(&bytes[pos..pos + n]);
@@ -212,7 +208,7 @@ impl Tx<'_> {
         if self.st.depth <= level {
             // a new stream
             let units = crate::lib::adhoc::ascii::utf16_len(src);
-            if (max as usize) < units {
+            if ( max as usize ) < units {
                 overflow("a string", units as u64, max as u64);
             }
             if self.st.slots.len() <= level {
@@ -223,14 +219,7 @@ impl Tx<'_> {
         }
         let mut strs = self.st.strs.take();
         let done = {
-            let TxChain {
-                stages,
-                terminator,
-                str_pos,
-                frag,
-                on_frag,
-                ..
-            } = &mut ch;
+            let TxChain { stages, terminator, str_pos, frag, on_frag, .. } = &mut ch;
             self.chain_body(stages, terminator, &mut |t: &mut Tx<'_>| {
                 if !*on_frag {
                     if !str_leaf(t, src, utf, str_pos) {
@@ -307,13 +296,7 @@ pub(crate) fn str_leaf(dst: &mut Tx<'_>, s: &str, utf: bool, pos: &mut usize) ->
     }
     #[inline]
     fn len(u: u16) -> usize {
-        if u < 0x80 {
-            1
-        } else if u < 0x4000 {
-            2
-        } else {
-            3
-        }
+        if u < 0x80 { 1 } else if u < 0x4000 { 2 } else { 3 }
     }
     while *pos < b.len() {
         // a run of ASCII, as far as the window takes: each byte its own varint

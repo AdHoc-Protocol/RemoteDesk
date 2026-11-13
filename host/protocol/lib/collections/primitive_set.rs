@@ -19,26 +19,17 @@ pub struct PrimitiveSet<K, S = FxBuildHasher> {
 impl<K, S> PrimitiveSet<K, S> {
     /// First physical slot; see [`super::token`] for validity and iteration order.
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        self.raw.token()
-    }
+    pub fn token(&self) -> Option<Token> { self.raw.token() }
 
     #[inline(always)]
-    pub fn next_token(&self, token: Token) -> Option<Token> {
-        self.raw.next_token(token)
-    }
+    pub fn next_token(&self, token: Token) -> Option<Token> { self.raw.next_token(token) }
 
     #[inline(always)]
-    pub fn contains_token(&self, token: Token) -> bool {
-        self.raw.contains_token(token)
-    }
+    pub fn contains_token(&self, token: Token) -> bool { self.raw.contains_token(token) }
 
     /// Direct slot access without hashing; differs from ordinal `key_at`.
     #[inline(always)]
-    pub fn key_by_token(&self, token: Token) -> Option<K>
-    where
-        K: Copy,
-    {
+    pub fn key_by_token(&self, token: Token) -> Option<K> where K: Copy {
         self.raw.get_by_token(token).map(|(k, _)| *k)
     }
 
@@ -118,10 +109,7 @@ impl<K: Copy + Eq + Hash, S: BuildHasher> PrimitiveSet<K, S> {
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> Self {
-        Self {
-            raw: RawTable::with_capacity(capacity),
-            hasher,
-        }
+        Self { raw: RawTable::with_capacity(capacity), hasher }
     }
 
     #[inline(always)]
@@ -223,10 +211,7 @@ impl<K: Copy + Eq + Hash, S: BuildHasher> PrimitiveSet<K, S> {
 
 impl<K: Clone, S: Clone> Clone for PrimitiveSet<K, S> {
     fn clone(&self) -> Self {
-        Self {
-            raw: self.raw.clone(),
-            hasher: self.hasher.clone(),
-        }
+        Self { raw: self.raw.clone(), hasher: self.hasher.clone() }
     }
 }
 

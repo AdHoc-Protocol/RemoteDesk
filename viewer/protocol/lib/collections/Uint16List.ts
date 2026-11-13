@@ -136,7 +136,8 @@ export namespace Uint16List {
             // No `src.size > this.size` shortcut: `src` may repeat values ([1,1,1] is contained in [1]).
             if (src.isEmpty) return true;
             const elements = new Set(this.values.subarray(0, this._size));
-            for (const value of src) if (!elements.has(value)) return false;
+            for (const value of src)
+                if (!elements.has(value)) return false;
             return true;
         }
 
@@ -294,8 +295,7 @@ export namespace Uint16List {
                 const mid = (lo + hi) >>> 1,
                     x = v[mid];
                 if (x < value) lo = mid + 1;
-                else if (x > value || x !== x)
-                    hi = mid - 1; // NaN is greater than any value
+                else if (x > value || x !== x) hi = mid - 1; // NaN is greater than any value
                 else return mid;
             }
             return -(lo + 1);
@@ -748,17 +748,17 @@ export namespace Uint16List {
          * list.set_(0, [1, 2, 3], 1, 2);
          * console.log(list.toJSON()); // ["2", "3"]
          */
-        public set_(index: number, src: ArrayLike<number>, src_index: number = 0, len: number = src.length): RW {
-            if (index < 0 || src_index < 0 || len < 0 || !src || src.length < src_index + len) throw new RangeError("Invalid arguments");
-            if (len === 0) return this;
+        public set_( index: number, src: ArrayLike< number>, src_index: number = 0, len: number = src.length ): RW{
+            if( index < 0 || src_index < 0 || len < 0 || !src || src.length < src_index + len ) throw new RangeError( "Invalid arguments" );
+            if( len === 0 ) return this;
             const requiredSize = index + len;
-            if (requiredSize > this._size) {
+            if( requiredSize > this._size ){
                 const oldSize = this._size;
-                this.ensureCapacity(requiredSize);
-                if (index > oldSize) this.values.fill(this.defaultValue, oldSize, index);
+                this.ensureCapacity( requiredSize );
+                if( index > oldSize ) this.values.fill( this.defaultValue, oldSize, index );
                 this._size = requiredSize;
             }
-            copyIn(this.values, index, src, src_index, len);
+            copyIn( this.values, index, src, src_index, len );
             return this;
         }
         /**
@@ -809,7 +809,8 @@ export namespace Uint16List {
             const initialSize = this._size;
             const valuesToRemove = new Set<number>(src);
             let writeIndex = 0;
-            for (let readIndex = 0; readIndex < this._size; readIndex++) if (!valuesToRemove.has(this.values[readIndex])) this.values[writeIndex++] = this.values[readIndex];
+            for (let readIndex = 0; readIndex < this._size; readIndex++)
+                if (!valuesToRemove.has(this.values[readIndex])) this.values[writeIndex++] = this.values[readIndex];
             this._size = writeIndex;
             return initialSize - this._size;
         }
@@ -827,7 +828,8 @@ export namespace Uint16List {
         public removeAllValue(src: number): number {
             const initialSize = this._size;
             let writeIndex = 0;
-            for (let readIndex = 0; readIndex < this._size; readIndex++) if (!sameValueZero(this.values[readIndex], src)) this.values[writeIndex++] = this.values[readIndex];
+            for (let readIndex = 0; readIndex < this._size; readIndex++)
+                if (!sameValueZero(this.values[readIndex], src)) this.values[writeIndex++] = this.values[readIndex];
             this._size = writeIndex;
             return initialSize - this._size;
         }
@@ -873,7 +875,8 @@ export namespace Uint16List {
             const initialSize = this._size;
             const valuesToKeep = new Set<number>(chk);
             let writeIndex = 0;
-            for (let readIndex = 0; readIndex < this._size; readIndex++) if (valuesToKeep.has(this.values[readIndex])) this.values[writeIndex++] = this.values[readIndex];
+            for (let readIndex = 0; readIndex < this._size; readIndex++)
+                if (valuesToKeep.has(this.values[readIndex])) this.values[writeIndex++] = this.values[readIndex];
             this._size = writeIndex;
             return initialSize !== this._size;
         }
@@ -918,9 +921,7 @@ export namespace Uint16List {
          * Gets the capacity of the internal array.
          * @returns The length of the internal `Uint16Array`.
          */
-        public override get length(): number {
-            return this.values.length;
-        }
+        public override get length(): number {            return this.values.length;        }
 
         /**
          * Sets the list's size, expanding with `defaultValue` or truncating as needed.
@@ -942,9 +943,7 @@ export namespace Uint16List {
          * Gets the current number of elements in the list.
          * @returns The number of valid elements.
          */
-        public override get size(): number {
-            return this._size;
-        }
+        public override get size(): number {            return this._size;        }
 
         /**
          * Creates a new array with the results of applying a callback to each element.
@@ -974,7 +973,8 @@ export namespace Uint16List {
          */
         public filter(predicate: (value: number, index: number, list: RW) => boolean, thisArg?: any): RW {
             const filteredList = new RW(0, this.defaultValue);
-            for (let i = 0; i < this._size; i++) if (predicate.call(thisArg, this.values[i], i, this)) filteredList.append(this.values[i]);
+            for (let i = 0; i < this._size; i++)
+                if (predicate.call(thisArg, this.values[i], i, this)) filteredList.append(this.values[i]);
             return filteredList;
         }
 

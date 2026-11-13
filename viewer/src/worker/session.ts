@@ -262,5 +262,6 @@ listen(m => {
         case W.FILE_REQUEST: return live.files.request();
         case W.FILE_CANCEL: return live.files.cancel();
         case W.TAKE_CONTROL: return void Actor0.State.Working.ONE.transmitter.send_Viewer_TakeControl(live.conn);
+        case W.MARK: return input.mark(m, live.conn, live.video);
     }
 });

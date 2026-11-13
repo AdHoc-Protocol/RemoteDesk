@@ -111,11 +111,7 @@ fn reaper() {
             continue;
         }
         p = match p.by_deadline.first() {
-            Some(&(deadline, _)) => {
-                wake.wait_timeout(p, Duration::from_millis(((deadline - t).max(0) as u64) * 1000 + 50))
-                    .unwrap_or_else(|e| e.into_inner())
-                    .0
-            }
+            Some(&(deadline, _)) => wake.wait_timeout(p, Duration::from_millis(((deadline - t).max(0) as u64) * 1000 + 50)).unwrap_or_else(|e| e.into_inner()).0,
             None => wake.wait(p).unwrap_or_else(|e| e.into_inner()),
         };
     }

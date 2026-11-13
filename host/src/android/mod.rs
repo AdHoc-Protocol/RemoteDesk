@@ -18,6 +18,7 @@ use jni_sys::{jbyteArray, jclass, jint, jmethodID, jobject, jobjectArray, jvalue
 pub mod clip;
 pub mod files;
 pub mod input;
+pub mod marks;
 pub mod mode;
 pub mod rights;
 pub mod sound;
@@ -39,6 +40,10 @@ struct Java {
     set_clip:    jmethodID,
     sound_start: jmethodID,
     sound_stop:  jmethodID,
+    mark_new:    jmethodID,
+    mark_show:   jmethodID,
+    mark_fade:   jmethodID,
+    mark_gone:   jmethodID,
 }
 
 // SAFETY: the VM, a global reference and the ids of methods are for every thread
@@ -214,6 +219,10 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_start(env: *mut J
         set_clip: method(env, class, "setClip", "([B)Z"),
         sound_start: method(env, class, "soundStart", "()Z"),
         sound_stop: method(env, class, "soundStop", "()V"),
+        mark_new: method(env, class, "markNew", "()I"),
+        mark_show: method(env, class, "markShow", "(IIIIILjava/nio/ByteBuffer;F)V"),
+        mark_fade: method(env, class, "markFade", "(IF)V"),
+        mark_gone: method(env, class, "markGone", "(I)V"),
     });
     let mut args = Vec::new();
     let n = ((**env).v1_6.GetArrayLength)(env, arguments);
@@ -320,3 +329,23 @@ fn sound_start() -> bool {
 }
 
 fn sound_stop() { void(|j| j.sound_stop, &[]); }
+
+/// `Host.markNew()`: a new image in the window of the app over the others; None, or below 0 - the app may not draw over them.
+fn mark_new() -> Option<jint> { with(|env, java| unsafe { ((**env).v1_6.CallStaticIntMethodA)(env, java.host, java.mark_new, [].as_ptr()) }) }
+
+/// `Host.markShow( id, x, y, width, height, pixels, alpha )`: the pixels in a direct buffer over this memory, copied by the app at once.
+fn mark_show(id: jint, x: i32, y: i32, width: u32, height: u32, pixels: &[u8], alpha: f32) {
+    with(|env, java| unsafe {
+        let buffer = ((**env).v1_6.NewDirectByteBuffer)(env, pixels.as_ptr() as *mut c_void, pixels.len() as i64);
+        if buffer.is_null() {
+            return;
+        }
+        let args = [jvalue { i: id }, jvalue { i: x }, jvalue { i: y }, jvalue { i: width as jint }, jvalue { i: height as jint }, jvalue { l: buffer }, jvalue { f: alpha }];
+        ((**env).v1_6.CallStaticVoidMethodA)(env, java.host, java.mark_show, args.as_ptr());
+        ((**env).v1_6.DeleteLocalRef)(env, buffer);
+    });
+}
+
+fn mark_fade(id: jint, alpha: f32) { void(|j| j.mark_fade, &[jvalue { i: id }, jvalue { f: alpha }]); }
+
+fn mark_gone(id: jint) { void(|j| j.mark_gone, &[jvalue { i: id }]); }

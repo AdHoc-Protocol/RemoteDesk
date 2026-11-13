@@ -22,6 +22,7 @@ import * as input from "./input";
 import * as clipboard from "./clipboard";
 import * as files from "./files";
 import * as audio from "./audio";
+import * as marks from "./marks";
 
 /** What the desk keeps on the device: the secret key of Noise of this page ( "secret" ), the key each machine proved ( "host.<address>" ), the most frames a second ( "fps" ). */
 export interface Store {
@@ -97,6 +98,12 @@ export const english = {
     viewTitle: "Whole: the screen of the machine fits this window. 1:1: a pixel of it is a pixel here, as large as there - the pointer or a finger at an edge moves the view. Two fingers apart or together zoom it",
     fps: "{n} fps",
     fpsTitle: "The most frames a second the machine sends: 60 is smoother, and takes more of the link and of the machine",
+    draw: "✏️ Draw",
+    drawOn: "✏️ Drawing",
+    drawTitle: "Draw over the screen of the machine for its user: a line, a tap for a ring - here -, an arrow with ➚. Each fades by itself; pressed again, the mouse and the fingers control the machine again",
+    arrow: "➚ Arrow",
+    arrowTitle: "A stroke is an arrow, from where it began to where it ends",
+    colorTitle: "The colour of the marks",
     lock: "Lock pointer",
     lockTitle: "Mouse moves go to the machine as relative moves; Esc frees the pointer",
     full: "Full screen",
@@ -217,7 +224,9 @@ const STYLE = `
 .rd-notice{color:var(--rd-bad)}
 .rd-transfer{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rd-audience{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rd-screen{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000}
+.rd-screen{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;position:relative}
+.rd-draw{position:absolute;inset:0;display:none;z-index:3;cursor:crosshair;touch-action:none}
+.rd-draw.rd-drawing{display:block}
 .rd-screen.rd-drop{outline:3px dashed var(--rd-accent);outline-offset:-3px}
 .rd-screen canvas{max-width:100%;max-height:100%;outline:none}
 .rd-screen.rd-one{display:block;position:relative;overflow:hidden}
@@ -299,9 +308,14 @@ export function open(container: HTMLElement, options: Options): Desk {
     const viewButton = button("rd-s", "", t.viewTitle);
     const fpsButton = button("rd-s", "", t.fpsTitle);
     const lockButton = button("rd-s", t.lock, t.lockTitle);
+    const drawButton = button("rd-s", t.draw, t.drawTitle);
+    const arrowButton = button("rd-s", t.arrow, t.arrowTitle);
+    arrowButton.hidden = true;
+    const colorButton = button("rd-s", "●", t.colorTitle);
+    colorButton.hidden = true;
     const fullButton = button("rd-s", t.full, t.fullTitle);
     const leaveButton = button("", t.leave);
-    bar.append(who, audienceLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
+    bar.append(who, audienceLine, takeButton, displaySelect, stats, gap, transfer, cancelButton, notice, drawButton, arrowButton, colorButton, soundButton, micButton, sendButton, getButton, pick, adminButton, viewButton, fitButton, fpsButton, lockButton, fullButton, leaveButton);
     const screenHost = element("div", "rd-screen");
     const state = element("div", "rd-state");
     const stateLine = element("div", "");
@@ -374,6 +388,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     let nextCanvas: HTMLCanvasElement | undefined;
     let shown: screen.Screen | undefined;
     let typing: input.Input | undefined;
+    let marking: marks.Marking | undefined;
     let copying: clipboard.Clipboard | undefined;
     let moving: files.Files | undefined;
     let hearing: audio.Audio | undefined;
@@ -437,6 +452,8 @@ export function open(container: HTMLElement, options: Options): Desk {
         copying = undefined;
         typing?.stop();
         typing = undefined;
+        marking?.stop();
+        marking = undefined;
         shown?.stop();
         shown = undefined;
         controlling = false;
@@ -518,6 +535,8 @@ export function open(container: HTMLElement, options: Options): Desk {
         nextCanvas = undefined;
         shown = screen.start(canvas, screenHost, root, displaySelect, stats, screenWords, () => seen, post, viewLabel);
         if (oneToOne) shown.oneToOne(true);
+        marking = marks.start(screenHost, () => shown?.canvas, post, () => markColor, () => markArrow);
+        marking.on(drawing);
         moving = files.start(transfer, cancelButton);
         notice.textContent = "";
         hearing = audio.start(soundButton, micButton, text => { notice.textContent = text; }, audioWords, post);
@@ -590,6 +609,35 @@ export function open(container: HTMLElement, options: Options): Desk {
 
     adminButton.addEventListener("click", () => post({ t: W.ELEVATE }));
     lockButton.addEventListener("click", () => typing?.lockPointer());
+
+    // ── marks over the screen of the machine: any viewer draws ──
+
+    const MARK_COLORS = ["#f03e3e", "#ffc41a", "#2ec25a", "#3b82f6"];
+    let drawing = false, markArrow = false;
+    let markColor = Math.min(3, Math.max(0, Number(store.get("mark.color") ?? 0) | 0));
+    const markLabels = () => {
+        drawButton.textContent = drawing ? t.drawOn : t.draw;
+        drawButton.setAttribute("aria-pressed", String(drawing));
+        arrowButton.hidden = colorButton.hidden = !drawing;
+        arrowButton.setAttribute("aria-pressed", String(markArrow));
+        arrowButton.style.fontWeight = markArrow ? "700" : "";
+        colorButton.style.color = MARK_COLORS[markColor];
+    };
+    markLabels();
+    drawButton.addEventListener("click", () => {
+        drawing = !drawing;
+        marking?.on(drawing);
+        markLabels();
+    });
+    arrowButton.addEventListener("click", () => {
+        markArrow = !markArrow;
+        markLabels();
+    });
+    colorButton.addEventListener("click", () => {
+        markColor = (markColor + 1) % MARK_COLORS.length;
+        store.set("mark.color", String(markColor));
+        markLabels();
+    });
 
     /** 1:1 or the whole screen: kept on the device, for every machine; a zoom of a pinch is not kept. */
     let oneToOne = store.get("view") === "1:1";

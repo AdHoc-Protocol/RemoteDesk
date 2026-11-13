@@ -69,7 +69,12 @@ pub struct Admission {
 }
 
 impl Admission {
-    pub fn new(max_connections: Option<usize>, accept_rate: Option<usize>, accept_window: Duration, max_per_address: Option<usize>) -> Self {
+    pub fn new(
+        max_connections: Option<usize>,
+        accept_rate: Option<usize>,
+        accept_window: Duration,
+        max_per_address: Option<usize>,
+    ) -> Self {
         Self {
             max_connections: AtomicUsize::new(max_connections.unwrap_or(0)),
             accept_rate: AtomicUsize::new(accept_rate.unwrap_or(0)),

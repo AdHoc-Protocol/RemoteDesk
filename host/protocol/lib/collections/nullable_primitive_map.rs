@@ -26,55 +26,37 @@ impl<K, V, S> NullablePrimitiveMap<K, V, S> {
 
     #[inline(always)]
     pub fn next_token(&self, token: Token) -> Option<Token> {
-        if token == NULL_TOKEN || !self.raw.contains_token(token) {
-            return None;
-        }
+        if token == NULL_TOKEN || !self.raw.contains_token(token) { return None; }
         or_null(self.raw.next_token(token), self.null_value.is_some())
     }
 
     /// Checks slot occupancy, without detecting a stale or foreign token.
     #[inline(always)]
     pub fn contains_token(&self, token: Token) -> bool {
-        if token == NULL_TOKEN {
-            self.null_value.is_some()
-        } else {
-            self.raw.contains_token(token)
-        }
+        if token == NULL_TOKEN { self.null_value.is_some() } else { self.raw.contains_token(token) }
     }
 
     /// Direct access without hashing. The inner `None` key denotes the null slot.
     #[inline(always)]
-    pub fn entry_by_token(&self, token: Token) -> Option<(Option<K>, &V)>
-    where
-        K: Copy,
-    {
-        if token == NULL_TOKEN {
-            return self.null_value.as_ref().map(|v| (None, v));
-        }
+    pub fn entry_by_token(&self, token: Token) -> Option<(Option<K>, &V)> where K: Copy {
+        if token == NULL_TOKEN { return self.null_value.as_ref().map(|v| (None, v)); }
         self.raw.get_by_token(token).map(|(k, v)| (Some(*k), v))
     }
 
     #[inline(always)]
-    pub fn key_by_token(&self, token: Token) -> Option<Option<K>>
-    where
-        K: Copy,
-    {
+    pub fn key_by_token(&self, token: Token) -> Option<Option<K>> where K: Copy {
         self.entry_by_token(token).map(|(k, _)| k)
     }
 
     #[inline(always)]
     pub fn value_by_token(&self, token: Token) -> Option<&V> {
-        if token == NULL_TOKEN {
-            return self.null_value.as_ref();
-        }
+        if token == NULL_TOKEN { return self.null_value.as_ref(); }
         self.raw.get_by_token(token).map(|(_, v)| v)
     }
 
     #[inline(always)]
     pub fn value_by_token_mut(&mut self, token: Token) -> Option<&mut V> {
-        if token == NULL_TOKEN {
-            return self.null_value.as_mut();
-        }
+        if token == NULL_TOKEN { return self.null_value.as_mut(); }
         self.raw.get_by_token_mut(token)
     }
 
@@ -108,18 +90,12 @@ impl<K, V, S> NullablePrimitiveMap<K, V, S> {
 
     #[inline]
     pub fn iter(&self) -> Iter<'_, K, V> {
-        Iter {
-            null: self.null_value.as_ref(),
-            inner: self.raw.iter(),
-        }
+        Iter { null: self.null_value.as_ref(), inner: self.raw.iter() }
     }
 
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
-        IterMut {
-            null: self.null_value.as_mut(),
-            inner: self.raw.iter_mut(),
-        }
+        IterMut { null: self.null_value.as_mut(), inner: self.raw.iter_mut() }
     }
 
     #[inline]
@@ -170,28 +146,17 @@ impl<K: Copy + Eq + Hash, V, S: BuildHasher> NullablePrimitiveMap<K, V, S> {
     /// Lookup once; `None` uses the separate null slot.
     #[inline(always)]
     pub fn token_of(&self, key: Option<K>) -> Option<Token> {
-        match key {
-            Some(k) => self.find(k),
-            None => self.null_value.is_some().then_some(NULL_TOKEN),
-        }
+        match key { Some(k) => self.find(k), None => self.null_value.is_some().then_some(NULL_TOKEN) }
     }
 
     /// Does not allocate.
     #[inline]
     pub fn with_hasher(hasher: S) -> Self {
-        Self {
-            raw: RawTable::new(),
-            null_value: None,
-            hasher,
-        }
+        Self { raw: RawTable::new(), null_value: None, hasher }
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> Self {
-        Self {
-            raw: RawTable::with_capacity(capacity),
-            null_value: None,
-            hasher,
-        }
+        Self { raw: RawTable::with_capacity(capacity), null_value: None, hasher }
     }
 
     /// Removes all entries, keeping the memory; a few entries in a large table cost themselves, not
@@ -257,9 +222,7 @@ impl<K: Copy + Eq + Hash, V, S: BuildHasher> NullablePrimitiveMap<K, V, S> {
 
     /// Key without `Option`, the null key separately: the serializer and the parser neither wrap a key nor check it for null.
     #[inline(always)]
-    pub fn insert_null_key(&mut self, value: V) -> Option<V> {
-        self.null_value.replace(value)
-    }
+    pub fn insert_null_key(&mut self, value: V) -> Option<V> { self.null_value.replace(value) }
 
     #[inline(always)]
     pub fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
@@ -358,11 +321,7 @@ impl<K: Copy + Eq + Hash, V, S: BuildHasher> NullablePrimitiveMap<K, V, S> {
 impl<K: Copy, V: Clone, S: Clone> Clone for NullablePrimitiveMap<K, V, S> {
     /// Same capacity and the same layout: no rehashing.
     fn clone(&self) -> Self {
-        Self {
-            raw: self.raw.clone(),
-            null_value: self.null_value.clone(),
-            hasher: self.hasher.clone(),
-        }
+        Self { raw: self.raw.clone(), null_value: self.null_value.clone(), hasher: self.hasher.clone() }
     }
 }
 
@@ -391,7 +350,9 @@ impl<K: Copy + Eq + Hash, V, S: BuildHasher> Extend<(Option<K>, V)> for Nullable
     }
 }
 
-impl<K: Copy + Eq + Hash, V, S: BuildHasher + Default> FromIterator<(Option<K>, V)> for NullablePrimitiveMap<K, V, S> {
+impl<K: Copy + Eq + Hash, V, S: BuildHasher + Default> FromIterator<(Option<K>, V)>
+    for NullablePrimitiveMap<K, V, S>
+{
     fn from_iter<I: IntoIterator<Item = (Option<K>, V)>>(iter: I) -> Self {
         let mut m = Self::with_hasher(S::default());
         m.extend(iter);
@@ -439,10 +400,7 @@ impl<K: Copy, V> FusedIterator for Iter<'_, K, V> {}
 
 impl<K, V> Clone for Iter<'_, K, V> {
     fn clone(&self) -> Self {
-        Self {
-            null: self.null,
-            inner: self.inner.clone(),
-        }
+        Self { null: self.null, inner: self.inner.clone() }
     }
 }
 

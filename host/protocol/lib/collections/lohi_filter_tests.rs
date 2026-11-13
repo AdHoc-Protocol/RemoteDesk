@@ -1,9 +1,5 @@
 use super::{empty_filters, RawIndex, RawTable};
-use std::{
-    cell::Cell,
-    panic::{catch_unwind, AssertUnwindSafe},
-    rc::Rc,
-};
+use std::{cell::Cell, panic::{catch_unwind, AssertUnwindSafe}, rc::Rc};
 
 fn assert_filters<V, I: RawIndex, const BITS: u32>(table: &RawTable<u64, V, I, BITS>) {
     if table.capacity() == 0 {
@@ -18,9 +14,7 @@ fn assert_filters<V, I: RawIndex, const BITS: u32>(table: &RawTable<u64, V, I, B
             loop {
                 let hash = unsafe { *table.key(i) };
                 assert_ne!(filter & table.filter_bit(hash), 0);
-                if i >= table.lo_size {
-                    break;
-                }
+                if i >= table.lo_size { break; }
                 i = unsafe { table.link(i) };
             }
         }
@@ -30,9 +24,7 @@ fn assert_filters<V, I: RawIndex, const BITS: u32>(table: &RawTable<u64, V, I, B
 fn removals<I: RawIndex, const BITS: u32>(keys: [u64; 5], missing: u64) {
     for order in [[0, 2, 4, 1, 3], [4, 3, 2, 1, 0], [1, 0, 3, 2, 4]] {
         let mut table = RawTable::<u64, (), I, BITS>::with_capacity(32);
-        for key in keys {
-            table.insert_unique(key, key, (), |v| *v);
-        }
+        for key in keys { table.insert_unique(key, key, (), |v| *v); }
         assert_filters(&table);
         // Even though the bucket is occupied, the absent class reads no entries.
         assert!(table.find(missing, |_| panic!("miss entered a chain")).is_none());
@@ -118,14 +110,11 @@ fn resize_retain_clone_clear_and_shrink_rebuild_all_hash_widths() {
 #[test]
 fn lazy_panic_does_not_set_filter_and_replacement_does_not_grow() {
     let mut table = RawTable::<u64, u64>::with_capacity(4);
-    for i in 0..4 {
-        table.insert_unique(i, i, i, |v| *v);
-    }
+    for i in 0..4 { table.insert_unique(i, i, i, |v| *v); }
     let missing = 7 << (usize::BITS - 3) | 8;
     assert!(catch_unwind(AssertUnwindSafe(|| {
         table.find_or_insert(missing, |_| panic!("missing class compared"), || panic!("factory"), |v| *v);
-    }))
-    .is_err());
+    })).is_err());
     assert_filters(&table);
     assert_eq!(table.capacity(), 4);
     let (existed, value) = table.find_or_insert(2, |v| *v == 2, || panic!("existing factory"), |v| *v);
@@ -135,21 +124,13 @@ fn lazy_panic_does_not_set_filter_and_replacement_does_not_grow() {
     assert_filters(&table);
 }
 
-struct FallibleClone {
-    hash: u64,
-    token: Rc<()>,
-    remaining: Rc<Cell<usize>>,
-}
+struct FallibleClone { hash: u64, token: Rc<()>, remaining: Rc<Cell<usize>> }
 impl Clone for FallibleClone {
     fn clone(&self) -> Self {
         let n = self.remaining.get();
         assert_ne!(n, 0, "clone panic");
         self.remaining.set(n - 1);
-        Self {
-            hash: self.hash,
-            token: self.token.clone(),
-            remaining: self.remaining.clone(),
-        }
+        Self { hash: self.hash, token: self.token.clone(), remaining: self.remaining.clone() }
     }
 }
 
@@ -160,16 +141,7 @@ fn partially_cloned_tables_drop_only_initialized_values() {
     let mut table = RawTable::<FallibleClone>::new();
     for i in 0..32 {
         let hash = (i % 8) << (usize::BITS - 3) | 5;
-        table.insert_unique(
-            hash,
-            FallibleClone {
-                hash,
-                token: token.clone(),
-                remaining: remaining.clone(),
-            },
-            (),
-            |v| v.hash,
-        );
+        table.insert_unique(hash, FallibleClone { hash, token: token.clone(), remaining: remaining.clone() }, (), |v| v.hash);
     }
     for n in [0, 1, 5, 17, 31] {
         remaining.set(n);

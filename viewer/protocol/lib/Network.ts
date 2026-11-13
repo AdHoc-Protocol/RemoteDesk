@@ -47,7 +47,7 @@ const NO_TIMEOUT = 2147483647;
 const RECORD_OVERHEAD = 18;
 /** What a transmit buffer has ahead of the window: the longest header of a WebSocket frame, for a {@link org.unirail.Network.Channel} that writes it itself. */
 const FRAME_HEADER = 14;
-const deadline = (millis: number): number => (millis >= NO_TIMEOUT ? 0 : millis);
+const deadline = (millis: number): number => millis >= NO_TIMEOUT ? 0 : millis;
 const delay = (ms: number): number => Math.min(Math.max(0, ms), NO_TIMEOUT);
 
 export namespace org.unirail.Network {
@@ -63,13 +63,13 @@ export namespace org.unirail.Network {
     const native = globalThis as unknown as {
         setTimeout(callback: () => void, delay: number): unknown;
         clearTimeout(handle: unknown): void;
-        console?: {error(...args: unknown[]): void} | undefined;
+        console?: { error(...args: unknown[]): void } | undefined;
     };
     const defaultScheduler: Scheduler = {
         now: Date.now,
         schedule(callback, delay, background) {
             const handle = native.setTimeout(callback, delay);
-            if (background) (handle as {unref?(): void} | undefined)?.unref?.();
+            if (background) (handle as { unref?(): void } | undefined)?.unref?.();
             return () => native.clearTimeout(handle);
         },
     };
@@ -197,14 +197,10 @@ export namespace org.unirail.Network {
         live = 0;
 
         /** @return how many connections of this host hold a socket right now. */
-        connections_live(): number {
-            return this.live;
-        }
+        connections_live(): number { return this.live; }
 
         /** @return how many connection slots this host has ever made - the high-water mark of them all. */
-        connections_size(): number {
-            return this.connections.length;
-        }
+        connections_size(): number { return this.connections.length; }
 
         /**
          * Counts the slots by state into `into`, indexed by the state itself: FREE 0, ACTIVE 1, CLEANING 2, PARKED 3.
@@ -256,18 +252,14 @@ export namespace org.unirail.Network {
             while (p !== undefined && con.resumable < p.resumable) p = p.prev;
             con.prev = p;
             con.next = p === undefined ? this.parked_head : p.next;
-            if (con.next === undefined) this.parked_tail = con;
-            else con.next.prev = con;
-            if (p === undefined) this.parked_head = con;
-            else p.next = con;
+            if (con.next === undefined) this.parked_tail = con; else con.next.prev = con;
+            if (p === undefined) this.parked_head = con; else p.next = con;
             this.scheduleReap();
         }
 
         private unpark(c: TCP.ExternalConnection): void {
-            if (c.prev === undefined) this.parked_head = c.next;
-            else c.prev.next = c.next;
-            if (c.next === undefined) this.parked_tail = c.prev;
-            else c.next.prev = c.prev;
+            if (c.prev === undefined) this.parked_head = c.next; else c.prev.next = c.next;
+            if (c.next === undefined) this.parked_tail = c.prev; else c.next.prev = c.prev;
             c.prev = c.next = undefined;
         }
 
@@ -301,15 +293,12 @@ export namespace org.unirail.Network {
             if (this.reapTimer !== undefined && this.reapAt <= head.resumable) return;
             this.reapTimer?.();
             this.reapAt = head.resumable;
-            this.reapTimer = this.engine.schedule(
-                () => {
-                    this.reapTimer = undefined;
-                    this.reapParked();
-                },
-                delay(head.resumable * 1000 - this.engine.now()),
-                true,
-            );
+            this.reapTimer = this.engine.schedule(() => {
+                this.reapTimer = undefined;
+                this.reapParked();
+            }, delay(head.resumable * 1000 - this.engine.now()), true);
         }
+
 //#region the restart of the process
         /**
          * The process ends, and the sessions of this host go on in the next one ( {@link restore} ). They live in their files as
@@ -324,7 +313,8 @@ export namespace org.unirail.Network {
          */
         stopSessions(): number {
             this.deafen(); //no peer comes back into this process: what it would take after the stop the next process would not know
-            for (const c of this.connections) if (c.isActive() && c.id !== 0) c.lost(); //as a loss: the session parks - the teardown runs here and now
+            for (const c of this.connections)
+                if (c.isActive() && c.id !== 0) c.lost(); //as a loss: the session parks - the teardown runs here and now
             let closed = 0;
             for (let c = this.parked_head; c !== undefined; c = c.next) {
                 const internal = c.Internal as AdHoc.Connection.Internal | undefined;
@@ -420,7 +410,7 @@ export namespace org.unirail.Network {
         lingerTimeout: number;
 
         /** A connection of `address` is gone. Only a {@link TCP.Server} with a per-address limit counts anything. */
-        release(_address: string): void {}
+        release(_address: string): void { }
 
         readonly options: ResolvedOptions;
 
@@ -431,7 +421,8 @@ export namespace org.unirail.Network {
          * @param options or, as Java's TCP(name, new_connection, onFailure, buffer_size) and the former TS Host take it,
          *                the buffer size alone.
          */
-        constructor(name: string, new_connection: (host: TCP) => TCP.ExternalConnection, onFailure: (source: unknown, error: Error) => void = TCP.onFailurePrintConsole, options: Options | number = {}) {
+        constructor(name: string, new_connection: (host: TCP) => TCP.ExternalConnection,
+            onFailure: (source: unknown, error: Error) => void = TCP.onFailurePrintConsole, options: Options | number = {}) {
             if (typeof options === "number") options = {bufferSize: options};
             this.name = name;
             this.new_connection = new_connection;
@@ -442,20 +433,17 @@ export namespace org.unirail.Network {
                 transmitBudget: options.transmitBudget ?? 65536,
                 mux: options.mux ?? false,
             };
-            for (const n of [this.options.bufferSize, this.options.maxPendingBytes, this.options.transmitBudget]) if (!Number.isSafeInteger(n) || n < 8) throw new RangeError("Byte limits must be safe integers >= 8");
+            for (const n of [this.options.bufferSize, this.options.maxPendingBytes, this.options.transmitBudget])
+                if (!Number.isSafeInteger(n) || n < 8) throw new RangeError("Byte limits must be safe integers >= 8");
             this.lingerTimeout = options.lingerTimeout ?? 5000;
             this.engine = options.engine ?? new TCP.Engine();
             this.engine.hosts.add(this); //the engine's close ends this host's connections too
         }
 
-        toString(): string {
-            return this.name;
-        }
+        toString(): string { return this.name; }
 
         /** The transmit buffer size of this host's connections (the former TS Host.buff_size). */
-        get buff_size(): number {
-            return this.options.bufferSize;
-        }
+        get buff_size(): number { return this.options.bufferSize; }
 
         /**
          * Takes a connection for a session: the head of the free list, else a new slot.
@@ -493,14 +481,11 @@ export namespace org.unirail.Network {
                 return Promise.resolve(true);
             }
             this.each(true);
-            return new Promise((resolve) => {
+            return new Promise(resolve => {
                 const until = this.engine.now() + grace;
                 const poll = (): void => {
                     const quiet = this.live === 0;
-                    if (!quiet && this.engine.now() < until) {
-                        this.engine.schedule(poll, 5);
-                        return;
-                    }
+                    if (!quiet && this.engine.now() < until) { this.engine.schedule(poll, 5); return; }
                     this.each(false); //whoever is left
                     this.engine.close();
                     resolve(quiet);
@@ -519,7 +504,7 @@ export namespace org.unirail.Network {
         }
 
         /** Takes nothing new in. A {@link TCP.Server} refuses further sockets; a client gives up a connect in progress. */
-        protected deafen(): void {}
+        protected deafen(): void { }
 
         /** The engine is closing: the connections are torn down, the parked sessions end, no timer is left. */
         stop(): void {
@@ -537,11 +522,8 @@ export namespace org.unirail.Network {
 
         /** Reports to {@link onFailure}; a handler that throws must never strand a slot or its timers. */
         report(source: unknown, error: unknown): void {
-            try {
-                this.onFailure(source, error instanceof Error ? error : new Error(String(error)));
-            } catch {
-                /* swallowed: see above */
-            }
+            try { this.onFailure(source, error instanceof Error ? error : new Error(String(error))); }
+            catch { /* swallowed: see above */ }
         }
 
         static readonly onFailurePrintConsole = (source: unknown, error: Error): void => {
@@ -567,11 +549,8 @@ export namespace org.unirail.Network {
          * nothing, and the waits go on growing instead of a dial a second for as long as the session waits.
          */
         export namespace Redial {
-            export const FIRST_MS = 1_000,
-                MAX_MS = 120_000,
-                CONNECT_MS = 20_000;
-            export const MULTIPLIER = 1.6,
-                JITTER = 0.2;
+            export const FIRST_MS = 1_000, MAX_MS = 120_000, CONNECT_MS = 20_000;
+            export const MULTIPLIER = 1.6, JITTER = 0.2;
 
             /** The wait before the dial `attempt` ( 0 - the first after a socket that served ), in milliseconds. */
             export function wait(attempt: number): number {
@@ -638,13 +617,11 @@ export namespace org.unirail.Network {
                 const dst = session?.BytesDst;
                 const receiver = dst instanceof AdHoc.Connection.Receiver ? dst : undefined;
                 const control = receiver?.control;
-                const needed =
-                    con.writing || // the socket does not take what this side writes
-                    (journal !== undefined && control !== undefined && control.step <= journal.owed) || // the peer owes a confirmation
-                    receiver?.guarding === true; // the rest of a guaranteed pack is on its way
+                const needed = con.writing                                                             // the socket does not take what this side writes
+                               || (journal !== undefined && control !== undefined && control.step <= journal.owed) // the peer owes a confirmation
+                               || receiver?.guarding === true;                                         // the rest of a guaranteed pack is on its way
                 const moved = con.carried + (journal?.confirmed ?? 0); // a position: only its change counts
-                if (!needed || STALL_BYTES <= moved - watch.moved) {
-                    // the session does not need the link, or the link moves: the watch starts again
+                if (!needed || STALL_BYTES <= moved - watch.moved) { // the session does not need the link, or the link moves: the watch starts again
                     watch.moved = moved;
                     watch.since = now;
                     return false;
@@ -660,25 +637,17 @@ export namespace org.unirail.Network {
         export class Engine {
             readonly hosts = new Set<TCP>();
 
-            constructor(readonly scheduler: Scheduler = defaultScheduler) {}
+            constructor(readonly scheduler: Scheduler = defaultScheduler) { }
 
-            now(): number {
-                return this.scheduler.now();
-            }
+            now(): number { return this.scheduler.now(); }
 
             /** The second clock of AdHoc's resumable journal (Transmitter.Resumable.now): unix seconds. */
-            seconds(): number {
-                return Math.floor(this.now() / 1000);
-            }
+            seconds(): number { return Math.floor(this.now() / 1000); }
 
-            schedule(callback: () => void, delay = 0, background = false): Cancel {
-                return this.scheduler.schedule(callback, delay, background);
-            }
+            schedule(callback: () => void, delay = 0, background = false): Cancel { return this.scheduler.schedule(callback, delay, background); }
 
             /** Runs `task` on a later turn of the loop. */
-            execute(task: () => void): void {
-                this.scheduler.schedule(task, 0);
-            }
+            execute(task: () => void): void { this.scheduler.schedule(task, 0); }
 
             /** Ends this engine: every connection of every host on it is torn down. */
             close(): void {
@@ -708,19 +677,13 @@ export namespace org.unirail.Network {
             state = ExternalConnection.FREE;
 
             /** @return `true` while a session is running on this connection. */
-            isActive(): boolean {
-                return this.state === ExternalConnection.ACTIVE;
-            }
+            isActive(): boolean { return this.state === ExternalConnection.ACTIVE; }
 
             /** @return `true` while the teardown runs. */
-            isCleaning(): boolean {
-                return this.state === ExternalConnection.CLEANING;
-            }
+            isCleaning(): boolean { return this.state === ExternalConnection.CLEANING; }
 
             /** @return `true` while the connection holds a session that outlived its socket and waits for its peer. */
-            isParked(): boolean {
-                return this.state === ExternalConnection.PARKED;
-            }
+            isParked(): boolean { return this.state === ExternalConnection.PARKED; }
 
             /** The host that manages this connection. */
             readonly host: TCP;
@@ -775,18 +738,12 @@ export namespace org.unirail.Network {
             }
 
             /** This side made the connection: a client's. */
-            get dialing(): boolean {
-                return this.host instanceof Client;
-            }
+            get dialing(): boolean { return this.host instanceof Client; }
 
-            fault(e: unknown): void {
-                this.host.report(this, e);
-            }
+            fault(e: unknown): void { this.host.report(this, e); }
 
             /** @return the session id: the slot in the high 32 bits, the identity in the low 32 (slot < 2^21 stays a safe integer). */
-            session(): number {
-                return this.index * 4294967296 + (this.id >>> 0);
-            }
+            session(): number { return this.index * 4294967296 + (this.id >>> 0); }
 
             /**
              * The peer sends back the token a former connection of this host gave it. When that slot still holds the
@@ -808,12 +765,12 @@ export namespace org.unirail.Network {
                         slot.id = 0;
                         slot.resumable = 0;
                         slot.sessionOpen = this.sessionOpen; //the brackets travel with the Internal: this one has left this connection
-                        slot.depart(this); //OnClose for it, then home - once this pass is over
-                        this._internal?.External?.(this); //TS: a generated Internal learns its connection through External()
-                        this.secured = undefined; //what the session moved here declares is not wanted: this socket keeps the keys of its handshake
+                        slot.depart(this);                   //OnClose for it, then home - once this pass is over
+                        this._internal?.External?.(this);    //TS: a generated Internal learns its connection through External()
+                        this.secured = undefined;            //what the session moved here declares is not wanted: this socket keeps the keys of its handshake
                         if (this.sessionOpen) this._internal?.OnOpen?.(); //and the session that moved in takes this connection over
-                        this.fileDeadlines(); //its actor instances came along
-                        this.id = 0; //the identity is applied again below, and with it the resume: the login may have identified this connection already
+                        this.fileDeadlines();                //its actor instances came along
+                        this.id = 0;                         //the identity is applied again below, and with it the resume: the login may have identified this connection already
                     }
                 }
                 return this.identify(id);
@@ -827,6 +784,7 @@ export namespace org.unirail.Network {
             toString(): string {
                 return this.isOpen ? `[${this.id}] ${this.host.name} ${this.peer}` : `[${this.id}] ${this.host.name} : closed`;
             }
+
 //#region Socket
             /** The socket of the running session, `undefined` between sessions. */
             channel: Channel | undefined;
@@ -859,29 +817,24 @@ export namespace org.unirail.Network {
                 this.muxOut = client && this.host.options.mux;
                 const guard = (task: () => void): void => {
                     if (generation !== this.generation) return;
-                    try {
-                        task();
-                    } catch (error) {
-                        this.failure(error);
-                    }
+                    try { task(); } catch (error) { this.failure(error); }
                 };
                 this.unsubscribe = channel.subscribe({
-                    receive: (bytes) => guard(() => this.receive(bytes)),
-                    closed: (clean) => guard(() => this.socketClosed(clean)),
-                    failed: (error) => guard(() => this.socketFailed(error)),
+                    receive: bytes => guard(() => this.receive(bytes)),
+                    closed: clean => guard(() => this.socketClosed(clean)),
+                    failed: error => guard(() => this.socketFailed(error)),
                     violated: (error, code) => guard(() => this.protocolViolated(error, code)),
                 });
             }
 
             /** The socket is closed - Java doRead(): `-1` is an orderly close, an IOException a reset or the network. */
             protected socketClosed(clean: boolean): void {
-                this.disconnect(clean ? (this.isClosingGracefully ? Event.THIS_CLOSE_GRACEFUL : Event.REMOTE_CLOSE_GRACEFUL) : Event.REMOTE_CLOSE_ABRUPTLY);
+                this.disconnect(clean ? this.isClosingGracefully ? Event.THIS_CLOSE_GRACEFUL : Event.REMOTE_CLOSE_GRACEFUL
+                    : Event.REMOTE_CLOSE_ABRUPTLY);
             }
 
             /** An I/O error: a reset, or the network. */
-            protected socketFailed(_error: unknown): void {
-                this.disconnect(Event.REMOTE_CLOSE_ABRUPTLY);
-            }
+            protected socketFailed(_error: unknown): void { this.disconnect(Event.REMOTE_CLOSE_ABRUPTLY); }
 
             /** A protocol violation: report it and tear the connection down. */
             protected protocolViolated(error: unknown, code: number): void {
@@ -903,8 +856,7 @@ export namespace org.unirail.Network {
             protected waitForData(): void {
                 if (this.state !== ExternalConnection.ACTIVE || this.channel === undefined) return;
                 if (this.handshakeDue !== 0) {
-                    if (this.codec?.ready === false || this.muxPending) {
-                        //a caller of a multiplexed port names its connection first: its Noise comes behind
+                    if (this.codec?.ready === false || this.muxPending) { //a caller of a multiplexed port names its connection first: its Noise comes behind
                         this.armRead(this.handshakeDue);
                         return;
                     }
@@ -940,22 +892,12 @@ export namespace org.unirail.Network {
             private fileRead(due: number): void {
                 const generation = this.generation;
                 this.atR = due;
-                this.timerR = this.host.engine.schedule(
-                    () => {
-                        if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
-                        this.timerR = undefined;
-                        if (this.host.engine.now() < this.dueR) {
-                            this.fileRead(this.dueR);
-                            return;
-                        }
-                        try {
-                            this.timedOutRead();
-                        } catch (error) {
-                            this.failure(error);
-                        }
-                    },
-                    delay(due - this.host.engine.now()),
-                );
+                this.timerR = this.host.engine.schedule(() => {
+                    if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
+                    this.timerR = undefined;
+                    if (this.host.engine.now() < this.dueR) { this.fileRead(this.dueR); return; }
+                    try { this.timedOutRead(); } catch (error) { this.failure(error); }
+                }, delay(due - this.host.engine.now()));
             }
 
             private disarmRead(): void {
@@ -967,18 +909,11 @@ export namespace org.unirail.Network {
             private armWrite(due: number): void {
                 this.timerT?.();
                 const generation = this.generation;
-                this.timerT = this.host.engine.schedule(
-                    () => {
-                        if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
-                        this.timerT = undefined;
-                        try {
-                            this.timedOutWrite();
-                        } catch (error) {
-                            this.failure(error);
-                        }
-                    },
-                    delay(due - this.host.engine.now()),
-                );
+                this.timerT = this.host.engine.schedule(() => {
+                    if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
+                    this.timerT = undefined;
+                    try { this.timedOutWrite(); } catch (error) { this.failure(error); }
+                }, delay(due - this.host.engine.now()));
             }
 
             /**
@@ -991,11 +926,7 @@ export namespace org.unirail.Network {
                 if (this.timerR !== undefined && this.dueR <= now) {
                     this.timerR();
                     this.timerR = undefined;
-                    try {
-                        this.timedOutRead();
-                    } catch (error) {
-                        this.failure(error);
-                    }
+                    try { this.timedOutRead(); } catch (error) { this.failure(error); }
                 }
                 if (this.timerA !== undefined && this.dueA <= now && this.isActive()) {
                     this.timerA();
@@ -1037,8 +968,7 @@ export namespace org.unirail.Network {
                 }
                 const more = this._internal?.OnReceiveTimeout?.() ?? 0;
                 if (!this.isActive()) return; //the handler ended it
-                if (this.isClosingGracefully)
-                    this.waitForData(); //the handler began a graceful close: the wait for the peer's answer
+                if (this.isClosingGracefully) this.waitForData(); //the handler began a graceful close: the wait for the peer's answer
                 else if (more <= 0) {
                     this.closeCode = 1001;
                     this.disconnect(this instanceof WebSocket ? Event.WEBSOCKET_RECEIVE_TIMEOUT : Event.RECEIVE_TIMEOUT);
@@ -1079,14 +1009,11 @@ export namespace org.unirail.Network {
                 this.timerA?.();
                 this.dueA = due;
                 const generation = this.generation;
-                this.timerA = this.host.engine.schedule(
-                    () => {
-                        if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
-                        this.timerA = undefined;
-                        this.timedOutDeadline();
-                    },
-                    delay(due - this.host.engine.now()),
-                );
+                this.timerA = this.host.engine.schedule(() => {
+                    if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
+                    this.timerA = undefined;
+                    this.timedOutDeadline();
+                }, delay(due - this.host.engine.now()));
             }
 
             /**
@@ -1098,18 +1025,13 @@ export namespace org.unirail.Network {
                 const due = this.dueA;
                 this.dueA = 0;
                 const now = this.host.engine.now();
-                if (now < due) {
-                    this.fileDeadline(due);
-                    return;
-                } //beyond the platform timer range: the rest of it
+                if (now < due) { this.fileDeadline(due); return; } //beyond the platform timer range: the rest of it
                 try {
                     const next = this._internal?.OnDeadline?.(now) ?? 0;
                     if (!this.isActive()) return;
                     if (next > 0) this.fileDeadline(next);
                     this.WakeTransmit();
-                } catch (error) {
-                    this.failure(error);
-                }
+                } catch (error) { this.failure(error); }
             }
 
             /**
@@ -1121,9 +1043,7 @@ export namespace org.unirail.Network {
                 try {
                     const next = this._internal.OnDeadline(Number.MIN_SAFE_INTEGER);
                     if (next > 0) this.fileDeadline(next);
-                } catch (error) {
-                    this.failure(error);
-                }
+                } catch (error) { this.failure(error); }
             }
 
             /**
@@ -1158,28 +1078,21 @@ export namespace org.unirail.Network {
              * graceful close: the line is not silent there, it is ending.
              */
             sayPulse(silent: number): void {
-                if (this.isActive() && this.sessionOpen && this.channel !== undefined && !this.isClosingGracefully && silent <= this.host.engine.now() - this.transmit_time && this._internal?.Pulse?.() === true) this.WakeTransmit();
+                if (this.isActive() && this.sessionOpen && this.channel !== undefined && !this.isClosingGracefully
+                    && silent <= this.host.engine.now() - this.transmit_time && this._internal?.Pulse?.() === true)
+                    this.WakeTransmit();
             }
 
             private filePulse(): void {
                 const generation = this.generation;
                 const rest = this.transmit_time + this.pulse - this.host.engine.now();
-                this.timerP = this.host.engine.schedule(
-                    () => {
-                        if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
-                        this.timerP = undefined;
-                        if (this.pulse <= 0) return;
-                        try {
-                            this.sayPulse(this.pulse);
-                        } catch (error) {
-                            this.failure(error);
-                            return;
-                        }
-                        if (this.timerP === undefined && 0 < this.pulse && this.isActive()) this.filePulse();
-                    },
-                    delay(0 < rest ? rest : this.pulse),
-                    true,
-                );
+                this.timerP = this.host.engine.schedule(() => {
+                    if (generation !== this.generation || this.state !== ExternalConnection.ACTIVE) return;
+                    this.timerP = undefined;
+                    if (this.pulse <= 0) return;
+                    try { this.sayPulse(this.pulse); } catch (error) { this.failure(error); return; }
+                    if (this.timerP === undefined && 0 < this.pulse && this.isActive()) this.filePulse();
+                }, delay(0 < rest ? rest : this.pulse), true);
             }
 
             /**
@@ -1196,6 +1109,7 @@ export namespace org.unirail.Network {
                 this._internal?.OnOpen?.();
             }
 //#endregion
+
 //#region Teardown
             /** A graceful close is under way: the generated `sending_put` refuses new packs while it is set. */
             isClosingGracefully = false;
@@ -1214,10 +1128,7 @@ export namespace org.unirail.Network {
             close(): void {
                 if (!this.isActive()) return;
                 this.isClosingGracefully = true;
-                if (this.channel === undefined) {
-                    this.disconnect(Event.THIS_CLOSE_GRACEFUL);
-                    return;
-                }
+                if (this.channel === undefined) { this.disconnect(Event.THIS_CLOSE_GRACEFUL); return; }
                 if (this.running) return; //the runner, once drained, closes: onTransmitterDrained
                 this.shutdownOutput();
             }
@@ -1269,24 +1180,18 @@ export namespace org.unirail.Network {
             private closeOnLoop(): void {
                 let failure: unknown;
                 const run = (callback: () => void): void => {
-                    try {
-                        callback();
-                    } catch (error) {
-                        failure ??= error;
-                    }
+                    try { callback(); } catch (error) { failure ??= error; }
                 };
                 const event = this.closeEvent;
                 const internal = this._internal; //an unnamed caller of a multiplexed port has none yet
                 const loss = !this.isClosingGracefully && ((event & REMOTE) !== 0 || (event & TIMEOUT) !== 0);
                 let seconds = 0;
                 if (loss && this.id !== 0 && internal !== undefined)
-                    run(() => {
-                        seconds = internal.resumable_seconds?.(this, event) ?? 0;
-                    });
+                    run(() => { seconds = internal.resumable_seconds?.(this, event) ?? 0; });
                 this.resumable = seconds > 0 ? this.host.engine.seconds() + seconds : 0;
-                if (this.resumable === 0 && internal !== undefined) run(() => internal.OnExternalEvent(this, event)); //the closing EVENT says the session is finished - a parked one is not
-                if (this.sessionOpen) {
-                    //the CONNECTION is over either way, and with it the brackets of whoever sat on it
+                if (this.resumable === 0 && internal !== undefined)
+                    run(() => internal.OnExternalEvent(this, event)); //the closing EVENT says the session is finished - a parked one is not
+                if (this.sessionOpen) { //the CONNECTION is over either way, and with it the brackets of whoever sat on it
                     this.sessionOpen = false;
                     if (internal !== undefined) run(() => internal.OnClose?.());
                 }
@@ -1320,11 +1225,10 @@ export namespace org.unirail.Network {
                 if (internal !== undefined) {
                     run(() => internal.BytesSrc?.close()); //close() keeps the journal while parked >= 0
                     const dst = internal.BytesDst;
-                    run(() => (this.resumable !== 0 && dst?.suspend !== undefined ? dst.suspend() : dst?.close())); //parked: the pack in progress and the receive position stay
+                    run(() => this.resumable !== 0 && dst?.suspend !== undefined ? dst.suspend() : dst?.close()); //parked: the pack in progress and the receive position stay
                 }
 
-                if (this.resumable !== 0)
-                    this.host.parkConnection(this); //the session waits for its peer to return
+                if (this.resumable !== 0) this.host.parkConnection(this); //the session waits for its peer to return
                 else {
                     if (internal !== undefined) AdHoc.Connection.Keyring.clear(internal); //the session is over: its pack keys go
                     this.id = 0;
@@ -1335,29 +1239,22 @@ export namespace org.unirail.Network {
                 if (disposed !== undefined) run(() => disposed(this));
                 if (failure !== undefined) this.host.report(this, failure);
             }
+
 //#region The former TS API, kept
             /** Called once when this session's teardown is over, parked or not (the former TS Host.ExternalConnection hook). */
             on_disposed?: ((connection: ExternalConnection) => void) | undefined;
 
             /** {@link isActive}. */
-            is_active(): boolean {
-                return this.isActive();
-            }
+            is_active(): boolean { return this.isActive(); }
 
             /** {@link isParked}. */
-            is_parked(): boolean {
-                return this.isParked();
-            }
+            is_parked(): boolean { return this.isParked(); }
 
             /** {@link close}. */
-            closeAndDispose(): void {
-                this.close();
-            }
+            closeAndDispose(): void { this.close(); }
 
             /** {@link abort}. */
-            dispose(): void {
-                this.abort();
-            }
+            dispose(): void { this.abort(); }
 
             /**
              * The former extension point for a transport implemented by a subclass: it sets {@link transmit}, calls
@@ -1368,45 +1265,33 @@ export namespace org.unirail.Network {
             transmitter_connected(): void {
                 const send = this.transmit;
                 if (send === undefined) throw new Error("transmitter_connected() needs transmit(src) set");
-                const channel: Channel & {isOpen: boolean} = {
+                const channel: Channel & { isOpen: boolean } = {
                     isOpen: true,
-                    send: (bytes) => {
-                        send(bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength ? bytes.buffer : bytes.slice().buffer);
-                    },
-                    close() {
-                        channel.isOpen = false;
-                    },
-                    subscribe: () => () => {},
+                    send: bytes => { send(bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength ? bytes.buffer : bytes.slice().buffer); },
+                    close() { channel.isOpen = false; },
+                    subscribe: () => () => { },
                 };
                 this.transmitterConnected(channel, this.peer);
             }
 //#endregion
 
             /** Protocol-specific teardown, run inside {@link closeOnLoop}. {@link WebSocket} resets its close state here. */
-            protected onDispose(): void {}
+            protected onDispose(): void { }
 
             /** Back to the free list. */
-            release(): void {
-                this.host.free(this);
-            }
+            release(): void { this.host.free(this); }
 
             /**
              * {@link reclaim}: the parked session this slot held has moved to `taker`, and what the slot holds now is the
              * Internal that connection started with. It is in use right now - the token came in a pack its receiver is
              * handing out - so it hears its OnClose on a later turn, and only then does the slot go home.
              */
-            depart(_taker: ExternalConnection): void {
-                this.host.engine.execute(() => this.departed());
-            }
+            depart(_taker: ExternalConnection): void { this.host.engine.execute(() => this.departed()); }
 
             private departed(): void {
                 if (this.sessionOpen) {
                     this.sessionOpen = false;
-                    try {
-                        this._internal?.OnClose?.();
-                    } catch (error) {
-                        this.host.report(this, error);
-                    }
+                    try { this._internal?.OnClose?.(); } catch (error) { this.host.report(this, error); }
                 }
                 this.release();
             }
@@ -1414,14 +1299,10 @@ export namespace org.unirail.Network {
 
             private _internal: AdHoc.Connection.Internal | undefined;
 
-            get Internal(): AdHoc.Connection.Internal {
-                return this._internal!;
-            }
+            get Internal(): AdHoc.Connection.Internal { return this._internal!; }
 
             /** TS: `undefined` unseats it - a server slot between sessions holds none. */
-            set Internal(internal: AdHoc.Connection.Internal | undefined) {
-                this._internal = internal;
-            }
+            set Internal(internal: AdHoc.Connection.Internal | undefined) { this._internal = internal; }
 
             /**
              * What the protocol layer seated last declared of Noise ( {@link secure} ), not taken yet: `undefined` - nothing,
@@ -1441,7 +1322,8 @@ export namespace org.unirail.Network {
              * failure goes to the host.
              */
             secure(chain: Chain | undefined): void {
-                if (chain !== undefined && (chain.tlsHost !== undefined || chain.tlsCert !== undefined || chain.tlsTrust !== undefined)) throw new Error("TLS of a connection is chosen by its host or client, not by [Noise]");
+                if (chain !== undefined && (chain.tlsHost !== undefined || chain.tlsCert !== undefined || chain.tlsTrust !== undefined))
+                    throw new Error("TLS of a connection is chosen by its host or client, not by [Noise]");
                 this.secured = chain ?? REFUSED;
             }
 
@@ -1459,9 +1341,8 @@ export namespace org.unirail.Network {
             }
 
             /** The protocol layer seated has no keys for the connection ( {@link secure} with `undefined` ). */
-            static refused(): Error {
-                return new Error("The protocol layer refused the connection: [Noise] of its description has no keys for it.");
-            }
+            static refused(): Error { return new Error("The protocol layer refused the connection: [Noise] of its description has no keys for it."); }
+
 //#region Multiplexed port
             /** Listening side: the caller has not named its connection yet - its first byte will. */
             private muxPending = false;
@@ -1477,10 +1358,7 @@ export namespace org.unirail.Network {
                     this.muxOut = false;
                     return 1;
                 },
-                get isOpen() {
-                    return true;
-                },
-                close() {},
+                get isOpen() { return true; }, close() { },
             };
 
             /**
@@ -1498,8 +1376,7 @@ export namespace org.unirail.Network {
                         offset++;
                         length--;
                         named = 1;
-                        if (declared === REFUSED) {
-                            //no keys for the caller: closed
+                        if (declared === REFUSED) { //no keys for the caller: closed
                             this.host.report(this, ExternalConnection.refused());
                             this.abort();
                             return named;
@@ -1508,8 +1385,7 @@ export namespace org.unirail.Network {
                         this.connectEvents(); //the connect that waited for the caller's name
                         if (!this.isActive()) return named;
                         const codec = this.codec;
-                        if (codec !== undefined) {
-                            //the rest is of the Noise: it hands the plaintext back here
+                        if (codec !== undefined) { //the rest is of the Noise: it hands the plaintext back here
                             if (length === 0) return named;
                             const n = codec.write(view, offset, length);
                             return n < 0 ? n : n + named;
@@ -1528,35 +1404,28 @@ export namespace org.unirail.Network {
                     if (dst === undefined) return length;
                     return dst.writeClear ? dst.writeClear(view, offset, length) : -1;
                 },
-                get isOpen() {
-                    return true;
-                },
-                close() {},
+                get isOpen() { return true; },
+                close() { },
             };
 //#endregion
+
 //#region Codec
             /** The encrypted stream between this connection and its Internal, one per socket; `undefined` - plain. */
             private codec?: Codec | undefined;
 
             /** The key of the other side, proved by the handshake of this socket: for a pattern that brings it. */
-            get peerKey(): Uint8Array | undefined {
-                return this.codec?.peerKey;
-            }
+            get peerKey(): Uint8Array | undefined { return this.codec?.peerKey; }
 
             /** What the transport sends from: the byte naming the connection first, in the clear; then the codec, or the Internal. */
             protected TxSrc(): AdHoc.BytesSrc | undefined {
-                return this.muxOut ? this.muxLead : (this.codec ?? this._internal?.BytesSrc);
+                return this.muxOut ? this.muxLead : this.codec ?? this._internal?.BytesSrc;
             }
 
             /** Where the received bytes go: the codec, or the Internal. */
-            protected RxDst(): AdHoc.BytesDst {
-                return this.codec ?? this.plain;
-            }
+            protected RxDst(): AdHoc.BytesDst { return this.codec ?? this.plain; }
 
             /** This end writes the first message of the handshake: the one that dialed. A data channel of WebRTC - its offerer. */
-            protected get initiator(): boolean {
-                return this.client;
-            }
+            protected get initiator(): boolean { return this.client; }
 
             /** The Noise stream of `declared` between this connection and its Internal, for a new socket: `initiator` writes the first message. */
             private noise(declared: Chain, initiator: boolean): Codec {
@@ -1568,6 +1437,7 @@ export namespace org.unirail.Network {
                 });
             }
 //#endregion
+
 //#region Transmitting
             protected readonly transmit_buffer: ArrayBuffer;
             protected readonly transmit_view: DataView;
@@ -1631,9 +1501,9 @@ export namespace org.unirail.Network {
             }
 
             /** The protocol above the socket is up. Raw TCP: nothing. {@link WebSocket}: WEBSOCKET_*_CONNECT. */
-            protected upgraded(): void {}
+            protected upgraded(): void { }
 
-            private running = false; //the transmit runner is on; it looks at wakePending before it stops
+            private running = false;     //the transmit runner is on; it looks at wakePending before it stops
             private wakePending = false; //a wake landed while the runner ran
             private asideQueued = false; //the runner sits in the loop's queue
             /** A write is parked: the platform has not released it yet, the runner is suspended ( {@link Redial.stalled} ). */
@@ -1674,7 +1544,7 @@ export namespace org.unirail.Network {
                 const generation = this.generation;
                 let sent = 0;
                 try {
-                    for (;;) {
+                    for (; ;) {
                         this.wakePending = false;
                         if (generation !== this.generation || this.writing || this.channel?.isOpen !== true) break;
                         if (this.host.options.transmitBudget <= sent) {
@@ -1698,8 +1568,7 @@ export namespace org.unirail.Network {
                                 if (!this.doWrite(result === this.transmit_window.length ? this.transmit_window : this.transmit_bytes.subarray(FRAME_HEADER, FRAME_HEADER + result))) break;
                                 continue;
                             }
-                        } else {
-                            //buffer-swap: the marker at [0] says how many prefix bytes (the wire [len]) ship before the payload
+                        } else { //buffer-swap: the marker at [0] says how many prefix bytes (the wire [len]) ship before the payload
                             const marker = this.transmit_view.getUint8(FRAME_HEADER);
                             if (marker > this.transmit_view.byteLength - FRAME_HEADER - 1) throw new Error("Invalid buffer-swap prefix");
                             const payload = new Uint8Array(result);
@@ -1753,20 +1622,17 @@ export namespace org.unirail.Network {
                 const t = deadline(this._transmitTimeout);
                 if (0 < t) this.armWrite(this.host.engine.now() + t);
                 const length = bytes.byteLength;
-                (sent as Promise<void>).then(
-                    () => {
-                        if (generation !== this.generation || !this.isActive()) return;
-                        this.carried += length;
-                        this.writing = false;
-                        this.timerT?.();
-                        this.timerT = undefined;
-                        this.transmit_time = this.host.engine.now();
-                        this.transmitter(); //the held write is out: the runner goes on
-                    },
-                    (error) => {
-                        if (generation === this.generation && this.isActive()) this.socketFailed(error);
-                    },
-                );
+                (sent as Promise<void>).then(() => {
+                    if (generation !== this.generation || !this.isActive()) return;
+                    this.carried += length;
+                    this.writing = false;
+                    this.timerT?.();
+                    this.timerT = undefined;
+                    this.transmit_time = this.host.engine.now();
+                    this.transmitter(); //the held write is out: the runner goes on
+                }, error => {
+                    if (generation === this.generation && this.isActive()) this.socketFailed(error);
+                });
                 return false;
             }
 
@@ -1784,7 +1650,9 @@ export namespace org.unirail.Network {
              *  `Number.MIN_SAFE_INTEGER` while no session runs on the connection and none is parked on it: a pack is
              *  not queued where no transmitter will ever take it. */
             get transmitTimeout(): number {
-                return this.state === ExternalConnection.ACTIVE || this.state === ExternalConnection.PARKED ? (this.isClosingGracefully ? -this._transmitTimeout : this._transmitTimeout) : Number.MIN_SAFE_INTEGER;
+                return this.state === ExternalConnection.ACTIVE || this.state === ExternalConnection.PARKED ?
+                       this.isClosingGracefully ? -this._transmitTimeout : this._transmitTimeout :
+                       Number.MIN_SAFE_INTEGER;
             }
 
             /**
@@ -1802,6 +1670,7 @@ export namespace org.unirail.Network {
                 if (!this.running) this.WakeTransmit();
             }
 //#endregion
+
 //#region Receiving
             /** The timestamp of the last reception, by {@link Engine.now}: an activity marker. */
             receive_time = 0;
@@ -1819,7 +1688,7 @@ export namespace org.unirail.Network {
              * Received bytes the destination has not taken yet: the queue of spans behind a short write. Its head index
              * moves instead of a shift per message.
              */
-            private readonly pending: {view: DataView; offset: number; remaining: number}[] = [];
+            private readonly pending: { view: DataView; offset: number; remaining: number }[] = [];
             private pendingHead = 0;
             private pendingBytes = 0;
 
@@ -1865,12 +1734,9 @@ export namespace org.unirail.Network {
                 let n: number;
                 try {
                     n = this.RxDst().write(view, 0, length);
-                } finally {
-                    this.receiving = false;
-                }
+                } finally { this.receiving = false; }
                 if (generation !== this.generation || !this.isActive()) return; //torn down inside write()
-                if (n < 0) {
-                    //the destination gave up on the stream: nothing after this point can be parsed any more
+                if (n < 0) { //the destination gave up on the stream: nothing after this point can be parsed any more
                     this.protocolViolated(new Error("Protocol destination rejected the stream"), 1002);
                     return;
                 }
@@ -1944,9 +1810,7 @@ export namespace org.unirail.Network {
             _receiveTimeout = Number.MAX_SAFE_INTEGER;
 
             /** The read timeout; negative once a graceful close is under way - the sign the generated `sending_put` reads. */
-            get receiveTimeout(): number {
-                return this.isClosingGracefully ? -this._receiveTimeout : this._receiveTimeout;
-            }
+            get receiveTimeout(): number { return this.isClosingGracefully ? -this._receiveTimeout : this._receiveTimeout; }
 
             /** Sets the read timeout; a negative one enters a graceful close, as a negative transmit timeout does. */
             set receiveTimeout(timeout: number) {
@@ -1986,12 +1850,9 @@ export namespace org.unirail.Network {
                 const internal = this._internal;
                 let failure: unknown;
                 if (internal !== undefined) {
-                    for (const callback of [() => internal.OnExternalEvent(this, Event.REMOTE_CLOSE_ABRUPTLY), () => internal.BytesSrc?.close(), () => internal.BytesDst?.close()])
-                        try {
-                            callback();
-                        } catch (error) {
-                            failure ??= error;
-                        }
+                    for (const callback of [() => internal.OnExternalEvent(this, Event.REMOTE_CLOSE_ABRUPTLY),
+                        () => internal.BytesSrc?.close(), () => internal.BytesDst?.close()])
+                        try { callback(); } catch (error) { failure ??= error; }
                     AdHoc.Connection.Keyring.clear(internal);
                 }
                 this.host.free(this);
@@ -2005,19 +1866,17 @@ export namespace org.unirail.Network {
          * (`closeGracefully`), the events of a close.
          */
         export class WebSocket extends ExternalConnection {
-            constructor(
-                host: TCP,
-                readonly webSocketOptions: WebSocket.Options = {},
-            ) {
+            constructor(host: TCP, readonly webSocketOptions: WebSocket.Options = {}) {
                 super(host);
                 WebSocket.validateOptions(webSocketOptions);
             }
 
-            protected _wsCloseGracefully = false; //a WebSocket close after the data
+            protected _wsCloseGracefully = false;   //a WebSocket close after the data
             protected _wsClosingGracefully = false; //our CLOSE frame is on its way
 
             override attach(channel: Channel | WebSocket.Socket, peer = "", client = false): void {
-                super.attach("subscribe" in channel ? channel : new WebSocket.Channel(channel, this.webSocketOptions.maxMessageBytes ?? 1048576, this.webSocketOptions.sendCopiesBytes ?? false), peer, client);
+                super.attach("subscribe" in channel ? channel : new WebSocket.Channel(channel,
+                    this.webSocketOptions.maxMessageBytes ?? 1048576, this.webSocketOptions.sendCopiesBytes ?? false), peer, client);
             }
 
             /** The platform has done the upgrade before the socket reached us. */
@@ -2025,9 +1884,7 @@ export namespace org.unirail.Network {
                 this.Internal.OnExternalEvent(this, this.client ? Event.WEBSOCKET_THIS_CONNECT : Event.WEBSOCKET_REMOTE_CONNECT);
             }
 
-            override get transmitTimeout(): number {
-                return super.transmitTimeout;
-            }
+            override get transmitTimeout(): number { return super.transmitTimeout; }
 
             /** Same contract as the base, but the FIN is a WebSocket CLOSE frame. */
             override set transmitTimeout(timeout: number) {
@@ -2035,18 +1892,14 @@ export namespace org.unirail.Network {
                 super.transmitTimeout = timeout;
             }
 
-            override get receiveTimeout(): number {
-                return super.receiveTimeout;
-            }
+            override get receiveTimeout(): number { return super.receiveTimeout; }
 
             override set receiveTimeout(timeout: number) {
                 if (timeout < 0) this._wsCloseGracefully = true;
                 super.receiveTimeout = timeout;
             }
 
-            override close(): void {
-                this.closeGracefully(1000, "AdHoc server closing");
-            }
+            override close(): void { this.closeGracefully(1000, "AdHoc server closing"); }
 
             /**
              * Starts the WebSocket closing handshake: what the source holds goes out, then the CLOSE frame, and the
@@ -2061,10 +1914,7 @@ export namespace org.unirail.Network {
                 this.isClosingGracefully = true;
                 this.closeCode = code;
                 this.closeReason = why === undefined ? undefined : WebSocket.truncate(why, 123);
-                if (this.channel === undefined) {
-                    this.disconnect(Event.THIS_CLOSE_GRACEFUL);
-                    return;
-                }
+                if (this.channel === undefined) { this.disconnect(Event.THIS_CLOSE_GRACEFUL); return; }
                 this.WakeTransmit(); //the runner drains, then onTransmitterDrained sends the CLOSE
             }
 
@@ -2080,10 +1930,7 @@ export namespace org.unirail.Network {
              * ours (Java: the answering side closes the TCP connection).
              */
             protected override socketClosed(clean: boolean): void {
-                if (!clean || !this.isActive()) {
-                    super.socketClosed(clean);
-                    return;
-                }
+                if (!clean || !this.isActive()) { super.socketClosed(clean); return; }
                 if (this._wsClosingGracefully) this.Internal.OnExternalEvent(this, Event.WEBSOCKET_THIS_CLOSE_GRACEFUL);
                 else {
                     this.isClosingGracefully = true;
@@ -2094,11 +1941,8 @@ export namespace org.unirail.Network {
 
             protected override protocolViolated(error: unknown, code: number): void {
                 if (!this.isActive()) return;
-                try {
-                    this.Internal?.OnExternalEvent(this, Event.WEBSOCKET_PROTOCOL_ERROR);
-                } catch (failure) {
-                    this.host.report(this, failure);
-                }
+                try { this.Internal?.OnExternalEvent(this, Event.WEBSOCKET_PROTOCOL_ERROR); }
+                catch (failure) { this.host.report(this, failure); }
                 super.protocolViolated(error, code);
             }
 
@@ -2109,8 +1953,7 @@ export namespace org.unirail.Network {
 
             /** The longest prefix of `text` whose UTF-8 fits in `bytes`. */
             static truncate(text: string, bytes: number): string {
-                let n = 0,
-                    end = 0;
+                let n = 0, end = 0;
                 for (const ch of text) {
                     const c = ch.codePointAt(0)!;
                     n += c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
@@ -2130,14 +1973,12 @@ export namespace org.unirail.Network {
              * @param newInternal    the Internal of a session; `channelId` - the byte a caller of a multiplexed port named.
              * @param new_connection {@link ExternalConnection} for raw TCP, {@link WebSocket} for WebSocket.
              */
-            constructor(
-                readonly newInternal: (connection: AdHoc.Connection.External, channelId?: number) => INT,
-                options: Options = {},
-                new_connection: (host: TCP) => ExternalConnection = (host) => new ExternalConnection(host),
-            ) {
+            constructor(readonly newInternal: (connection: AdHoc.Connection.External, channelId?: number) => INT,
+                options: Options = {}, new_connection: (host: TCP) => ExternalConnection = host => new ExternalConnection(host)) {
                 super(options.name ?? "Server", new_connection, options.onFailure ?? TCP.onFailurePrintConsole, options);
                 this.max_connections = options.maxConnections ?? 0;
-                if (!Number.isSafeInteger(this.max_connections) || this.max_connections < 0) throw new RangeError("maxConnections must be a non-negative safe integer");
+                if (!Number.isSafeInteger(this.max_connections) || this.max_connections < 0)
+                    throw new RangeError("maxConnections must be a non-negative safe integer");
             }
 
             /**
@@ -2151,9 +1992,7 @@ export namespace org.unirail.Network {
             chooseChain?: ((address: string) => Chain | undefined) | undefined;
 
             /** The chain of an incoming connection: TLS alone. Once a connection: {@link accepted} takes what an adapter has asked already. */
-            chainFor(peer: string): Chain | undefined {
-                return tlsOnly(this.chooseChain !== undefined ? this.chooseChain(peer) : this.chain);
-            }
+            chainFor(peer: string): Chain | undefined { return tlsOnly(this.chooseChain !== undefined ? this.chooseChain(peer) : this.chain); }
 
             /**
              * How long an accepted connection may take over its handshakes, in milliseconds; `0` and less - no limit. A connection
@@ -2181,19 +2020,13 @@ export namespace org.unirail.Network {
             private _crowded = 0;
 
             /** @return how many sockets were turned away at {@link max_connections}. */
-            refused(): number {
-                return this._refused;
-            }
+            refused(): number { return this._refused; }
 
             /** @return how many were turned away at {@link accept_rate} - one address knocking too often. */
-            throttled(): number {
-                return this._throttled;
-            }
+            throttled(): number { return this._throttled; }
 
             /** @return how many were turned away at {@link max_per_address} - one address holding too many at once. */
-            crowded(): number {
-                return this._crowded;
-            }
+            crowded(): number { return this._crowded; }
 
             protected full(): boolean {
                 if (this.max_connections <= 0 || this.connections_live() < this.max_connections) return false;
@@ -2249,9 +2082,7 @@ export namespace org.unirail.Network {
              *
              * @return the connection, or `undefined` when the socket was turned away or failed to start.
              */
-            accepted(channel: Channel | WebSocket.Socket, peer = ""): ExternalConnection | undefined {
-                return this.acceptedOn(channel, peer, this.chainFor(peer));
-            }
+            accepted(channel: Channel | WebSocket.Socket, peer = ""): ExternalConnection | undefined { return this.acceptedOn(channel, peer, this.chainFor(peer)); }
 
             /** {@link accepted}, for an adapter that has asked for the chain already: its TLS came first. `began` - when the handshakes of the socket began. */
             acceptedOn(channel: Channel | WebSocket.Socket, peer: string, _chain: Chain | undefined, began?: number): ExternalConnection | undefined {
@@ -2275,11 +2106,7 @@ export namespace org.unirail.Network {
                     if (con?.isActive()) con.abort();
                     else {
                         if (con === undefined && address) this.release(address);
-                        try {
-                            channel.close(1011);
-                        } catch {
-                            /* the original failure is reported */
-                        }
+                        try { channel.close(1011); } catch { /* the original failure is reported */ }
                     }
                     this.report(this, error);
                     return undefined;
@@ -2287,9 +2114,8 @@ export namespace org.unirail.Network {
             }
 
             /** No more accepting: what is already accepted is untouched. */
-            protected override deafen(): void {
-                this.deaf = true;
-            }
+            protected override deafen(): void { this.deaf = true; }
+
         }
 
         /** A connector must release its pending native resources when cancelled. */
@@ -2305,38 +2131,24 @@ export namespace org.unirail.Network {
             cancelled = false;
             private readonly callbacks = new Set<() => void>();
             private reject!: (error: Error) => void;
-            readonly rejected = new Promise<never>((_, reject) => {
-                this.reject = reject;
-            });
+            readonly rejected = new Promise<never>((_, reject) => { this.reject = reject; });
 
-            constructor() {
-                this.rejected.catch(() => {});
-            }
+            constructor() { this.rejected.catch(() => { }); }
 
             onCancel(callback: () => void): Cancel {
-                if (this.cancelled) callback();
-                else this.callbacks.add(callback);
-                return () => {
-                    this.callbacks.delete(callback);
-                };
+                if (this.cancelled) callback(); else this.callbacks.add(callback);
+                return () => { this.callbacks.delete(callback); };
             }
 
             cancel(error: Error): void {
                 if (this.cancelled) return;
                 this.cancelled = true;
-                for (const callback of this.callbacks)
-                    try {
-                        callback();
-                    } catch {
-                        /* a connector's cleanup */
-                    }
+                for (const callback of this.callbacks) try { callback(); } catch { /* a connector's cleanup */ }
                 this.callbacks.clear();
                 this.reject(error);
             }
 
-            complete(): void {
-                this.callbacks.clear();
-            }
+            complete(): void { this.callbacks.clear(); }
         }
 
         /**
@@ -2356,14 +2168,10 @@ export namespace org.unirail.Network {
                 con.state = ExternalConnection.FREE;
             }
 
-            constructor(
-                newInternal: (connection: AdHoc.Connection.External) => INT,
-                readonly connector: Connector<ADDRESS>,
-                options: Options = {},
-                new_connection: (host: TCP) => ExternalConnection = (host) => new ExternalConnection(host),
-            ) {
+            constructor(newInternal: (connection: AdHoc.Connection.External) => INT, readonly connector: Connector<ADDRESS>,
+                options: Options = {}, new_connection: (host: TCP) => ExternalConnection = host => new ExternalConnection(host)) {
                 super(options.name ?? "Client", new_connection, options.onFailure ?? TCP.onFailurePrintConsole, options);
-                const connection = (this.connection = new_connection(this));
+                const connection = this.connection = new_connection(this);
                 connection.index = 0;
                 this.connections.push(connection);
                 connection.Internal = this.internal = newInternal(connection);
@@ -2373,9 +2181,7 @@ export namespace org.unirail.Network {
             private chosen?: Chain | undefined;
 
             /** The chain of the connect in progress - TLS alone -, for a connector that makes TLS itself. */
-            protected get chain(): Chain | undefined {
-                return this.chosen;
-            }
+            protected get chain(): Chain | undefined { return this.chosen; }
 
             private attempt?: Attempt | undefined;
             private connecting?: Promise<INT> | undefined;
@@ -2402,12 +2208,12 @@ export namespace org.unirail.Network {
                 this._toString = `Client ${this.name} -> ${String(address)}`;
                 this.address = address;
                 this.timeout = timeout;
-                const attempt = (this.attempt = new Attempt());
-                const promise = (this.connecting = this.start(address, timeout, attempt).finally(() => {
+                const attempt = this.attempt = new Attempt();
+                const promise = this.connecting = this.start(address, timeout, attempt).finally(() => {
                     if (this.attempt !== attempt) return;
                     this.attempt = undefined;
                     this.connecting = undefined;
-                }));
+                });
                 return promise;
             }
 
@@ -2426,20 +2232,15 @@ export namespace org.unirail.Network {
                     if (declared === REFUSED) throw ExternalConnection.refused(); //no keys for it: not dialed
                     if (declared?.ready !== undefined) await Promise.race([declared.ready(), attempt.rejected]);
                     const pending = Promise.resolve().then(() => this.connector(address, attempt));
-                    pending.then(
-                        (channel) => {
-                            if (attempt.cancelled && !adopted) channel.close(1000);
-                        },
-                        () => {},
-                    ); //a stale socket is no one's
-                    const channel = (acquired = await Promise.race([pending, attempt.rejected]));
+                    pending.then(channel => { if (attempt.cancelled && !adopted) channel.close(1000); }, () => { }); //a stale socket is no one's
+                    const channel = acquired = await Promise.race([pending, attempt.rejected]);
                     if (connection.isParked()) {
                         this.parked(connection.session()); //off the parked list: the reconnect owns it now
-                        if (connection.resumable <= this.engine.seconds()) {
-                            //the wait elapsed while we were away: reconnect fresh
+                        if (connection.resumable <= this.engine.seconds()) { //the wait elapsed while we were away: reconnect fresh
                             connection.state = ExternalConnection.CLEANING;
                             connection.reap();
                         } else connection.resumable = 0; //live again: the next loss decides anew
+
                     }
                     if (!connection.activate()) throw new Error("The connection was not free when its socket connected.");
                     adopted = true;
@@ -2460,13 +2261,9 @@ export namespace org.unirail.Network {
                 }
             }
 
-            isConnecting(): boolean {
-                return this.attempt !== undefined;
-            }
+            isConnecting(): boolean { return this.attempt !== undefined; }
 
-            isConnected(): boolean {
-                return this.connection.isActive();
-            }
+            isConnected(): boolean { return this.connection.isActive(); }
 
             /** Abruptly disconnects; a connect in progress is given up, and no dial of the client's own follows. */
             disconnect(): void {
@@ -2494,9 +2291,7 @@ export namespace org.unirail.Network {
             /** The dials of the client's own since a socket last served - its peer said something: the step of the backoff ( {@link Redial} ). */
             private redials = 0;
 
-            get Redials(): number {
-                return this.redials;
-            }
+            get Redials(): number { return this.redials; }
 
             private redialTimer?: Cancel | undefined;
 
@@ -2592,9 +2387,7 @@ export namespace org.unirail.Network {
                 this.watchTimer = undefined;
             }
 
-            override toString(): string {
-                return this._toString ?? this.name;
-            }
+            override toString(): string { return this._toString ?? this.name; }
         }
 
         // Initialized after TCP.Client: its nested WebSocket.Client extends it.
@@ -2604,9 +2397,11 @@ export namespace org.unirail.Network {
             export class Client<INT extends AdHoc.Connection.Internal, ADDRESS = string> extends TCP.Client<INT, ADDRESS> {
                 declare readonly connection: WebSocket;
 
-                constructor(newInternal: (connection: AdHoc.Connection.External) => INT, create: (address: ADDRESS) => Socket, options: Options = {}) {
+                constructor(newInternal: (connection: AdHoc.Connection.External) => INT,
+                    create: (address: ADDRESS) => Socket, options: Options = {}) {
                     validateOptions(options);
-                    super(newInternal, connector(create, options.maxMessageBytes ?? 1048576, options.sendCopiesBytes ?? false), {...options, name: options.name ?? "WebSocketClient"}, (host) => new WebSocket(host, options));
+                    super(newInternal, connector(create, options.maxMessageBytes ?? 1048576, options.sendCopiesBytes ?? false),
+                        {...options, name: options.name ?? "WebSocketClient"}, host => new WebSocket(host, options));
                 }
             }
 
@@ -2628,18 +2423,12 @@ export namespace org.unirail.Network {
 
             /** The native socket as the connection's {@link Network.Channel}: event conversion and message checks only. */
             export class Channel implements Network.Channel {
-                constructor(
-                    readonly socket: Socket,
-                    readonly maxMessageBytes = 1048576,
-                    readonly sendCopiesBytes = false,
-                ) {
+                constructor(readonly socket: Socket, readonly maxMessageBytes = 1048576, readonly sendCopiesBytes = false) {
                     if (!Number.isSafeInteger(maxMessageBytes) || maxMessageBytes < 8) throw new RangeError("maxMessageBytes must be >= 8");
                     socket.binaryType = "arraybuffer";
                 }
 
-                get isOpen(): boolean {
-                    return this.socket.readyState === 1;
-                }
+                get isOpen(): boolean { return this.socket.readyState === 1; }
 
                 /** The native socket may retain its argument after send returns (verified in workerd): one copy, here,
                  * at the platform boundary. Opt out only for a socket that consumes or copies inline. */
@@ -2649,21 +2438,18 @@ export namespace org.unirail.Network {
 
                 close(code = 1000, reason?: string): void {
                     if (this.socket.readyState >= 2) return;
-                    try {
-                        this.socket.close(code, reason);
-                    } catch {
-                        this.socket.close();
-                    } //a browser takes only 1000 and 3000-4999 from a client
+                    try { this.socket.close(code, reason); }
+                    catch { this.socket.close(); } //a browser takes only 1000 and 3000-4999 from a client
                 }
 
                 subscribe(observer: Network.ChannelObserver): Network.Cancel {
-                    const message = (event: {data: unknown}): void => {
+                    const message = (event: { data: unknown }): void => {
                         const data = event.data;
                         if (!(data instanceof ArrayBuffer)) observer.violated(new Error("AdHoc accepts binary WebSocket messages only"), 1003);
                         else if (data.byteLength > this.maxMessageBytes) observer.violated(new Error("WebSocket message exceeds maxMessageBytes"), 1009);
                         else observer.receive(data);
                     };
-                    const closed = (event: {code: number; wasClean?: boolean | undefined}): void => observer.closed(event.wasClean === true && event.code !== 1006);
+                    const closed = (event: { code: number; wasClean?: boolean | undefined }): void => observer.closed(event.wasClean === true && event.code !== 1006);
                     const failed = (): void => observer.failed(new Error("WebSocket failed"));
                     this.socket.addEventListener("message", message);
                     this.socket.addEventListener("close", closed);
@@ -2677,42 +2463,39 @@ export namespace org.unirail.Network {
             }
 
             /** A {@link TCP.Connector} over a native WebSocket factory; the client owns cancellation and timeout. */
-            export function connector<ADDRESS>(create: (address: ADDRESS) => Socket, maxMessageBytes = 1048576, sendCopiesBytes = false): TCP.Connector<ADDRESS> {
-                return (address, context) =>
-                    new Promise((resolve, reject) => {
-                        if (context.cancelled) {
-                            reject(new Error("Connection cancelled"));
-                            return;
-                        }
-                        const socket = create(address);
-                        let settled = false;
-                        let removeCancel: Network.Cancel = () => {};
-                        const cleanup = (): void => {
-                            socket.removeEventListener("open", opened);
-                            socket.removeEventListener("error", failed);
-                            socket.removeEventListener("close", failed);
-                            removeCancel();
-                        };
-                        const failed = (): void => {
-                            if (settled) return;
-                            settled = true;
-                            cleanup();
-                            if (socket.readyState < 2) socket.close();
-                            reject(new Error("WebSocket connection failed/cancelled"));
-                        };
-                        const opened = (): void => {
-                            if (settled) return;
-                            settled = true;
-                            cleanup();
-                            resolve(new Channel(socket, maxMessageBytes, sendCopiesBytes));
-                        };
-                        socket.binaryType = "arraybuffer";
-                        socket.addEventListener("open", opened);
-                        socket.addEventListener("error", failed);
-                        socket.addEventListener("close", failed);
-                        removeCancel = context.onCancel(failed);
-                        if (socket.readyState === 1) opened();
-                    });
+            export function connector<ADDRESS>(create: (address: ADDRESS) => Socket, maxMessageBytes = 1048576,
+                sendCopiesBytes = false): TCP.Connector<ADDRESS> {
+                return (address, context) => new Promise((resolve, reject) => {
+                    if (context.cancelled) { reject(new Error("Connection cancelled")); return; }
+                    const socket = create(address);
+                    let settled = false;
+                    let removeCancel: Network.Cancel = () => { };
+                    const cleanup = (): void => {
+                        socket.removeEventListener("open", opened);
+                        socket.removeEventListener("error", failed);
+                        socket.removeEventListener("close", failed);
+                        removeCancel();
+                    };
+                    const failed = (): void => {
+                        if (settled) return;
+                        settled = true;
+                        cleanup();
+                        if (socket.readyState < 2) socket.close();
+                        reject(new Error("WebSocket connection failed/cancelled"));
+                    };
+                    const opened = (): void => {
+                        if (settled) return;
+                        settled = true;
+                        cleanup();
+                        resolve(new Channel(socket, maxMessageBytes, sendCopiesBytes));
+                    };
+                    socket.binaryType = "arraybuffer";
+                    socket.addEventListener("open", opened);
+                    socket.addEventListener("error", failed);
+                    socket.addEventListener("close", failed);
+                    removeCancel = context.onCancel(failed);
+                    if (socket.readyState === 1) opened();
+                });
             }
 
             export interface Options extends Network.Options {
@@ -2738,21 +2521,14 @@ export namespace org.unirail.Network {
         private woken = false;
         private stopped = false;
 
-        constructor(
-            readonly src: AdHoc.BytesSrc,
-            readonly dst: AdHoc.BytesDst,
-            buffer_size = 16384,
-        ) {
+        constructor(readonly src: AdHoc.BytesSrc, readonly dst: AdHoc.BytesDst, buffer_size = 16384) {
             if (!Number.isSafeInteger(buffer_size) || buffer_size < 8) throw new RangeError("buffer_size must be >= 8");
             this.buffer = new DataView(new ArrayBuffer(buffer_size));
         }
 
         /** Moves what the source has, at most `budget` bytes. Infinity: Java's synchronous drain. */
         drain(budget = Infinity): number {
-            if (this.pumping) {
-                this.woken = true;
-                return 0;
-            }
+            if (this.pumping) { this.woken = true; return 0; }
             if (this.stopped) return 0;
             this.pumping = true;
             let moved = 0;
@@ -2776,18 +2552,12 @@ export namespace org.unirail.Network {
                                 this.offset = prefix ? 1 : 0;
                                 this.length = prefix || this.payload.byteLength;
                                 if (!prefix) this.payload = undefined;
-                                if (!this.length) {
-                                    this.tail = undefined;
-                                    continue;
-                                }
+                                if (!this.length) { this.tail = undefined; continue; }
                             }
                         }
                         const offered = Math.min(this.length, budget - moved);
                         const n = this.dst.write(this.tail, this.offset, offered);
-                        if (n < 0) {
-                            this.close();
-                            return moved;
-                        }
+                        if (n < 0) { this.close(); return moved; }
                         if (!Number.isInteger(n) || n > offered) throw new Error("Invalid BytesDst count");
                         moved += n;
                         this.offset += n;
@@ -2803,18 +2573,12 @@ export namespace org.unirail.Network {
                     }
                 } while (this.woken && !this.stopped && moved < budget);
                 return moved;
-            } finally {
-                this.pumping = false;
-            }
+            } finally { this.pumping = false; }
         }
 
-        WakeReceive(): void {
-            this.drain();
-        }
+        WakeReceive(): void { this.drain(); }
 
-        get isOpen(): boolean {
-            return !this.stopped;
-        }
+        get isOpen(): boolean { return !this.stopped; }
 
         close(): void {
             this.stopped = true;
@@ -2830,15 +2594,11 @@ export namespace org.unirail.Network {
         private opened = false;
         id = 0;
 
-        constructor(readonly buff_size = 16384) {}
+        constructor(readonly buff_size = 16384) { }
 
-        get isOpen(): boolean {
-            return this.open;
-        }
+        get isOpen(): boolean { return this.open; }
 
-        get Internal(): AdHoc.Connection.Internal {
-            return this.internal;
-        }
+        get Internal(): AdHoc.Connection.Internal { return this.internal; }
 
         /**
          * Seats an Internal: the connect, OnOpen, and what it queued goes over. It is the generated `External( ext )` that
@@ -2859,8 +2619,7 @@ export namespace org.unirail.Network {
 
         WakeTransmit(): void {
             if (!this.open) return;
-            const src = this.internal?.BytesSrc,
-                dst = this.internal?.BytesDst;
+            const src = this.internal?.BytesSrc, dst = this.internal?.BytesDst;
             if (!src || !dst) return;
             if (!this.wire || this.wire.src !== src || this.wire.dst !== dst) {
                 this.wire?.close();
@@ -2869,26 +2628,16 @@ export namespace org.unirail.Network {
             this.wire.drain();
         }
 
-        WakeReceive(): void {
-            this.WakeTransmit();
-        }
+        WakeReceive(): void { this.WakeTransmit(); }
 
-        get receiveTimeout(): number {
-            return 0;
-        }
-        set receiveTimeout(_value: number) {}
-        get transmitTimeout(): number {
-            return 0;
-        }
-        set transmitTimeout(_value: number) {}
+        get receiveTimeout(): number { return 0; }
+        set receiveTimeout(_value: number) { }
+        get transmitTimeout(): number { return 0; }
+        set transmitTimeout(_value: number) { }
 
-        session(): number {
-            return this.id >>> 0;
-        }
+        session(): number { return this.id >>> 0; }
 
-        get parked(): number {
-            return -1;
-        }
+        get parked(): number { return -1; }
 
         identify(id: number): number {
             if (this.id !== id) {
@@ -2899,20 +2648,16 @@ export namespace org.unirail.Network {
             return this.session();
         }
 
-        reclaim(token: number): number {
-            return this.identify(token | 0);
-        }
+        reclaim(token: number): number { return this.identify(token | 0); }
 
         close(): void {
             if (!this.open) return;
             this.open = false;
             this.wire?.close();
-            try {
-                this.internal?.BytesSrc?.close();
-            } finally {
-                try {
-                    this.internal?.BytesDst?.close();
-                } finally {
+            try { this.internal?.BytesSrc?.close(); }
+            finally {
+                try { this.internal?.BytesDst?.close(); }
+                finally {
                     if (this.opened) {
                         this.opened = false;
                         this.internal.OnClose?.();
@@ -2921,17 +2666,11 @@ export namespace org.unirail.Network {
             }
         }
 
-        abort(): void {
-            this.close();
-        }
+        abort(): void { this.close(); }
 
-        lost(): void {
-            this.close();
-        }
+        lost(): void { this.close(); }
 
-        closeAndDispose(): void {
-            this.close();
-        }
+        closeAndDispose(): void { this.close(); }
     }
 }
 import Network = org.unirail.Network;

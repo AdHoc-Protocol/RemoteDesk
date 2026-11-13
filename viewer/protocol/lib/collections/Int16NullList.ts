@@ -22,7 +22,7 @@
 // For licensing and inquiries: al8v5C6HU4UtqE9@gmail.com
 
 import BitList from "./BitList";
-import AdHoc from "../AdHoc";
+import AdHoc   from "../AdHoc";
 
 /**
  * A specialized list for storing `number` values with support for an `UNDEFINED` state to represent
@@ -83,7 +83,7 @@ import AdHoc from "../AdHoc";
  *
  * @namespace
  */
-export namespace Int16NullList {
+export namespace Int16NullList{
     /**
      * A read-only base class for a list of `number` values with support for `UNDEFINED` states.
      *
@@ -95,7 +95,7 @@ export namespace Int16NullList {
      *
      * @template UNDEFINED The type of the value representing an `UNDEFINED` state (default: `undefined`).
      */
-    export abstract class R<UNDEFINED = undefined> {
+    export abstract class R<UNDEFINED = undefined>{
         /**
          * The bitlist tracking nullity for each logical index.
          * A `true` bit indicates a non-`UNDEFINED` `number` value; a `false` bit indicates an `UNDEFINED` state.
@@ -150,7 +150,7 @@ export namespace Int16NullList {
         /**
          * Gets the threshold for switching to the Flat Strategy.
          */
-        public flatStrategyThreshold(): number {
+        public flatStrategyThreshold(): number{
             return this._flatStrategyThreshold;
         }
 
@@ -169,7 +169,7 @@ export namespace Int16NullList {
          * @param undefinedValue The value representing `UNDEFINED` elements.
          * @protected
          */
-        protected constructor(undefinedValue: UNDEFINED) {
+        protected constructor( undefinedValue: UNDEFINED ){
             this.undefinedValue = undefinedValue;
         }
 
@@ -180,13 +180,13 @@ export namespace Int16NullList {
          * @param value The value about to be written.
          * @protected
          */
-        protected isUndefined(value: number | UNDEFINED): boolean {
+        protected isUndefined( value: number | UNDEFINED ): boolean{
             const u = this.undefinedValue as any;
-            if (value === u) return true;
-            if (u === undefined || u === null || value === undefined || value === null) return false;
+            if( value === u ) return true;
+            if( u === undefined || u === null || value === undefined || value === null ) return false;
             scratch[0] = value as number;
             const v = scratch[0];
-            return v === u || (v !== v && u !== u);
+            return v === u || ( v !== v && u !== u );
         }
 
         /**
@@ -195,8 +195,10 @@ export namespace Int16NullList {
          * @returns The count of non-`UNDEFINED` elements.
          * @remarks In Flat Strategy, this uses `nulls.cardinality()`. In Compressed Strategy, it uses `_cardinality`.
          */
-        public get cardinality(): number {
-            return this.isFlatStrategy ? this.nulls.cardinality() : this._cardinality;
+        public get cardinality(): number{
+            return this.isFlatStrategy ?
+                   this.nulls.cardinality() :
+                   this._cardinality;
         }
 
         /**
@@ -207,7 +209,7 @@ export namespace Int16NullList {
          * - In Flat Strategy: Typically matches or exceeds the logical {@link size}.
          * - In Compressed Strategy: Matches or exceeds the number of non-`UNDEFINED` elements ({@link cardinality}).
          */
-        public get length(): number {
+        public get length(): number{
             return this.values.length;
         }
 
@@ -216,7 +218,7 @@ export namespace Int16NullList {
          *
          * @returns The total number of logical elements, equal to `nulls.size`.
          */
-        public get size(): number {
+        public get size(): number{
             return this.nulls.size;
         }
 
@@ -225,7 +227,7 @@ export namespace Int16NullList {
          *
          * @returns `true` if the list has no elements, `false` otherwise.
          */
-        public get isEmpty(): boolean {
+        public get isEmpty(): boolean{
             return this.size === 0;
         }
 
@@ -239,8 +241,8 @@ export namespace Int16NullList {
          * console.log(list.hasValue(0)); // true
          * console.log(list.hasValue(1)); // false
          */
-        public hasValue(index: number): boolean {
-            return this.nulls.get(index);
+        public hasValue( index: number ): boolean{
+            return this.nulls.get( index );
         }
 
         /**
@@ -252,8 +254,8 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(undefined).append(1);
          * console.log(list.nextValueIndex(-1)); // 1
          */
-        public nextValueIndex(index: number): number {
-            return this.nulls.next1(index);
+        public nextValueIndex( index: number ): number{
+            return this.nulls.next1( index );
         }
 
         /**
@@ -265,8 +267,8 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined);
          * console.log(list.prevValueIndex(2)); // 0
          */
-        public prevValueIndex(index: number): number {
-            return this.nulls.prev1(index);
+        public prevValueIndex( index: number ): number{
+            return this.nulls.prev1( index );
         }
 
         /**
@@ -278,8 +280,8 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined);
          * console.log(list.nextNullIndex(0)); // 1
          */
-        public nextNullIndex(index: number): number {
-            return this.nulls.next0(index);
+        public nextNullIndex( index: number ): number{
+            return this.nulls.next0( index );
         }
 
         /**
@@ -291,8 +293,8 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined);
          * console.log(list.prevNullIndex(2)); // 1
          */
-        public prevNullIndex(index: number): number {
-            return this.nulls.prev0(index);
+        public prevNullIndex( index: number ): number{
+            return this.nulls.prev0( index );
         }
 
         /**
@@ -309,10 +311,14 @@ export namespace Int16NullList {
          * console.log(list.get(0)); // 1
          * console.log(list.get(1)); // undefined
          */
-        public get(index: number): number | UNDEFINED {
-            if (index < 0 || index >= this.size) throw new RangeError("Index out of bounds");
+        public get( index: number ): number | UNDEFINED{
+            if( index < 0 || index >= this.size ) throw new RangeError( "Index out of bounds" );
 
-            return this.nulls.get(index) ? (this.isFlatStrategy ? this.values[index] : this.values[this.nulls.rank(index) - 1]) : this.undefinedValue;
+            return this.nulls.get( index ) ?
+                   ( this.isFlatStrategy ?
+                     this.values[index] :
+                     this.values[this.nulls.rank( index ) - 1] ) :
+                   this.undefinedValue;
         }
 
         /**
@@ -324,9 +330,9 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1);
          * console.log(list.last); // 1
          */
-        get last(): number | UNDEFINED {
-            if (this.isEmpty) throw new RangeError("List is empty");
-            return this.get(this.size - 1);
+        get last(): number | UNDEFINED{
+            if( this.isEmpty ) throw new RangeError( "List is empty" );
+            return this.get( this.size - 1 );
         }
 
         /**
@@ -342,15 +348,15 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined).append(1);
          * console.log(list.indexOf(1)); // 0
          */
-        public indexOf(value: number): number {
-            if (this.isFlatStrategy) {
-                for (let i = this.nulls.next1(-1); i !== -1; i = this.nulls.next1(i)) if (sameValueZero(this.values[i], value)) return i;
+        public indexOf( value: number ): number{
+            if( this.isFlatStrategy ){
+                for( let i = this.nulls.next1( -1 ); i !== -1; i = this.nulls.next1( i ) ) if( sameValueZero( this.values[i], value ) ) return i;
                 return -1;
             }
-            if (this._cardinality === 0) return -1;
+            if( this._cardinality === 0 ) return -1;
             // Scan only the valid prefix [0, _cardinality); slots beyond may hold stale data.
-            const i = indexOf$(this.values, value, this._cardinality);
-            return i < 0 ? -1 : this.nulls.bit(i + 1);
+            const i = indexOf$( this.values, value, this._cardinality );
+            return i < 0 ? -1 : this.nulls.bit( i + 1 );
         }
 
         /**
@@ -366,16 +372,16 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined).append(1);
          * console.log(list.lastIndexOf(1)); // 2
          */
-        public lastIndexOf(value: number): number {
-            if (this.isFlatStrategy) {
-                for (let i = this.nulls.last1(); i !== -1; i = this.nulls.prev1(i)) if (sameValueZero(this.values[i], value)) return i;
+        public lastIndexOf( value: number ): number{
+            if( this.isFlatStrategy ){
+                for( let i = this.nulls.last1(); i !== -1; i = this.nulls.prev1( i ) ) if( sameValueZero( this.values[i], value ) ) return i;
                 return -1;
             }
-            if (this._cardinality === 0) return -1;
+            if( this._cardinality === 0 ) return -1;
             // Scan only the valid prefix; passing fromIndex = -1 to lastIndexOf would mean
             // "search from the end of the whole allocation" and could match stale data.
-            const i = lastIndexOf$(this.values, value, this._cardinality);
-            return i < 0 ? -1 : this.nulls.bit(i + 1);
+            const i = lastIndexOf$( this.values, value, this._cardinality );
+            return i < 0 ? -1 : this.nulls.bit( i + 1 );
         }
 
         /**
@@ -390,14 +396,16 @@ export namespace Int16NullList {
          * console.log(list.contains(1)); // true
          * console.log(list.contains(undefined)); // true
          */
-        public contains(value: number | UNDEFINED): boolean {
-            return this.isUndefined(value) ? this.cardinality < this.size : this.indexOf(value as number) !== -1;
+        public contains( value: number | UNDEFINED ): boolean{
+            return this.isUndefined( value ) ?
+                   this.cardinality < this.size :
+                   this.indexOf( value as number ) !== -1;
         }
 
         /**
          * Gets the number of `UNDEFINED` elements: `size - cardinality`.
          */
-        public get nullCount(): number {
+        public get nullCount(): number{
             return this.size - this.cardinality;
         }
 
@@ -409,17 +417,21 @@ export namespace Int16NullList {
          * @param fromIndex The 0-based logical index to start from (default 0); a negative one counts as 0.
          * @returns The 0-based logical index of the first occurrence, or -1 if not found.
          */
-        public indexOfFrom(value: number, fromIndex: number = 0): number {
-            const from = Math.max(0, fromIndex);
-            if (this.size <= from) return -1;
-            if (this.isFlatStrategy) {
-                for (let i = this.nulls.next1(from - 1); i !== -1; i = this.nulls.next1(i)) if (sameValueZero(this.values[i], value)) return i;
+        public indexOfFrom( value: number, fromIndex: number = 0 ): number{
+            const from = Math.max( 0, fromIndex );
+            if( this.size <= from ) return -1;
+            if( this.isFlatStrategy ){
+                for( let i = this.nulls.next1( from - 1 ); i !== -1; i = this.nulls.next1( i ) ) if( sameValueZero( this.values[i], value ) ) return i;
                 return -1;
             }
-            const r0 = from === 0 ? 0 : this.nulls.rank(from - 1); // packed values before `from`
-            if (this._cardinality <= r0) return -1;
-            const i = indexOf$(this.values.subarray(r0), value, this._cardinality - r0);
-            return i < 0 ? -1 : this.nulls.bit(r0 + i + 1);
+            const r0 = from === 0 ?
+                       0 :
+                       this.nulls.rank( from - 1 ); // packed values before `from`
+            if( this._cardinality <= r0 ) return -1;
+            const i = indexOf$( this.values.subarray( r0 ), value, this._cardinality - r0 );
+            return i < 0 ?
+                   -1 :
+                   this.nulls.bit( r0 + i + 1 );
         }
 
         /**
@@ -431,29 +443,31 @@ export namespace Int16NullList {
          *                  `size - 1`, a negative one finds nothing.
          * @returns The 0-based logical index of the last occurrence, or -1 if not found.
          */
-        public lastIndexOfFrom(value: number, fromIndex?: number): number {
+        public lastIndexOfFrom( value: number, fromIndex?: number ): number{
             fromIndex ??= this.size - 1; // not a parameter default: esbuild rejects `this` there inside a namespace
-            if (fromIndex < 0 || this.isEmpty) return -1;
-            const from = Math.min(fromIndex, this.size - 1);
-            if (this.isFlatStrategy) {
-                for (let i = this.nulls.prev1(from + 1); i !== -1; i = this.nulls.prev1(i)) if (sameValueZero(this.values[i], value)) return i;
+            if( fromIndex < 0 || this.isEmpty ) return -1;
+            const from = Math.min( fromIndex, this.size - 1 );
+            if( this.isFlatStrategy ){
+                for( let i = this.nulls.prev1( from + 1 ); i !== -1; i = this.nulls.prev1( i ) ) if( sameValueZero( this.values[i], value ) ) return i;
                 return -1;
             }
-            const r = this.nulls.rank(from); // packed values at or before `from`
-            if (r === 0) return -1;
-            const i = lastIndexOf$(this.values, value, r);
-            return i < 0 ? -1 : this.nulls.bit(i + 1);
+            const r = this.nulls.rank( from ); // packed values at or before `from`
+            if( r === 0 ) return -1;
+            const i = lastIndexOf$( this.values, value, r );
+            return i < 0 ?
+                   -1 :
+                   this.nulls.bit( i + 1 );
         }
 
         /**
          * The non-`UNDEFINED` values, in logical order, as a new `Int16Array` of length `cardinality` - e.g. to
          * serialize them next to the null bitmap.
          */
-        public toValues(): Int16Array {
-            if (!this.isFlatStrategy) return this.values.slice(0, this._cardinality);
-            const ret = new Int16Array(this.nulls.cardinality());
-            let k = 0;
-            for (let i = this.nulls.next1(-1); i !== -1; i = this.nulls.next1(i)) ret[k++] = this.values[i];
+        public toValues(): Int16Array{
+            if( !this.isFlatStrategy ) return this.values.slice( 0, this._cardinality );
+            const ret = new Int16Array( this.nulls.cardinality() );
+            let k     = 0;
+            for( let i = this.nulls.next1( -1 ); i !== -1; i = this.nulls.next1( i ) ) ret[k++] = this.values[i];
             return ret;
         }
 
@@ -463,12 +477,12 @@ export namespace Int16NullList {
          *
          * @returns A new `RW` with the same `undefinedValue` and strategy threshold.
          */
-        public slice(start?: number, end?: number): RW<UNDEFINED> {
+        public slice( start?: number, end?: number ): RW<UNDEFINED>{
             const n = this.size;
-            const a = start === undefined ? 0 : start < 0 ? Math.max(0, n + start) : Math.min(n, start);
-            const b = end === undefined ? n : end < 0 ? Math.max(0, n + end) : Math.min(n, end);
-            const r = new RW<UNDEFINED>(0, this.undefinedValue, this._flatStrategyThreshold);
-            if (a < b) r.set$(0, this.toArray(a, b - a)!);
+            const a = start === undefined ? 0 : start < 0 ? Math.max( 0, n + start ) : Math.min( n, start );
+            const b = end === undefined ? n : end < 0 ? Math.max( 0, n + end ) : Math.min( n, end );
+            const r = new RW<UNDEFINED>( 0, this.undefinedValue, this._flatStrategyThreshold );
+            if( a < b ) r.set$( 0, this.toArray( a, b - a )! );
             return r;
         }
 
@@ -477,12 +491,10 @@ export namespace Int16NullList {
          *
          * @returns A new `RW` with the same `undefinedValue` and strategy threshold.
          */
-        public filter(predicate: (value: number | UNDEFINED, index: number, list: R<UNDEFINED>) => boolean): RW<UNDEFINED> {
-            const kept: (number | UNDEFINED)[] = [];
-            this.forEach((v, i) => {
-                if (predicate(v, i, this)) kept.push(v);
-            });
-            return new RW<UNDEFINED>(kept, this.undefinedValue, this._flatStrategyThreshold);
+        public filter( predicate: ( value: number | UNDEFINED, index: number, list: R<UNDEFINED> ) => boolean ): RW<UNDEFINED>{
+            const kept: ( number | UNDEFINED )[] = [];
+            this.forEach( ( v, i ) => { if( predicate( v, i, this ) ) kept.push( v ); } );
+            return new RW<UNDEFINED>( kept, this.undefinedValue, this._flatStrategyThreshold );
         }
 
         /**
@@ -493,28 +505,29 @@ export namespace Int16NullList {
          * @returns The calculated hash code.
          * @remarks Includes both non-`UNDEFINED` values and `UNDEFINED` states in the hash.
          */
-        static hash<UNDEFINED>(hash: number, src: R<UNDEFINED> | undefined): number {
-            if (!src) return hash;
+        static hash<UNDEFINED>( hash: number, src: R<UNDEFINED> | undefined ): number{
+            if( !src ) return hash;
 
             // Fixed sentinel for UNDEFINED slots so hash() agrees with equals(): both
             // compare only the null-bitmap and the number values, never the user's
             // chosen undefinedValue (undefined vs null vs custom).
             const h = 17;
 
-            if (src.isFlatStrategy) {
-                for (let i = 0; i < src.size; i++) hash = AdHoc.mix(hash, src.nulls.get(i) ? AdHoc.hash_number(hash, src.values[i]) : h);
-            } else {
+            if( src.isFlatStrategy ){
+                for( let i = 0; i < src.size; i++ )
+                    hash = AdHoc.mix( hash, src.nulls.get( i ) ? AdHoc.hash_number( hash, src.values[i] ) : h );
+            }else{
                 let valueIdx = 0;
-                let lastIdx = -1;
-                for (let i = src.nulls.next1(-1); i !== -1; i = src.nulls.next1(i)) {
-                    for (let j = lastIdx + 1; j < i; j++) hash = AdHoc.mix(hash, h);
-                    hash = AdHoc.mix(hash, AdHoc.hash_number(hash, src.values[valueIdx++]));
+                let lastIdx  = -1;
+                for( let i = src.nulls.next1( -1 ); i !== -1; i = src.nulls.next1( i ) ){
+                    for( let j = lastIdx + 1; j < i; j++ ) hash = AdHoc.mix( hash, h );
+                    hash    = AdHoc.mix( hash, AdHoc.hash_number( hash, src.values[valueIdx++] ) );
                     lastIdx = i;
                 }
-                for (let j = lastIdx + 1; j < src.size; j++) hash = AdHoc.mix(hash, h);
+                for( let j = lastIdx + 1; j < src.size; j++ ) hash = AdHoc.mix( hash, h );
             }
 
-            return AdHoc.finalizeHash(hash, src.size);
+            return AdHoc.finalizeHash( hash, src.size );
         }
 
         /**
@@ -525,17 +538,17 @@ export namespace Int16NullList {
          * @returns `true` if both lists have the same size and identical elements (including `UNDEFINED` states), `false` otherwise.
          * @remarks Does not compare `undefinedValue` properties directly; only checks element equivalence.
          */
-        static equals<UNDEFINED>(one: R<UNDEFINED> | undefined, two: R<UNDEFINED> | undefined): boolean {
-            if (one === two) return true;
-            if (!one || !two || one.size !== two.size) return false;
-            if (!BitList.R.equals(one.nulls, two.nulls)) return false;
+        static equals<UNDEFINED>( one: R<UNDEFINED> | undefined, two: R<UNDEFINED> | undefined ): boolean{
+            if( one === two ) return true;
+            if( !one || !two || one.size !== two.size ) return false;
+            if( !BitList.R.equals( one.nulls, two.nulls ) ) return false;
 
             // Null patterns are identical, now check values.
             let rank = 0;
-            for (let i = one.nulls.next1(-1); i !== -1; i = one.nulls.next1(i)) {
+            for( let i = one.nulls.next1( -1 ); i !== -1; i = one.nulls.next1( i ) ){
                 const v1 = one.isFlatStrategy ? one.values[i] : one.values[rank];
                 const v2 = two.isFlatStrategy ? two.values[i] : two.values[rank];
-                if (!Object.is(v1, v2)) return false; // as Int16List.R.equals: NaN equals NaN, so a list equals its clone
+                if( !Object.is( v1, v2 ) ) return false; // as Int16List.R.equals: NaN equals NaN, so a list equals its clone
                 rank++;
             }
             return true;
@@ -546,7 +559,7 @@ export namespace Int16NullList {
          *
          * @returns The string "Int16ArrayNull.R".
          */
-        get [Symbol.toStringTag](): string {
+        get [Symbol.toStringTag](): string{
             return "Int16ArrayNull.R";
         }
 
@@ -558,18 +571,18 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined);
          * console.log(list.toString()); // 'length = 2, size = 2\n["1",null]' (if undefinedValue is undefined)
          */
-        toString(): string {
+        toString(): string{
             // The number-first guard is intentional and must stay before the number branch:
             // the generator rewrites `'number'` to `'number'` for the numeric variants, so
             // without this short-circuit every numeric value would acquire a spurious "n"
             // suffix. With it, numeric variants land on the first branch (pass-through) and
             // the now-duplicate second branch is unreachable.
             const jsonString = JSON.stringify(this.toJSON(), (key, value) => {
-                if (typeof value === "number") return value;
-                if (typeof value === "number") return `${value.toString()}n`;
+                if (typeof value === 'number') return value;
+                if (typeof value === 'number') return `${value.toString()}n`;
                 return value === undefined ? null : value;
             });
-            return `length = ${this.length}, size = ${this.size}\n${jsonString}`;
+            return `length = ${ this.length }, size = ${ this.size }\n${ jsonString }`;
         }
 
         /**
@@ -581,19 +594,21 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, null).append(1).append(null);
          * console.log(list.toJSON()); // [1, null]
          */
-        public toJSON(): any[] {
-            const ret: any[] = new Array(this.size);
-            if (this.size === 0) return ret;
+        public toJSON(): any[]{
+            const ret: any[] = new Array( this.size );
+            if( this.size === 0 ) return ret;
 
             let lastValueIdx = -1;
-            let rank = 0;
-            for (let i = this.nulls.next1(-1); i !== -1; i = this.nulls.next1(i)) {
-                for (let j = lastValueIdx + 1; j < i; j++) ret[j] = this.undefinedValue;
-                ret[i] = this.isFlatStrategy ? this.values[i] : this.values[rank++];
+            let rank         = 0;
+            for( let i = this.nulls.next1( -1 ); i !== -1; i = this.nulls.next1( i ) ){
+                for( let j = lastValueIdx + 1; j < i; j++ )
+                    ret[j] = this.undefinedValue;
+                ret[i]       = this.isFlatStrategy ? this.values[i] : this.values[rank++];
                 lastValueIdx = i;
             }
 
-            for (let j = lastValueIdx + 1; j < this.size; j++) ret[j] = this.undefinedValue;
+            for( let j = lastValueIdx + 1; j < this.size; j++ )
+                ret[j] = this.undefinedValue;
 
             return ret;
         }
@@ -612,17 +627,22 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined);
          * const arr = list.toArray(0, 2); // [1, undefined]
          */
-        public toArray(index: number, len: number, dst?: (number | UNDEFINED)[]): (number | UNDEFINED)[] | undefined {
+        public toArray( index: number, len: number, dst?: ( number | UNDEFINED )[] ): ( number | UNDEFINED )[] | undefined{
             const n = this.size;
-            if (n === 0) return dst;
-            if (!dst || dst.length < len) dst = new Array<number | UNDEFINED>(len);
-            const nulls = this.nulls,
-                flat = this.isFlatStrategy;
-            let i = 0,
-                at = index;
-            for (; i < len && at < 0; i++, at++) dst[i] = this.undefinedValue;
-            let rank = flat || at === 0 ? 0 : nulls.rank(at - 1); // one rank() for the range, then a running count
-            for (; i < len && at < n; i++, at++) dst[i] = nulls.get(at) ? (flat ? this.values[at] : this.values[rank++]) : this.undefinedValue;
+            if( n === 0 ) return dst;
+            if( !dst || dst.length < len ) dst = new Array<number | UNDEFINED>( len );
+            const nulls = this.nulls, flat = this.isFlatStrategy;
+            let i = 0, at = index;
+            for( ; i < len && at < 0; i++, at++ ) dst[i] = this.undefinedValue;
+            let rank = flat || at === 0 ?
+                       0 :
+                       nulls.rank( at - 1 ); // one rank() for the range, then a running count
+            for( ; i < len && at < n; i++, at++ )
+                dst[i] = nulls.get( at ) ?
+                         ( flat ?
+                           this.values[at] :
+                           this.values[rank++] ) :
+                         this.undefinedValue;
             return dst;
         }
 
@@ -636,18 +656,14 @@ export namespace Int16NullList {
          * const list2 = new Int16NullList.RW(0, undefined).append(1);
          * console.log(list1.containsAll(list2)); // true
          */
-        public containsAll(src: R): boolean {
-            if (src.cardinality < src.size && this.cardinality === this.size) return false; // src has a null, this has none
-            if (src.cardinality === 0) return true;
+        public containsAll( src: R ): boolean{
+            if( src.cardinality < src.size && this.cardinality === this.size ) return false; // src has a null, this has none
+            if( src.cardinality === 0 ) return true;
             // A Set compares with SameValueZero, as indexOf does: one pass over each list.
             const have = new Set<number>();
-            this.forEachValue((v) => {
-                have.add(v);
-            });
-            let all = true;
-            src.forEachValue((v) => {
-                if (all && !have.has(v)) all = false;
-            });
+            this.forEachValue( v => { have.add( v ); } );
+            let all    = true;
+            src.forEachValue( v => { if( all && !have.has( v ) ) all = false; } );
             return all;
         }
 
@@ -660,9 +676,11 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(2);
          * const found = list.findValue((v) => v === 2); // 2
          */
-        findValue(predicate: (value: number | UNDEFINED, index: number, list: R<UNDEFINED>) => boolean): number | UNDEFINED {
-            const i = this.findValueIndex(predicate);
-            return i === -1 ? this.undefinedValue : this.get(i);
+        findValue( predicate: ( value: number | UNDEFINED, index: number, list: R<UNDEFINED> ) => boolean ): number | UNDEFINED{
+            const i = this.findValueIndex( predicate );
+            return i === -1 ?
+                   this.undefinedValue :
+                   this.get( i );
         }
 
         /**
@@ -674,13 +692,15 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(2);
          * const index = list.findValueIndex((v) => v === 2); // 1
          */
-        findValueIndex(predicate: (value: number | UNDEFINED, index: number, list: R<UNDEFINED>) => boolean): number {
-            const nulls = this.nulls,
-                flat = this.isFlatStrategy,
-                n = nulls.size;
-            for (let i = 0, rank = 0; i < n; i++) {
-                const v = nulls.get(i) ? (flat ? this.values[i] : this.values[rank++]) : this.undefinedValue;
-                if (predicate(v, i, this)) return i;
+        findValueIndex( predicate: ( value: number | UNDEFINED, index: number, list: R<UNDEFINED> ) => boolean ): number{
+            const nulls = this.nulls, flat = this.isFlatStrategy, n = nulls.size;
+            for( let i = 0, rank = 0; i < n; i++ ){
+                const v = nulls.get( i ) ?
+                          ( flat ?
+                            this.values[i] :
+                            this.values[rank++] ) :
+                          this.undefinedValue;
+                if( predicate( v, i, this ) ) return i;
             }
             return -1;
         }
@@ -695,13 +715,16 @@ export namespace Int16NullList {
          * list.forEach((value, index) => console.log(`${index}: ${value}`));
          * // Outputs: 0: 1, 1: undefined
          */
-        forEach(callbackfn: (value: number | UNDEFINED, index: number, list: R<UNDEFINED>) => void, thisArg?: any): void {
+        forEach( callbackfn: ( value: number | UNDEFINED, index: number, list: R<UNDEFINED> ) => void, thisArg?: any ): void{
             // A running rank instead of get(i) - whose rank() walks the bitmap - per item. As with the iterator, the
             // callback must not modify the list.
-            const nulls = this.nulls,
-                flat = this.isFlatStrategy,
-                n = nulls.size;
-            for (let i = 0, rank = 0; i < n; i++) callbackfn.call(thisArg, nulls.get(i) ? (flat ? this.values[i] : this.values[rank++]) : this.undefinedValue, i, this);
+            const nulls = this.nulls, flat = this.isFlatStrategy, n = nulls.size;
+            for( let i = 0, rank = 0; i < n; i++ )
+                callbackfn.call( thisArg, nulls.get( i ) ?
+                                          ( flat ?
+                                            this.values[i] :
+                                            this.values[rank++] ) :
+                                          this.undefinedValue, i, this );
         }
 
         /**
@@ -714,10 +737,12 @@ export namespace Int16NullList {
          * list.forEachValue((value, index) => console.log(`${index}: ${value}`));
          * // Outputs: 0: 1, 2: 2
          */
-        forEachValue(callbackfn: (value: number, index: number, list: R<UNDEFINED>) => void, thisArg?: any): void {
-            const nulls = this.nulls,
-                flat = this.isFlatStrategy;
-            for (let i = nulls.next1(-1), rank = 0; i !== -1; i = nulls.next1(i)) callbackfn.call(thisArg, flat ? this.values[i] : this.values[rank++], i, this);
+        forEachValue( callbackfn: ( value: number, index: number, list: R<UNDEFINED> ) => void, thisArg?: any ): void{
+            const nulls = this.nulls, flat = this.isFlatStrategy;
+            for( let i = nulls.next1( -1 ), rank = 0; i !== -1; i = nulls.next1( i ) )
+                callbackfn.call( thisArg, flat ?
+                                          this.values[i] :
+                                          this.values[rank++], i, this );
         }
 
         /**
@@ -725,8 +750,8 @@ export namespace Int16NullList {
          *
          * @returns `true` if `predicate` returned true for some element; `false` for an empty list.
          */
-        some(predicate: (value: number | UNDEFINED, index: number, list: R<UNDEFINED>) => boolean): boolean {
-            return this.findValueIndex(predicate) !== -1;
+        some( predicate: ( value: number | UNDEFINED, index: number, list: R<UNDEFINED> ) => boolean ): boolean{
+            return this.findValueIndex( predicate ) !== -1;
         }
 
         /**
@@ -734,8 +759,8 @@ export namespace Int16NullList {
          *
          * @returns `true` if `predicate` returned true for every element; `true` for an empty list.
          */
-        every(predicate: (value: number | UNDEFINED, index: number, list: R<UNDEFINED>) => boolean): boolean {
-            return this.findValueIndex((v, i, l) => !predicate(v, i, l)) === -1;
+        every( predicate: ( value: number | UNDEFINED, index: number, list: R<UNDEFINED> ) => boolean ): boolean{
+            return this.findValueIndex( ( v, i, l ) => !predicate( v, i, l ) ) === -1;
         }
 
         /**
@@ -747,11 +772,9 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined).append(2);
          * const nulls = list.reduce((n, v) => v === undefined ? n + 1 : n, 0); // 1
          */
-        reduce<A>(callbackfn: (accumulator: A, value: number | UNDEFINED, index: number, list: R<UNDEFINED>) => A, initialValue: A): A {
+        reduce<A>( callbackfn: ( accumulator: A, value: number | UNDEFINED, index: number, list: R<UNDEFINED> ) => A, initialValue: A ): A{
             let acc = initialValue;
-            this.forEach((v, i) => {
-                acc = callbackfn(acc, v, i, this);
-            });
+            this.forEach( ( v, i ) => { acc = callbackfn( acc, v, i, this ); } );
             return acc;
         }
 
@@ -763,13 +786,15 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined).append(2);
          * console.log(list.sum()); // 3
          */
-        sum(): number {
+        sum(): number{
             let totalSum = 0;
-            if (this.isFlatStrategy) {
-                for (let i = this.nulls.next1(-1); i !== -1; i = this.nulls.next1(i)) totalSum += this.values[i];
-            } else {
+            if( this.isFlatStrategy ){
+                for( let i = this.nulls.next1( -1 ); i !== -1; i = this.nulls.next1( i ) )
+                    totalSum += this.values[i];
+            }else{
                 const cardinality = this._cardinality;
-                for (let i = 0; i < cardinality; i++) totalSum += this.values[i];
+                for( let i = 0; i < cardinality; i++ )
+                    totalSum += this.values[i];
             }
             return totalSum;
         }
@@ -782,17 +807,19 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(2).append(undefined).append(1);
          * console.log(list.min()); // 1
          */
-        min(): number | UNDEFINED {
-            if (this.cardinality === 0) return this.undefinedValue;
+        min(): number | UNDEFINED{
+            if( this.cardinality === 0 ) return this.undefinedValue;
 
             let minValue: number;
-            if (this.isFlatStrategy) {
-                const firstIndex = this.nulls.next1(-1);
-                minValue = this.values[firstIndex];
-                for (let i = this.nulls.next1(firstIndex); i !== -1; i = this.nulls.next1(i)) if (this.values[i] < minValue) minValue = this.values[i];
-            } else {
+            if( this.isFlatStrategy ){
+                const firstIndex = this.nulls.next1( -1 );
+                minValue         = this.values[firstIndex];
+                for( let i = this.nulls.next1( firstIndex ); i !== -1; i = this.nulls.next1( i ) )
+                    if( this.values[i] < minValue ) minValue = this.values[i];
+            }else{
                 minValue = this.values[0];
-                for (let i = 1; i < this._cardinality; i++) if (this.values[i] < minValue) minValue = this.values[i];
+                for( let i = 1; i < this._cardinality; i++ )
+                    if( this.values[i] < minValue ) minValue = this.values[i];
             }
             return minValue;
         }
@@ -805,17 +832,19 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1).append(undefined).append(2);
          * console.log(list.max()); // 2
          */
-        max(): number | UNDEFINED {
-            if (this.cardinality === 0) return this.undefinedValue;
+        max(): number | UNDEFINED{
+            if( this.cardinality === 0 ) return this.undefinedValue;
 
             let maxValue: number;
-            if (this.isFlatStrategy) {
-                const firstIndex = this.nulls.next1(-1);
-                maxValue = this.values[firstIndex];
-                for (let i = this.nulls.next1(firstIndex); i !== -1; i = this.nulls.next1(i)) if (this.values[i] > maxValue) maxValue = this.values[i];
-            } else {
+            if( this.isFlatStrategy ){
+                const firstIndex = this.nulls.next1( -1 );
+                maxValue         = this.values[firstIndex];
+                for( let i = this.nulls.next1( firstIndex ); i !== -1; i = this.nulls.next1( i ) )
+                    if( this.values[i] > maxValue ) maxValue = this.values[i];
+            }else{
                 maxValue = this.values[0];
-                for (let i = 1; i < this._cardinality; i++) if (this.values[i] > maxValue) maxValue = this.values[i];
+                for( let i = 1; i < this._cardinality; i++ )
+                    if( this.values[i] > maxValue ) maxValue = this.values[i];
             }
             return maxValue;
         }
@@ -828,18 +857,20 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, null).append(1).append(null);
          * for (const value of list) console.log(value); // Outputs: 1, null
          */
-        [Symbol.iterator](): IterableIterator<number | UNDEFINED> {
+        [Symbol.iterator](): IterableIterator<number | UNDEFINED>{
             let index = 0;
             let rank = 0;
             return {
                 next: (): IteratorResult<number | UNDEFINED> => {
-                    if (index >= this.size) return {done: true, value: undefined as any};
+                    if (index >= this.size) return { done: true, value: undefined as any };
 
                     const hasValue = this.nulls.get(index);
-                    const value = hasValue ? (this.isFlatStrategy ? this.values[index] : this.values[rank++]) : this.undefinedValue;
+                    const value = hasValue
+                        ? (this.isFlatStrategy ? this.values[index] : this.values[rank++])
+                        : this.undefinedValue;
 
                     index++;
-                    return {done: false, value};
+                    return { done: false, value };
                 },
                 [Symbol.iterator]() {
                     return this;
@@ -858,13 +889,13 @@ export namespace Int16NullList {
      *
      * @template UNDEFINED The type of the value representing `UNDEFINED` states (default: `undefined`).
      */
-    export class RW<UNDEFINED = undefined> extends R<UNDEFINED> {
+    export class RW<UNDEFINED = undefined> extends R<UNDEFINED>{
         /**
          * Gets the string tag for the list.
          *
          * @returns The string "Int16ArrayNull.RW".
          */
-        override get [Symbol.toStringTag](): string {
+        override get [Symbol.toStringTag](): string{
             return "Int16ArrayNull.RW";
         }
 
@@ -891,20 +922,20 @@ export namespace Int16NullList {
          * const from    = new Int16NullList.RW([1, undefined, 2]);
          * console.log(from.toJSON()); // [1, undefined, 2]
          */
-        constructor(sizeOrCapacityOrValues: number | ArrayLike<number | UNDEFINED> = 0, undefinedValue: UNDEFINED = undefined as UNDEFINED, flatStrategyThreshold: number = 64) {
-            super(undefinedValue);
-            if (flatStrategyThreshold < 0) throw new RangeError("flatStrategyThreshold cannot be negative");
+        constructor( sizeOrCapacityOrValues: number | ArrayLike<number | UNDEFINED> = 0, undefinedValue: UNDEFINED = undefined as UNDEFINED, flatStrategyThreshold: number = 64 ){
+            super( undefinedValue );
+            if( flatStrategyThreshold < 0 ) throw new RangeError( "flatStrategyThreshold cannot be negative" );
             this._flatStrategyThreshold = flatStrategyThreshold;
-            if (typeof sizeOrCapacityOrValues === "number") {
-                const n = sizeOrCapacityOrValues;
-                const length = Math.abs(n);
-                this.nulls = new BitList.RW(length); // capacity only
-                this.values = new Int16Array(length);
-                if (0 < n) this.set1(n - 1, this.undefinedValue); // + set size
-            } else {
-                this.nulls = new BitList.RW();
-                this.values = new Int16Array(0);
-                this.set$(0, sizeOrCapacityOrValues);
+            if( typeof sizeOrCapacityOrValues === "number" ){
+                const n      = sizeOrCapacityOrValues;
+                const length = Math.abs( n );
+                this.nulls   = new BitList.RW( length ); // capacity only
+                this.values  = new Int16Array( length );
+                if( 0 < n ) this.set1( n - 1, this.undefinedValue ); // + set size
+            }else{
+                this.nulls  = new BitList.RW();
+                this.values = new Int16Array( 0 );
+                this.set$( 0, sizeOrCapacityOrValues );
             }
         }
 
@@ -912,24 +943,24 @@ export namespace Int16NullList {
          * Creates an empty list with backing capacity reserved up front.
          * Equivalent to `new RW(-capacity, undefinedValue)` but reads naturally.
          */
-        static withCapacity<U = undefined>(capacity: number, undefinedValue: U = undefined as U): RW<U> {
-            return new RW(-capacity, undefinedValue);
+        static withCapacity<U = undefined>( capacity: number, undefinedValue: U = undefined as U ): RW<U>{
+            return new RW( -capacity, undefinedValue );
         }
 
         /**
          * Creates a list of `size` slots, all initialized to UNDEFINED.
          * Equivalent to `new RW(size, undefinedValue)`.
          */
-        static withSize<U = undefined>(size: number, undefinedValue: U = undefined as U): RW<U> {
-            return new RW(size, undefinedValue);
+        static withSize<U = undefined>( size: number, undefinedValue: U = undefined as U ): RW<U>{
+            return new RW( size, undefinedValue );
         }
 
         /**
          * Creates a list seeded from an array-like of values. Any element equal to
          * `undefinedValue` is stored as UNDEFINED.
          */
-        static from<U = undefined>(values: ArrayLike<number | U>, undefinedValue: U = undefined as U): RW<U> {
-            return new RW(values, undefinedValue);
+        static from<U = undefined>( values: ArrayLike<number | U>, undefinedValue: U = undefined as U ): RW<U>{
+            return new RW( values, undefinedValue );
         }
 
         /**
@@ -947,15 +978,14 @@ export namespace Int16NullList {
          * const list = new Int16NullList.RW(0, undefined).append(1);
          * list.flatStrategyThreshold(0); // Switches to Flat Strategy
          */
-        public override flatStrategyThreshold(threshold: number): void;
-        public override flatStrategyThreshold(threshold?: number): number | void {
-            if (threshold === undefined) return this._flatStrategyThreshold;
-            if (threshold < 0) throw new RangeError("Threshold cannot be negative");
+        public override flatStrategyThreshold( threshold: number ): void;
+        public override flatStrategyThreshold( threshold?: number ): number | void{
+            if( threshold === undefined ) return this._flatStrategyThreshold;
+            if( threshold < 0 ) throw new RangeError( "Threshold cannot be negative" );
             this._flatStrategyThreshold = threshold;
 
-            if (this.isFlatStrategy) {
-                if (this.cardinality <= threshold) this.switchToCompressedStrategy();
-            } else if (threshold <= this.cardinality) this.switchToFlatStrategy();
+            if( this.isFlatStrategy ){ if( this.cardinality <= threshold ) this.switchToCompressedStrategy(); }
+            else if( threshold <= this.cardinality ) this.switchToFlatStrategy();
         }
 
         /**
@@ -969,14 +999,14 @@ export namespace Int16NullList {
          * console.log(list.toJSON()); // [1]
          * console.log(copy.toJSON()); // [1, 2]
          */
-        public clone(): RW<UNDEFINED> {
-            const constructor = this.constructor as new (length: number, undefinedValue: UNDEFINED) => RW<UNDEFINED>;
-            const dst = new constructor(0, this.undefinedValue);
+        public clone(): RW<UNDEFINED>{
+            const constructor = this.constructor as new ( length: number, undefinedValue: UNDEFINED ) => RW<UNDEFINED>;
+            const dst         = new constructor( 0, this.undefinedValue );
 
-            dst.values = this.values.slice();
-            dst.nulls = this.nulls.clone();
-            dst._cardinality = this._cardinality;
-            dst.isFlatStrategy = this.isFlatStrategy;
+            dst.values                 = this.values.slice();
+            dst.nulls                  = this.nulls.clone();
+            dst._cardinality           = this._cardinality;
+            dst.isFlatStrategy         = this.isFlatStrategy;
             dst._flatStrategyThreshold = this._flatStrategyThreshold;
 
             return dst;
@@ -992,8 +1022,8 @@ export namespace Int16NullList {
          * list.remove();
          * console.log(list.toJSON()); // [1]
          */
-        public remove(): this {
-            return this.remove_(this.size - 1);
+        public remove(): this{
+            return this.remove_( this.size - 1 );
         }
 
         /**
@@ -1005,17 +1035,17 @@ export namespace Int16NullList {
          * console.log(list.pop()); // 2
          * console.log(list.size);  // 1
          */
-        public pop(): number | UNDEFINED {
-            if (this.isEmpty) return this.undefinedValue;
-            const v = this.get(this.size - 1);
-            this.remove_(this.size - 1);
+        public pop(): number | UNDEFINED{
+            if( this.isEmpty ) return this.undefinedValue;
+            const v = this.get( this.size - 1 );
+            this.remove_( this.size - 1 );
             return v;
         }
 
         /** Replaces the content with `items` (`undefinedValue` entries become UNDEFINED), keeping the settings. */
-        private replaceWith(items: ArrayLike<number | UNDEFINED>): this {
+        private replaceWith( items: ArrayLike<number | UNDEFINED> ): this{
             this.clear();
-            this.set$(0, items);
+            this.set$( 0, items );
             return this;
         }
 
@@ -1025,11 +1055,11 @@ export namespace Int16NullList {
          *
          * @returns This instance for method chaining.
          */
-        public fill(value: number | UNDEFINED, start?: number, end?: number): this {
+        public fill( value: number | UNDEFINED, start?: number, end?: number ): this{
             const n = this.size;
-            const a = start === undefined ? 0 : start < 0 ? Math.max(0, n + start) : Math.min(n, start);
-            const b = end === undefined ? n : end < 0 ? Math.max(0, n + end) : Math.min(n, end);
-            for (let i = a; i < b; i++) this.set1(i, value);
+            const a = start === undefined ? 0 : start < 0 ? Math.max( 0, n + start ) : Math.min( n, start );
+            const b = end === undefined ? n : end < 0 ? Math.max( 0, n + end ) : Math.min( n, end );
+            for( let i = a; i < b; i++ ) this.set1( i, value );
             return this;
         }
 
@@ -1038,9 +1068,9 @@ export namespace Int16NullList {
          *
          * @returns This instance for method chaining.
          */
-        public reverse(): this {
-            if (this.size < 2) return this;
-            return this.replaceWith(this.toArray(0, this.size)!.reverse());
+        public reverse(): this{
+            if( this.size < 2 ) return this;
+            return this.replaceWith( this.toArray( 0, this.size )!.reverse() );
         }
 
         /**
@@ -1049,12 +1079,12 @@ export namespace Int16NullList {
          *
          * @returns The number of elements removed.
          */
-        public removeAllValue(value: number | UNDEFINED): number {
-            if (this.isUndefined(value)) return this.removeNulls();
+        public removeAllValue( value: number | UNDEFINED ): number{
+            if( this.isUndefined( value ) ) return this.removeNulls();
             const n = this.size;
-            if (this.indexOf(value as number) === -1) return 0;
-            const kept = this.toArray(0, n)!.filter((v) => this.isUndefined(v) || !sameValueZero(v as number, value as number));
-            this.replaceWith(kept);
+            if( this.indexOf( value as number ) === -1 ) return 0;
+            const kept = this.toArray( 0, n )!.filter( v => this.isUndefined( v ) || !sameValueZero( v as number, value as number ) );
+            this.replaceWith( kept );
             return n - this.size;
         }
 
@@ -1063,12 +1093,12 @@ export namespace Int16NullList {
          *
          * @returns The number of slots removed.
          */
-        public removeNulls(): number {
+        public removeNulls(): number{
             const removed = this.nullCount;
-            if (removed === 0) return 0;
+            if( removed === 0 ) return 0;
             const vals = this.toValues();
             this.clear();
-            this.set_(0, vals);
+            this.set_( 0, vals );
             return removed;
         }
 
@@ -1083,13 +1113,13 @@ export namespace Int16NullList {
          * list.remove_(0);
          * console.log(list.toJSON()); // [2]
          */
-        public remove_(index: number): this {
-            if (index < 0 || this.size <= index) return this;
+        public remove_( index: number ): this{
+            if( index < 0 || this.size <= index ) return this;
             // flat: `values` may be shorter than size, the indices past it are UNDEFINED
-            if (this.isFlatStrategy) {
-                if (index < this.values.length) resize(this.values, this.values, index, Math.min(this.nulls.size, this.values.length), -1);
-            } else if (this.nulls.get(index)) this._cardinality = resize(this.values, this.values, this.nulls.rank(index) - 1, this._cardinality, -1);
-            this.nulls.remove(index);
+            if( this.isFlatStrategy ){
+                if( index < this.values.length ) resize( this.values, this.values, index, Math.min( this.nulls.size, this.values.length ), -1 );
+            }else if( this.nulls.get( index ) ) this._cardinality = resize( this.values, this.values, this.nulls.rank( index ) - 1, this._cardinality, -1 );
+            this.nulls.remove( index );
             return this;
         }
 
@@ -1100,43 +1130,41 @@ export namespace Int16NullList {
          * @param value The `number` or `undefinedValue` to set.
          * @throws RangeError if `index` is negative.
          */
-        public set1(index: number, value: number | UNDEFINED): this {
-            if (index < 0) throw new RangeError("Index cannot be negative");
-            if (this.isUndefined(value)) {
-                if (this.nulls.last1() < index)
-                    this.nulls.set0(index); // beyond the last value: extend and set as UNDEFINED
-                else if (this.nulls.get(index)) {
-                    // a value turns UNDEFINED
-                    if (!this.isFlatStrategy) this._cardinality = resize(this.values, this.values, this.nulls.rank(index) - 1, this._cardinality, -1);
-                    this.nulls.set0(index);
+        public set1( index: number, value: number | UNDEFINED ): this{
+            if( index < 0 ) throw new RangeError( "Index cannot be negative" );
+            if( this.isUndefined( value ) ){
+                if( this.nulls.last1() < index ) this.nulls.set0( index ); // beyond the last value: extend and set as UNDEFINED
+                else if( this.nulls.get( index ) ){ // a value turns UNDEFINED
+                    if( !this.isFlatStrategy )
+                        this._cardinality = resize( this.values, this.values, this.nulls.rank( index ) - 1, this._cardinality, -1 );
+                    this.nulls.set0( index );
                 }
                 return this;
             }
 
-            if (this.isFlatStrategy) {
-                if (this.values.length <= index) this.values = copyOf(this.values, index === 0 ? 16 : (((index * 3) / 2) | 0) + 1); // at least index + 1
+            if( this.isFlatStrategy ){
+                if( this.values.length <= index ) this.values = copyOf( this.values, index === 0 ?
+                                                                                   16 :
+                                                                                   ( ( index * 3 / 2 ) | 0 ) + 1 ); // at least index + 1
                 this.values[index] = value as number;
-                this.nulls.set1(index);
-            } else if (this.nulls.get(index))
-                this.values[this.nulls.rank(index) - 1] = value as number; // update an existing value
-            else if (this._flatStrategyThreshold <= this._cardinality) {
-                this.switchToFlatStrategy_(Math.max(index + 1, ((this.nulls.size * 3) / 2) | 0));
-                this.nulls.set1(index);
+                this.nulls.set1( index );
+            }else if( this.nulls.get( index ) ) this.values[this.nulls.rank( index ) - 1] = value as number; // update an existing value
+            else if( this._flatStrategyThreshold <= this._cardinality ){
+                this.switchToFlatStrategy_( Math.max( index + 1, ( this.nulls.size * 3 / 2 ) | 0 ) );
+                this.nulls.set1( index );
                 this.values[index] = value as number;
-            } else {
-                const rank = this.nulls.rank(index);
-                const max = Math.max(rank, this._cardinality);
-                this._cardinality = resize(
-                    this.values,
-                    this.values.length <= max
-                        ? (this.values = new Int16Array(max === 0 ? 16 : (((max * 3) / 2) | 0) + 1)) // at least max + 1
-                        : this.values,
-                    rank,
-                    this._cardinality,
-                    1,
-                ); // a slot for the new value
+            }else{
+                const rank = this.nulls.rank( index );
+                const max  = Math.max( rank, this._cardinality );
+                this._cardinality = resize( this.values,
+                                            this.values.length <= max ?
+                                            ( this.values = new Int16Array( max === 0 ?
+                                                                                16 :
+                                                                                ( ( max * 3 / 2 ) | 0 ) + 1 ) ) : // at least max + 1
+                                            this.values,
+                                            rank, this._cardinality, 1 ); // a slot for the new value
                 this.values[rank] = value as number;
-                this.nulls.set1(index);
+                this.nulls.set1( index );
             }
             return this;
         }
@@ -1152,9 +1180,7 @@ export namespace Int16NullList {
          * list.setLast(2);
          * console.log(list.toJSON()); // [2]
          */
-        public setLast(value: number | UNDEFINED): RW<UNDEFINED> {
-            return this.set1(Math.max(0, this.size - 1), value);
-        }
+        public setLast( value: number | UNDEFINED ): RW<UNDEFINED>{ return this.set1( Math.max( 0, this.size - 1 ), value ); }
 
         /**
          * Sets multiple elements from a list of `number` values.
@@ -1169,9 +1195,9 @@ export namespace Int16NullList {
          * list.set(0, 1, 2);
          * console.log(list.toJSON()); // [1, 2]
          */
-        public set(index: number, ...values: number[]): RW<UNDEFINED> {
-            if (index < 0) throw new RangeError("Index cannot be negative");
-            return this.set_(index, values, 0, values.length);
+        public set( index: number, ...values: number[] ): RW<UNDEFINED>{
+            if( index < 0 ) throw new RangeError( "Index cannot be negative" );
+            return this.set_( index, values, 0, values.length );
         }
 
         /**
@@ -1186,10 +1212,10 @@ export namespace Int16NullList {
          * list.set$(0, [1, undefined, 2]);
          * console.log(list.toJSON()); // [1, undefined, 2]
          */
-        public set$(index: number, values: ArrayLike<number | UNDEFINED>): RW<UNDEFINED> {
-            if (index < 0) throw new RangeError("Index cannot be negative");
-            if (!values) throw new TypeError("Values array cannot be null");
-            for (let i = values.length; -1 < --i; ) this.set1(index + i, values[i]); // backwards, as Java
+        public set$( index: number, values: ArrayLike<number | UNDEFINED> ): RW<UNDEFINED>{
+            if( index < 0 ) throw new RangeError( "Index cannot be negative" );
+            if( !values ) throw new TypeError( "Values array cannot be null" );
+            for( let i = values.length; -1 < --i; ) this.set1( index + i, values[i] ); // backwards, as Java
             return this;
         }
 
@@ -1207,9 +1233,9 @@ export namespace Int16NullList {
          * list.set_(0, [1, 2, 3], 1, 2);
          * console.log(list.toJSON()); // [2, 3]
          */
-        public set_(index: number, src: ArrayLike<number>, src_index: number = 0, len: number = src.length): RW<UNDEFINED> {
-            checkRange(index, src, src_index, len);
-            for (let i = len; -1 < --i; ) this.set1(index + i, src[src_index + i]); // backwards, as Java
+        public set_( index: number, src: ArrayLike<number>, src_index: number = 0, len: number = src.length ): RW<UNDEFINED>{
+            checkRange( index, src, src_index, len );
+            for( let i = len; -1 < --i; ) this.set1( index + i, src[src_index + i] ); // backwards, as Java
             return this;
         }
 
@@ -1227,9 +1253,9 @@ export namespace Int16NullList {
          * list.set$$(0, [1, undefined, 2], 0, 2);
          * console.log(list.toJSON()); // [1, undefined]
          */
-        public set$$(index: number, src: ArrayLike<number | UNDEFINED>, src_index: number = 0, len: number = src.length): RW<UNDEFINED> {
-            checkRange(index, src, src_index, len);
-            for (let i = len; -1 < --i; ) this.set1(index + i, src[src_index + i]); // backwards, as Java
+        public set$$( index: number, src: ArrayLike<number | UNDEFINED>, src_index: number = 0, len: number = src.length ): RW<UNDEFINED>{
+            checkRange( index, src, src_index, len );
+            for( let i = len; -1 < --i; ) this.set1( index + i, src[src_index + i] ); // backwards, as Java
             return this;
         }
 
@@ -1244,8 +1270,8 @@ export namespace Int16NullList {
          * list.add([1, undefined, 2]);
          * console.log(list.toJSON()); // [1, undefined, 2]
          */
-        public add(items: ArrayLike<number | UNDEFINED>): RW<UNDEFINED> {
-            return this.set$(this.size, items);
+        public add( items: ArrayLike<number | UNDEFINED> ): RW<UNDEFINED>{
+            return this.set$( this.size, items );
         }
 
         /**
@@ -1259,8 +1285,8 @@ export namespace Int16NullList {
          * list.append(1).append(undefined);
          * console.log(list.toJSON()); // [1, undefined]
          */
-        public append(value: number | UNDEFINED): RW<UNDEFINED> {
-            return this.set1(this.size, value);
+        public append( value: number | UNDEFINED ): RW<UNDEFINED>{
+            return this.set1( this.size, value );
         }
 
         /**
@@ -1277,30 +1303,33 @@ export namespace Int16NullList {
          * list.add1(0, 1);
          * console.log(list.toJSON()); // [1, 2]
          */
-        public add1(index: number, value: number | UNDEFINED): RW<UNDEFINED> {
-            if (index < 0) throw new RangeError("Index cannot be negative");
+        public add1( index: number, value: number | UNDEFINED ): RW<UNDEFINED>{
+            if( index < 0 ) throw new RangeError( "Index cannot be negative" );
 
-            if (this.isUndefined(value)) {
-                if (this.isFlatStrategy) this.flatGap(index);
-                this.nulls.add$(index, false);
+            if( this.isUndefined( value ) ){
+                if( this.isFlatStrategy ) this.flatGap( index );
+                this.nulls.add$( index, false );
                 return this;
             }
 
-            if (this.size <= index) return this.set1(index, value); // beyond the current size: a set
+            if( this.size <= index ) return this.set1( index, value ); // beyond the current size: a set
 
-            if (!this.isFlatStrategy && this.values.length <= this._cardinality && this._flatStrategyThreshold <= this._cardinality + 1) this.switchToFlatStrategy();
+            if( !this.isFlatStrategy && this.values.length <= this._cardinality && this._flatStrategyThreshold <= this._cardinality + 1 ) this.switchToFlatStrategy();
 
-            if (this.isFlatStrategy) {
-                this.flatGap(index);
+            if( this.isFlatStrategy ){
+                this.flatGap( index );
                 this.values[index] = value as number;
-            } else {
-                // the value goes after the values of the indices below
-                const rank = index === 0 ? 0 : this.nulls.rank(index - 1);
-                const dst = this.values.length <= this._cardinality ? new Int16Array(Math.max(16, (((this._cardinality * 3) / 2) | 0) + 1)) : this.values;
-                this._cardinality = resize(this.values, dst, rank, this._cardinality, 1);
-                (this.values = dst)[rank] = value as number;
+            }else{ // the value goes after the values of the indices below
+                const rank = index === 0 ?
+                             0 :
+                             this.nulls.rank( index - 1 );
+                const dst  = this.values.length <= this._cardinality ?
+                             new Int16Array( Math.max( 16, ( ( this._cardinality * 3 / 2 ) | 0 ) + 1 ) ) :
+                             this.values;
+                this._cardinality = resize( this.values, dst, rank, this._cardinality, 1 );
+                ( this.values = dst )[rank] = value as number;
             }
-            this.nulls.add$(index, true);
+            this.nulls.add$( index, true );
             return this;
         }
 
@@ -1308,12 +1337,14 @@ export namespace Int16NullList {
          * Flat Strategy: opens slot `index` in `values` before a bit is inserted there, shifting the slots from
          * `index` on. `values` may be shorter than `size`: the indices past it are UNDEFINED.
          */
-        private flatGap(index: number): void {
-            const count = Math.min(this.size, this.values.length);
-            const need = Math.max(count, index) + 1;
-            const dst = this.values.length < need ? new Int16Array(Math.max(16, ((need * 3) / 2) | 0)) : this.values;
-            if (index < count) resize(this.values, dst, index, count, 1);
-            else if (dst !== this.values) dst.set(this.values.subarray(0, count));
+        private flatGap( index: number ): void{
+            const count = Math.min( this.size, this.values.length );
+            const need  = Math.max( count, index ) + 1;
+            const dst   = this.values.length < need ?
+                          new Int16Array( Math.max( 16, ( need * 3 / 2 ) | 0 ) ) :
+                          this.values;
+            if( index < count ) resize( this.values, dst, index, count, 1 );
+            else if( dst !== this.values ) dst.set( this.values.subarray( 0, count ) );
             this.values = dst;
         }
 
@@ -1328,14 +1359,14 @@ export namespace Int16NullList {
          * list1.addAll(list2);
          * console.log(list1.toJSON()); // [1, 2]
          */
-        public addAll(src: R<any>): RW<UNDEFINED> {
-            if (src === this) src = this.clone(); // the running rank below needs a source that stays put
-            const nulls = src.nulls,
-                values = src.values,
-                flat = src.isFlatStrategy;
-            for (let i = 0, s = nulls.size, rank = 0; i < s; i++)
-                if (nulls.get(i)) this.set1(this.size, flat ? values[i] : values[rank++]);
-                else this.nulls.set0(this.nulls.size);
+        public addAll( src: R<any> ): RW<UNDEFINED>{
+            if( src === this ) src = this.clone(); // the running rank below needs a source that stays put
+            const nulls = src.nulls, values = src.values, flat = src.isFlatStrategy;
+            for( let i = 0, s = nulls.size, rank = 0; i < s; i++ )
+                if( nulls.get( i ) ) this.set1( this.size, flat ?
+                                                           values[i] :
+                                                           values[rank++] );
+                else this.nulls.set0( this.nulls.size );
             return this;
         }
 
@@ -1348,7 +1379,7 @@ export namespace Int16NullList {
          * list.clear();
          * console.log(list.toJSON()); // []
          */
-        public clear(): RW<UNDEFINED> {
+        public clear(): RW<UNDEFINED>{
             this._cardinality = 0;
             this.nulls.clear();
             return this;
@@ -1371,25 +1402,25 @@ export namespace Int16NullList {
          * list.length = 10;
          * console.log(list.size, list.length); // 1 10
          */
-        public override set length(length: number) {
-            if (length < 0) throw new RangeError("length cannot be negative");
+        public override set length( length: number ){
+            if( length < 0 ) throw new RangeError( "length cannot be negative" );
 
-            const shrink = length < this.nulls.size;
+            const shrink      = length < this.nulls.size;
             this.nulls.length = length;
 
-            if (length === 0) {
+            if( length === 0 ){
                 this._cardinality = 0;
-                this.values = new Int16Array(0);
+                this.values       = new Int16Array( 0 );
                 return;
             }
 
-            if (this.isFlatStrategy) {
-                if (shrink && this.nulls.cardinality() <= this._flatStrategyThreshold) this.switchToCompressedStrategy();
-                else if (this.values.length !== length) this.values = copyOf(this.values, length);
-            } else {
-                if (shrink) this._cardinality = this.nulls.cardinality();
-                if (this._flatStrategyThreshold <= this._cardinality) this.switchToFlatStrategy_(length);
-                else if (this.values.length !== length) this.values = copyOf(this.values, length);
+            if( this.isFlatStrategy ){
+                if( shrink && this.nulls.cardinality() <= this._flatStrategyThreshold ) this.switchToCompressedStrategy();
+                else if( this.values.length !== length ) this.values = copyOf( this.values, length );
+            }else{
+                if( shrink ) this._cardinality = this.nulls.cardinality();
+                if( this._flatStrategyThreshold <= this._cardinality ) this.switchToFlatStrategy_( length );
+                else if( this.values.length !== length ) this.values = copyOf( this.values, length );
             }
         }
 
@@ -1398,9 +1429,7 @@ export namespace Int16NullList {
          *
          * @returns The allocated length of the `values` array.
          */
-        public override get length(): number {
-            return this.values.length;
-        }
+        public override get length(): number{ return this.values.length; }
 
         /**
          * Sets the logical size of the list.
@@ -1416,17 +1445,17 @@ export namespace Int16NullList {
          * list.size = 2;
          * console.log(list.toJSON()); // [1, undefined]
          */
-        public override set size(size: number) {
-            if (size < 0) throw new RangeError("size cannot be negative");
-            if (size === 0) {
+        public override set size( size: number ){
+            if( size < 0 ) throw new RangeError( "size cannot be negative" );
+            if( size === 0 ){
                 this.clear();
                 return;
             }
 
-            if (this.size < size) this.set1(size - 1, this.undefinedValue);
-            else {
+            if( this.size < size ) this.set1( size - 1, this.undefinedValue );
+            else{
                 this.nulls.size = size;
-                if (!this.isFlatStrategy) this._cardinality = this.nulls.cardinality();
+                if( !this.isFlatStrategy ) this._cardinality = this.nulls.cardinality();
             }
         }
 
@@ -1435,9 +1464,7 @@ export namespace Int16NullList {
          *
          * @returns The total number of logical elements, equal to `nulls.size`.
          */
-        public override get size(): number {
-            return this.nulls.size;
-        }
+        public override get size(): number{ return this.nulls.size; }
 
         /**
          * Sets the capacity to the logical size: `length = size`. May trigger a strategy switch.
@@ -1448,7 +1475,7 @@ export namespace Int16NullList {
          * list.fit();
          * console.log(list.length); // 1
          */
-        public fit(): RW<UNDEFINED> {
+        public fit(): RW<UNDEFINED>{
             this.length = this.size;
             return this;
         }
@@ -1463,9 +1490,9 @@ export namespace Int16NullList {
          * list.trim();
          * console.log(list.toJSON()); // [1]
          */
-        public trim(): RW<UNDEFINED> {
+        public trim(): RW<UNDEFINED>{
             this.length = this.nulls.last1() + 1;
-            if (this.isFlatStrategy && this.cardinality < this._flatStrategyThreshold) this.switchToCompressedStrategy();
+            if( this.isFlatStrategy && this.cardinality < this._flatStrategyThreshold ) this.switchToCompressedStrategy();
             return this;
         }
 
@@ -1481,29 +1508,29 @@ export namespace Int16NullList {
          * list.swap(0, 1);
          * console.log(list.toJSON()); // [2, 1]
          */
-        public swap(index1: number, index2: number): RW<UNDEFINED> {
-            if (index1 < 0 || index1 >= this.size) throw new RangeError(`Index1 must be non-negative and less than the list's size: ${index1}`);
-            if (index2 < 0 || index2 >= this.size) throw new RangeError(`Index2 must be non-negative and less than the list's size: ${index2}`);
-            if (index1 === index2) return this;
+        public swap( index1: number, index2: number ): RW<UNDEFINED>{
+            if( index1 < 0 || index1 >= this.size ) throw new RangeError( `Index1 must be non-negative and less than the list's size: ${ index1 }` );
+            if( index2 < 0 || index2 >= this.size ) throw new RangeError( `Index2 must be non-negative and less than the list's size: ${ index2 }` );
+            if( index1 === index2 ) return this;
 
-            const e1 = this.hasValue(index1);
-            const e2 = this.hasValue(index2);
-            if (!e1 && !e2) return this;
-            const v1 = this.get(index1) as number;
-            const v2 = this.get(index2) as number;
+            const e1 = this.hasValue( index1 );
+            const e2 = this.hasValue( index2 );
+            if( !e1 && !e2 ) return this;
+            const v1 = this.get( index1 ) as number;
+            const v2 = this.get( index2 ) as number;
 
-            if (e1 && e2) {
-                if (Object.is(v1, v2)) return this; // Java `==`; Object.is keeps a swap of 0 and -0 in the Float64 variant
-                this.set1(index1, v2);
-                this.set1(index2, v1);
+            if( e1 && e2 ){
+                if( Object.is( v1, v2 ) ) return this; // Java `==`; Object.is keeps a swap of 0 and -0 in the Float64 variant
+                this.set1( index1, v2 );
+                this.set1( index2, v1 );
                 return this;
             }
-            if (e1) {
-                this.set1(index1, this.undefinedValue);
-                this.set1(index2, v1);
-            } else {
-                this.set1(index1, v2);
-                this.set1(index2, this.undefinedValue);
+            if( e1 ){
+                this.set1( index1, this.undefinedValue );
+                this.set1( index2, v1 );
+            }else{
+                this.set1( index1, v2 );
+                this.set1( index2, this.undefinedValue );
             }
             return this;
         }
@@ -1515,17 +1542,18 @@ export namespace Int16NullList {
          * @protected
          * @remarks Expects the Compressed Strategy: repositions the packed values to their logical indices.
          */
-        protected switchToFlatStrategy_(capacity: number): void {
+        protected switchToFlatStrategy_( capacity: number ): void{
             this.isFlatStrategy = true;
-            this._cardinality = 0; // the Flat Strategy counts with nulls.cardinality()
-            if (this.size === 0) {
-                if (this.values.length !== capacity) this.values = new Int16Array(Math.max(16, capacity));
+            this._cardinality   = 0; // the Flat Strategy counts with nulls.cardinality()
+            if( this.size === 0 ){
+                if( this.values.length !== capacity ) this.values = new Int16Array( Math.max( 16, capacity ) );
                 return;
             }
 
             const compressed = this.values;
-            this.values = new Int16Array(Math.max(this.size, capacity));
-            for (let i = this.nulls.next1(-1), ii = 0; i !== -1; i = this.nulls.next1(i)) this.values[i] = compressed[ii++];
+            this.values      = new Int16Array( Math.max( this.size, capacity ) );
+            for( let i = this.nulls.next1( -1 ), ii = 0; i !== -1; i = this.nulls.next1( i ) )
+                this.values[i] = compressed[ii++];
         }
 
         /**
@@ -1533,8 +1561,8 @@ export namespace Int16NullList {
          *
          * @protected
          */
-        protected switchToFlatStrategy(): void {
-            this.switchToFlatStrategy_(this.nulls.size);
+        protected switchToFlatStrategy(): void{
+            this.switchToFlatStrategy_( this.nulls.size );
         }
 
         /**
@@ -1542,12 +1570,13 @@ export namespace Int16NullList {
          *
          * @protected
          */
-        protected switchToCompressedStrategy(): void {
+        protected switchToCompressedStrategy(): void{
             this._cardinality = this.nulls.cardinality();
-            const packed = new Int16Array(this._cardinality);
-            for (let i = this.nulls.next1(-1), ii = 0; i !== -1; i = this.nulls.next1(i)) packed[ii++] = this.values[i];
+            const packed      = new Int16Array( this._cardinality );
+            for( let i = this.nulls.next1( -1 ), ii = 0; i !== -1; i = this.nulls.next1( i ) )
+                packed[ii++] = this.values[i];
 
-            this.values = packed;
+            this.values         = packed;
             this.isFlatStrategy = false;
         }
     }
@@ -1556,35 +1585,35 @@ export namespace Int16NullList {
      * The argument checks of the range setters, in the Java order.
      * @private
      */
-    function checkRange(index: number, src: ArrayLike<unknown>, src_index: number, len: number): void {
-        if (index < 0) throw new RangeError("Index cannot be negative");
-        if (src_index < 0) throw new RangeError("Source index cannot be negative");
-        if (len < 0) throw new RangeError("Length cannot be negative");
-        if (!src) throw new TypeError("Source array cannot be null");
-        if (src.length < src_index + len) throw new RangeError("Source range exceeds array bounds");
+    function checkRange( index: number, src: ArrayLike<unknown>, src_index: number, len: number ): void{
+        if( index < 0 ) throw new RangeError( "Index cannot be negative" );
+        if( src_index < 0 ) throw new RangeError( "Source index cannot be negative" );
+        if( len < 0 ) throw new RangeError( "Length cannot be negative" );
+        if( !src ) throw new TypeError( "Source array cannot be null" );
+        if( src.length < src_index + len ) throw new RangeError( "Source range exceeds array bounds" );
     }
 
     /**
      * One-slot scratch array: converts a value exactly as storing it in `values` would.
      * @private
      */
-    const scratch = new Int16Array(1);
+    const scratch = new Int16Array( 1 );
 
     /**
      * SameValueZero (as `Array.prototype.includes` and `Set`): `NaN` equals `NaN`, `-0` equals `0`.
      * @private
      */
-    function sameValueZero(a: number, b: number): boolean {
-        return a === b || (a !== a && b !== b);
+    function sameValueZero( a: number, b: number ): boolean{
+        return a === b || ( a !== a && b !== b );
     }
 
     /**
      * SameValueZero `indexOf` over `values[0, size)`.
      * @private
      */
-    function indexOf$(values: Int16Array, value: number, size: number): number {
-        if (value === value) return values.subarray(0, size).indexOf(value); // typed indexOf: ===, already -0 == 0
-        for (let i = 0; i < size; i++) if (values[i] !== values[i]) return i; // NaN
+    function indexOf$( values: Int16Array, value: number, size: number ): number{
+        if( value === value ) return values.subarray( 0, size ).indexOf( value ); // typed indexOf: ===, already -0 == 0
+        for( let i = 0; i < size; i++ ) if( values[i] !== values[i] ) return i;   // NaN
         return -1;
     }
 
@@ -1592,9 +1621,9 @@ export namespace Int16NullList {
      * SameValueZero `lastIndexOf` over `values[0, size)`.
      * @private
      */
-    function lastIndexOf$(values: Int16Array, value: number, size: number): number {
-        if (value === value) return values.subarray(0, size).lastIndexOf(value);
-        for (let i = size; -1 < --i; ) if (values[i] !== values[i]) return i; // NaN
+    function lastIndexOf$( values: Int16Array, value: number, size: number ): number{
+        if( value === value ) return values.subarray( 0, size ).lastIndexOf( value );
+        for( let i = size; -1 < --i; ) if( values[i] !== values[i] ) return i; // NaN
         return -1;
     }
 
@@ -1606,10 +1635,10 @@ export namespace Int16NullList {
      * @returns A new `Int16Array` with copied elements.
      * @private
      */
-    function copyOf(src: Int16Array, newLength: number): Int16Array {
-        if (newLength === src.length) return src;
-        const ret = new Int16Array(newLength);
-        ret.set(src.subarray(0, Math.min(src.length, newLength)));
+    function copyOf( src: Int16Array, newLength: number ): Int16Array{
+        if( newLength === src.length ) return src;
+        const ret = new Int16Array( newLength );
+        ret.set( src.subarray( 0, Math.min( src.length, newLength ) ) );
         return ret;
     }
 
@@ -1625,18 +1654,20 @@ export namespace Int16NullList {
      * @throws RangeError if `index` or `size` is negative.
      * @private
      */
-    function resize(src: Int16Array, dst: Int16Array, index: number, size: number, resize: number): number {
-        if (index < 0 || size < 0) throw new RangeError("index or size cannot be negative");
+    function resize( src: Int16Array, dst: Int16Array, index: number, size: number, resize: number ): number{
+        if( index < 0 || size < 0 ) throw new RangeError( "index or size cannot be negative" );
         // A freshly allocated `dst` also needs the untouched prefix [0, index).
-        if (src !== dst && 0 < index) dst.set(src.subarray(0, Math.min(index, size)));
+        if( src !== dst && 0 < index ) dst.set( src.subarray( 0, Math.min( index, size ) ) );
 
-        if (resize < 0) {
+        if( resize < 0 ){
             const removeCount = -resize;
-            if (index + removeCount < size) dst.set(src.subarray(index + removeCount, size), index);
+            if( index + removeCount < size )
+                dst.set( src.subarray( index + removeCount, size ), index );
             return size - removeCount;
         }
-        if (resize > 0) {
-            if (index < size) dst.set(src.subarray(index, size), index + resize);
+        if( resize > 0 ){
+            if( index < size )
+                dst.set( src.subarray( index, size ), index + resize );
             return size + resize;
         }
         return size;

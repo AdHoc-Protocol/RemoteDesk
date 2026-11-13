@@ -16,19 +16,13 @@ pub struct TwoBytesSet<K = u16> {
 impl<K> TwoBytesSet<K> {
     /// First lo/hi slot or bitset key token; see [`super::token`].
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        self.map.token()
-    }
+    pub fn token(&self) -> Option<Token> { self.map.token() }
 
     #[inline(always)]
-    pub fn next_token(&self, token: Token) -> Option<Token> {
-        self.map.next_token(token)
-    }
+    pub fn next_token(&self, token: Token) -> Option<Token> { self.map.next_token(token) }
 
     #[inline(always)]
-    pub fn contains_token(&self, token: Token) -> bool {
-        self.map.contains_token(token)
-    }
+    pub fn contains_token(&self, token: Token) -> bool { self.map.contains_token(token) }
 
     /// Does not allocate.
     #[inline]
@@ -38,9 +32,7 @@ impl<K> TwoBytesSet<K> {
 
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            map: TwoBytesMap::with_capacity(capacity),
-        }
+        Self { map: TwoBytesMap::with_capacity(capacity) }
     }
 
     #[inline]
@@ -86,14 +78,10 @@ impl<K> Default for TwoBytesSet<K> {
 
 impl<K: TwoBytesKey> TwoBytesSet<K> {
     #[inline(always)]
-    pub fn token_of(&self, key: K) -> Option<Token> {
-        self.map.token_of(key)
-    }
+    pub fn token_of(&self, key: K) -> Option<Token> { self.map.token_of(key) }
 
     #[inline(always)]
-    pub fn key_by_token(&self, token: Token) -> Option<K> {
-        self.map.key_by_token(token)
-    }
+    pub fn key_by_token(&self, token: Token) -> Option<K> { self.map.key_by_token(token) }
 
     /// The `n`-th key of a pass key after key (the generated sending): `at` keeps its place
     /// ([`super::token::seq_token`]).

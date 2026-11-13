@@ -6,10 +6,11 @@
 //! [`In`] reads a frame from the carrier receiver and supplies its chunk payloads to the virtual
 //! connection as a continuous byte stream.
 
-use crate::lib::adhoc::chain::Stage;
-use crate::lib::adhoc::connection::receiver::chunked::{push, RxChain};
-use crate::lib::adhoc::connection::receiver::Rx;
+
 use crate::lib::adhoc::connection::transmitter::chunked::ABORT;
+use crate::lib::adhoc::connection::receiver::chunked::{push, RxChain};
+use crate::lib::adhoc::chain::Stage;
+use crate::lib::adhoc::connection::receiver::Rx;
 use crate::lib::adhoc::connection::transmitter::TxHost;
 use crate::lib::stages::Keys;
 
@@ -39,19 +40,7 @@ pub struct In<T> {
 
 impl<T> Default for In<T> {
     fn default() -> Self {
-        Self {
-            tid: 0,
-            tid_got: 0,
-            routed: false,
-            fresh: false,
-            len: 0,
-            len_got: 0,
-            rem: 0,
-            target: None,
-            chain: RxChain::default(),
-            pending: Vec::new(),
-            ending: false,
-        }
+        Self { tid: 0, tid_got: 0, routed: false, fresh: false, len: 0, len_got: 0, rem: 0, target: None, chain: RxChain::default(), pending: Vec::new(), ending: false }
     }
 }
 
@@ -62,10 +51,7 @@ impl<T> Default for In<T> {
 #[inline]
 pub fn split_id(id: u32, id_bytes: usize, tid_bytes: usize, rx_id_bytes: usize) -> (u32, u32, usize) {
     // the widths are the generated code's constants: inlined, the check folds away
-    assert!(
-        id_bytes <= rx_id_bytes && rx_id_bytes <= 4 && tid_bytes <= 4,
-        "the receiver reads the whole pack id: {id_bytes} of {rx_id_bytes}, tunnel_id {tid_bytes}"
-    );
+    assert!(id_bytes <= rx_id_bytes && rx_id_bytes <= 4 && tid_bytes <= 4, "the receiver reads the whole pack id: {id_bytes} of {rx_id_bytes}, tunnel_id {tid_bytes}");
     let taken = rx_id_bytes.saturating_sub(id_bytes).min(tid_bytes);
     let mask = |n: usize| if 4 <= n { u32::MAX } else { (1u32 << (8 * n)) - 1 };
     (id & mask(id_bytes), (id >> (8 * id_bytes)) & mask(taken), taken)
@@ -98,10 +84,7 @@ impl<T> In<T> {
         }
         // Tunnel dispatch must begin before body bytes are consumed. Relay dispatch instead uses
         // `Relay::arm` to preserve bytes already read with the identifier.
-        assert!(
-            rx_id_bytes <= id_bytes + tid_bytes,
-            "Tunnel arming mismatch: the receiver reads {rx_id_bytes} bytes of id, the pack id and the tunnel_id are {id_bytes} + {tid_bytes}: bytes of the body would be lost"
-        );
+        assert!(rx_id_bytes <= id_bytes + tid_bytes, "Tunnel arming mismatch: the receiver reads {rx_id_bytes} bytes of id, the pack id and the tunnel_id are {id_bytes} + {tid_bytes}: bytes of the body would be lost");
         let (_, tid, taken) = split_id(id, id_bytes, tid_bytes, rx_id_bytes);
         self.tid = tid;
         self.tid_got = taken;
@@ -122,7 +105,14 @@ impl<T> In<T> {
     /// tunnel that is there and makes none. `None` drops the frame. `feed` gives it the bytes of a
     /// chunk; `ended(target, tunnel_id)` — the frame ended with `ABORT`: the tunnel ended on the
     /// far side. `true` — the frame is through; `false` — the window ran out.
-    pub fn put_bytes(&mut self, src: &mut Rx<'_>, tid_bytes: usize, route: impl FnOnce(u32, bool) -> Option<T>, mut feed: impl FnMut(&T, &[u8]) -> usize, ended: impl FnOnce(T, u32)) -> bool {
+    pub fn put_bytes(
+        &mut self,
+        src: &mut Rx<'_>,
+        tid_bytes: usize,
+        route: impl FnOnce(u32, bool) -> Option<T>,
+        mut feed: impl FnMut(&T, &[u8]) -> usize,
+        ended: impl FnOnce(T, u32),
+    ) -> bool {
         if !self.routed {
             while self.tid_got < tid_bytes {
                 if src.byte_max <= src.byte_ {
@@ -184,7 +174,7 @@ impl<T> In<T> {
             self.rem -= took as u32;
             if took < n {
                 return false; // refused (a relay of the virtual connection is behind): the rest stays with the carrier's
-                              // transport
+                // transport
             }
         }
     }

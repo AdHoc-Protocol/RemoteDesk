@@ -10,7 +10,9 @@ import android.graphics.Typeface
 import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -42,6 +44,7 @@ class MainActivity : Activity(), Host.Watcher {
     private lateinit var done: Button
     private lateinit var log: TextView
     private lateinit var logScroll: ScrollView
+    private lateinit var overApps: Button
     private var way = 0
 
     override fun onCreate(saved: Bundle?) {
@@ -94,6 +97,13 @@ class MainActivity : Activity(), Host.Watcher {
         running.addView(Button(this).apply { text = "Stop"; setOnClickListener { startService(Intent(this@MainActivity, HostService::class.java).setAction(HostService.STOP)) } })
         root.addView(running)
 
+        // the marks the viewer draws: Android asks once to let the app display over the others
+        overApps = Button(this).apply {
+            text = "Let the viewer draw over the screen"
+            setOnClickListener { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + packageName))) }
+        }
+        root.addView(overApps)
+
         log = TextView(this).apply { setTextIsSelectable(true); setPadding(0, pad / 2, 0, 0) }
         logScroll = ScrollView(this).apply { addView(log) }
         root.addView(logScroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
@@ -109,6 +119,7 @@ class MainActivity : Activity(), Host.Watcher {
         Host.news.forEach { news(it) }
         Host.line?.let { line(it) }
         waits()
+        overApps.visibility = if (Settings.canDrawOverlays(this)) View.GONE else View.VISIBLE
     }
 
     override fun onPause() {

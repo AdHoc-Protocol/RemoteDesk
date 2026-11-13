@@ -497,13 +497,7 @@ impl Control {
                 rebooted = !trusted;
                 if !trusted && get_i32(h, Self::H_D_VALID) != 0 {
                     // a reboot, and the journal was written through ( resumable_sync_ms ): it goes on as the disk has it
-                    for (live, disk) in [
-                        (Self::H_BASE, Self::H_D_BASE),
-                        (Self::H_ACKED, Self::H_D_ACKED),
-                        (Self::H_NEXT, Self::H_D_NEXT),
-                        (Self::H_HOT_BASE, Self::H_D_HOT_BASE),
-                        (Self::H_WHOLE_END, Self::H_D_WHOLE_END),
-                    ] {
+                    for (live, disk) in [(Self::H_BASE, Self::H_D_BASE), (Self::H_ACKED, Self::H_D_ACKED), (Self::H_NEXT, Self::H_D_NEXT), (Self::H_HOT_BASE, Self::H_D_HOT_BASE), (Self::H_WHOLE_END, Self::H_D_WHOLE_END)] {
                         set_i64(h, live, get_i64(h, disk));
                     }
                     for (live, disk) in [(Self::H_HOT_OFF, Self::H_D_HOT_OFF), (Self::H_HOT_CAP, Self::H_D_HOT_CAP), (Self::H_JFLAGS, Self::H_D_JFLAGS)] {
@@ -545,8 +539,7 @@ impl Control {
             unsafe { p.lend(|p| p.attach(h, restoring, rebooted, self)) };
             // SAFETY: the header just mapped
             if restoring && unsafe { get_i32(h, Self::H_D_GVALID) } != 0 {
-                self.rx_synced.store(unsafe { get_i64(h, Self::H_D_GUARDED) }, Ordering::Relaxed);
-                // what Confirm_ may name: the disk, not what the mapping had
+                self.rx_synced.store(unsafe { get_i64(h, Self::H_D_GUARDED) }, Ordering::Relaxed); // what Confirm_ may name: the disk, not what the mapping had
             }
         }
         drop(maps);
@@ -568,12 +561,7 @@ impl Control {
         out.clear();
         let mut len = if conn.save(&mut out) { out.len() as i64 } else { -1 };
         if ((Self::SLOT - 8) as i64) < len {
-            crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                &format_args!("What the session saves of itself, {len} bytes"),
-                &format_args!("does not fit the {} bytes of the header: the next process will not take it up", Self::SLOT - 8),
-                None,
-            );
+            crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &format_args!("What the session saves of itself, {len} bytes"), &format_args!("does not fit the {} bytes of the header: the next process will not take it up", Self::SLOT - 8), None);
             len = -1;
         }
         // SAFETY: the header is mapped while it is published; the places of META are written under `meta_out` only
@@ -614,13 +602,10 @@ impl Control {
     /// it has none. The generated `load`.
     pub fn actor0_or(&self, saved: i32) -> i32 {
         let s = self.actor0_.load(Ordering::Acquire);
-        if s == 0 {
-            saved
-        } else {
-            s - 1
-        }
+        if s == 0 { saved } else { s - 1 }
     }
-//#region the position of the receiver outlives the power: resumable_sync_ms of the peer's journal
+
+    //#region the position of the receiver outlives the power: resumable_sync_ms of the peer's journal
     // The position of the receiver goes to the disk as the journal of the peer does - the word of the owner, 6.11: the moment of
     // the last sync is kept, and at the end of each receive call the clock is looked at - rx_sync_ms or more since that sync, or
     // half of the peer's journal off the disk: the position goes to the header on the disk, written through ( H_D_GUARDED );
@@ -672,23 +657,14 @@ impl Control {
                             self.rx_synced.store(guarded, Ordering::Relaxed);
                             self.rx_synced_at.store(now, Ordering::Relaxed);
                         }
-                        Err(e) => crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                            crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                            &"the position of the receiver",
-                            &"could not be written to the disk",
-                            Some(&e),
-                        ),
+                        Err(e) => crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &"the position of the receiver", &"could not be written to the disk", Some(&e)),
                     }
                 }
             }
         }
-        if synced < guarded {
-            synced
-        } else {
-            at
-        }
+        if synced < guarded { synced } else { at }
     }
-//#endregion
+    //#endregion
 
     /// The socket of the session is lost and the session parks: since when - its wait counts from there in the next process -,
     /// and what it is, to the header.
@@ -736,11 +712,7 @@ impl Control {
         }
         std::ptr::write_bytes(h.add(Self::TRACE), 0, Self::META - Self::TRACE);
         set_i32(h, Self::H_OPEN, 0);
-        let mut line = format!(
-            "{} the process that held this session ended without a stop{}.",
-            utc(resumable::now()),
-            if trusted { "" } else { ", the system rebooted - possibly" }
-        );
+        let mut line = format!("{} the process that held this session ended without a stop{}.", utc(resumable::now()), if trusted { "" } else { ", the system rebooted - possibly" });
         if n != 0 {
             line.push_str(&format!(" Guaranteed packs queued, not journalled, lost: {n}, ids {ids}."));
         }
@@ -749,18 +721,8 @@ impl Control {
         }
         line.push('\n');
         let file = resumable::dir().join(format!("lost.{name}.txt"));
-        if let Err(e) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&file)
-            .and_then(|mut f| std::io::Write::write_all(&mut f, line.as_bytes()))
-        {
-            crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                &file.display(),
-                &"could not be written",
-                Some(&e),
-            );
+        if let Err(e) = std::fs::OpenOptions::new().create(true).append(true).open(&file).and_then(|mut f| std::io::Write::write_all(&mut f, line.as_bytes())) {
+            crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &file.display(), &"could not be written", Some(&e));
         }
     }
 
@@ -797,12 +759,7 @@ impl Control {
             maps[0].as_ref().map_or(Ok(()), |m| m.force())
         })();
         if let Err(e) = r {
-            crate::lib::adhoc::connection::transmitter::on_error::tx_at(
-                crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error,
-                &"the session",
-                &"could not be closed cleanly",
-                Some(&e),
-            );
+            crate::lib::adhoc::connection::transmitter::on_error::tx_at(crate::lib::adhoc::connection::transmitter::on_error::TxOnError::Error, &"the session", &"could not be closed cleanly", Some(&e));
         }
         self.detached(conn);
         maps[1] = maps[0].take();
@@ -876,12 +833,7 @@ impl Control {
     /// The header of a session: what it is of - the connection ( [`H_KIND`](Self::H_KIND) ), the peer ( [`H_ID`](Self::H_ID) ),
     /// since when it is parked ( [`H_PARKED`](Self::H_PARKED) ), taken up by the host ( [`HOST`](Self::HOST) ).
     pub fn header(h: &[u8]) -> (u32, u32, i64, bool) {
-        (
-            le_i32(h, Self::H_KIND) as u32,
-            le_i32(h, Self::H_ID) as u32,
-            le_i64(h, Self::H_PARKED),
-            le_i32(h, Self::H_FLAGS) & Self::HOST != 0,
-        )
+        (le_i32(h, Self::H_KIND) as u32, le_i32(h, Self::H_ID) as u32, le_i64(h, Self::H_PARKED), le_i32(h, Self::H_FLAGS) & Self::HOST != 0)
     }
 
     /// Deletes the files of the session `name` names.

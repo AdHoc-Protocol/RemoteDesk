@@ -14,7 +14,7 @@
 //! readiness edge.
 
 #![allow(dangerous_implicit_autorefs)] // the slots and the state of a loop are reached through raw pointers on purpose: a handler up the
-                                       // stack may hold them
+// stack may hold them
 
 use std::cell::{Cell, UnsafeCell};
 use std::io::{self, Read, Write};
@@ -27,9 +27,9 @@ use mio::{Events, Interest, Poll, Token, Waker};
 
 use super::buf::{Buf, RxBuf};
 use super::TCP::external_connection::Event;
+use crate::lib::adhoc::{BytesDst, BytesSrc};
 use super::TCP::external_connection::{ExternalConnection, TimeoutAnswer, TimeoutKind};
 use super::TCP::web_socket::Codec;
-use crate::lib::adhoc::{BytesDst, BytesSrc};
 use crate::lib::chain::{Link, HEADERS, RECORD_BUFFER};
 
 /// The smallest buffer of the transport: what a frame header, a control frame and a byte of payload
@@ -97,11 +97,7 @@ pub(crate) fn on_a_loop() -> bool {
 pub(crate) fn clock() -> i64 {
     let s = SLEPT.load(Ordering::Relaxed);
     let t = super::TCP::external_connection::clock_base().0.elapsed().as_nanos() as i64 + s;
-    if t < LOOK_AT.load(Ordering::Relaxed) {
-        t
-    } else {
-        slept(t, s)
-    }
+    if t < LOOK_AT.load(Ordering::Relaxed) { t } else { slept(t, s) }
 }
 
 /// The sleep of the machine the clock has taken in, nanoseconds ([`slept`]).
@@ -125,8 +121,7 @@ fn slept(t: i64, s: i64) -> i64 {
     let wall = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos() as i64);
     let ahead = wall - (super::TCP::external_connection::clock_base().1 * 1_000_000 + t);
     if SLEEP_NS <= ahead {
-        let _ = SLEPT.compare_exchange(s, s + ahead, Ordering::Relaxed, Ordering::Relaxed);
-        // threads that saw one sleep take it in once
+        let _ = SLEPT.compare_exchange(s, s + ahead, Ordering::Relaxed, Ordering::Relaxed); // threads that saw one sleep take it in once
     }
     let t = t - s + SLEPT.load(Ordering::Relaxed);
     LOOK_AT.store(t + LOOK_NS, Ordering::Relaxed);
@@ -146,11 +141,7 @@ pub(crate) fn now_nanos() -> i64 {
     CURRENT.with(|c| {
         let l = c.get();
         // SAFETY: a loop is current only on its own thread, for as long as it runs
-        if l.is_null() {
-            clock()
-        } else {
-            unsafe { (*l).nanos() }
-        }
+        if l.is_null() { clock() } else { unsafe { (*l).nanos() } }
     })
 }
 
@@ -215,28 +206,15 @@ impl Engine {
         let buffer_size = buffer_size.max(MIN_BUFFER);
         let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
         let n = threads.clamp(1, cores.min(255)); // a connection names its loop in a byte
-        let ticks = Arc::new(Ticks {
-            tick_ms: std::sync::atomic::AtomicI64::new(5000),
-            spin: std::sync::atomic::AtomicU32::new(0),
-            lists: parking_lot::Mutex::new(Vec::new()),
-        });
+        let ticks = Arc::new(Ticks { tick_ms: std::sync::atomic::AtomicI64::new(5000), spin: std::sync::atomic::AtomicU32::new(0), lists: parking_lot::Mutex::new(Vec::new()) });
         let on_failure = Arc::new(std::sync::OnceLock::new());
-        let loops: Arc<[Arc<Loop>]> = (0..n)
-            .map(|i| Loop::start(format!("{name}-io-{i}"), i as u8 + 1, buffer_size, ticks.clone(), on_failure.clone()))
-            .collect();
+        let loops: Arc<[Arc<Loop>]> = (0..n).map(|i| Loop::start(format!("{name}-io-{i}"), i as u8 + 1, buffer_size, ticks.clone(), on_failure.clone())).collect();
         for l in loops.iter() {
             let _ = l.all.set(Arc::downgrade(&loops));
         }
         let clients = super::TCP::Pool::new(format!("{name} clients"), Some(loops.clone()), None);
         ticks.lists.lock().push(Arc::downgrade(&clients));
-        Arc::new(Self {
-            loops,
-            next: AtomicUsize::new(0),
-            buffer_size,
-            ticks,
-            clients,
-            on_failure,
-        })
+        Arc::new(Self { loops, next: AtomicUsize::new(0), buffer_size, ticks, clients, on_failure })
     }
 
     /// Where the failures of the loops of this engine and of its clients go;
@@ -384,6 +362,7 @@ impl Engine {
         lp.submit_fn(Box::new(move |lp: &Loop| unsafe { lp.add_acceptor(listener, host, engine, &t, c) }));
         Ok(Listening { lp, token, closed, local })
     }
+
 }
 
 /// A host that listens: what it does with a socket accepted for it.
@@ -720,8 +699,7 @@ impl Loop {
                 } else {
                     if idle {
                         self.asleep.store(true, Ordering::SeqCst); // written first...
-                        idle = self.inbox.load(Ordering::SeqCst).is_null() && self.handoffs.load(Ordering::SeqCst).is_null() && !self.has_fns.load(Ordering::SeqCst);
-                        // ...read second
+                        idle = self.inbox.load(Ordering::SeqCst).is_null() && self.handoffs.load(Ordering::SeqCst).is_null() && !self.has_fns.load(Ordering::SeqCst); // ...read second
                     }
                     let wait = if idle { Some(self.next_deadline()) } else { Some(std::time::Duration::ZERO) };
                     (*st).stale = true;
@@ -820,8 +798,8 @@ impl Loop {
             let mut e = self.inbox.swap(std::ptr::null_mut(), Ordering::Acquire);
             while !e.is_null() {
                 let next = (*e).asks.next_task.load(Ordering::Relaxed); // first: served, it may be pushed again
-                                                                        // SAFETY: the push gave the inbox a strong count of it: taken over here, dropped
-                                                                        // once served
+                // SAFETY: the push gave the inbox a strong count of it: taken over here, dropped
+                // once served
                 let ext = Arc::from_raw(e);
                 let what = ext.asks.requests.swap(0, Ordering::AcqRel); // from here a request pushes it again
                 if what & 1 << CONNECT != 0 {
@@ -840,8 +818,8 @@ impl Loop {
             let mut h = self.handoffs.swap(std::ptr::null_mut(), Ordering::Acquire);
             while !h.is_null() {
                 let next = (*h).next.load(Ordering::Relaxed); // first: taken, it may be pushed again
-                                                              // SAFETY: the push gave the stack a strong count of it: taken over here, dropped
-                                                              // once its sockets are taken
+                // SAFETY: the push gave the stack a strong count of it: taken over here, dropped
+                // once its sockets are taken
                 let handoff = Arc::from_raw(h);
                 handoff.take(self);
                 h = next;
@@ -1007,15 +985,7 @@ impl Loop {
 
     /// A slot for a connection on this loop: registered with the poller, linked to its state.
     /// Nothing is armed yet.
-    unsafe fn attach(
-        &self,
-        mut stream: TcpStream,
-        ext: Arc<ExternalConnection>,
-        sink: Box<dyn BytesDst>,
-        source: Box<dyn BytesSrc>,
-        ws: Option<Box<Codec>>,
-        connecting: bool,
-    ) -> io::Result<*mut Slot> {
+    unsafe fn attach(&self, mut stream: TcpStream, ext: Arc<ExternalConnection>, sink: Box<dyn BytesDst>, source: Box<dyn BytesSrc>, ws: Option<Box<Codec>>, connecting: bool) -> io::Result<*mut Slot> {
         let st = self.st();
         // a slot of a host keeps its place on its loop from one session to the next: its waits on
         // the deadline lists go on, the old ones come up and are passed by
@@ -1261,16 +1231,7 @@ impl Loop {
             return;
         }
         let handoffs = engine.loops.iter().map(|_| Handoff::new(host.clone())).collect();
-        (*st).acceptors[i] = Some(Box::new(Acceptor {
-            listener,
-            host,
-            engine,
-            closed,
-            deaf_until: 0,
-            handoffs,
-            next: 0,
-            own: self.number as usize - 1,
-        }));
+        (*st).acceptors[i] = Some(Box::new(Acceptor { listener, host, engine, closed, deaf_until: 0, handoffs, next: 0, own: self.number as usize - 1 }));
         token.store(ACCEPTORS + i, Ordering::Release);
         let a: *mut Acceptor = &mut **(*st).acceptors[i].as_mut().unwrap();
         self.accept(a); // what is already in the backlog: an edge that came before the registration is not seen again
@@ -1321,8 +1282,7 @@ impl Loop {
                             a_.host.failure(&super::failure::panicked(&*why));
                         }
                     } else {
-                        a_.handoffs[to].put(&a_.engine.loops[to], (stream, peer, counted));
-                        // no allocation per socket
+                        a_.handoffs[to].put(&a_.engine.loops[to], (stream, peer, counted)); // no allocation per socket
                     }
                 }
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => return,
@@ -1693,15 +1653,10 @@ pub(crate) struct Dl {
 
 impl Default for Dl {
     fn default() -> Self {
-        Self {
-            next: NONE,
-            due: 0,
-            at: 0,
-            armed: false,
-            linked: false,
-        }
+        Self { next: NONE, due: 0, at: 0, armed: false, linked: false }
     }
 }
+
 
 /// One full-duplex TCP connection: the socket, the session on it, and everything between them.
 /// Loop-thread only.
@@ -1769,6 +1724,7 @@ pub(crate) struct Slot {
     dl: [Dl; 3],
     dead: bool,
 }
+
 
 #[inline]
 pub(crate) unsafe fn lp<'a>(p: *mut Slot) -> &'a Loop {
@@ -1918,16 +1874,7 @@ pub(crate) unsafe fn report(p: *mut Slot, r: io::Result<()>) {
 /// asked for) came first, the loop times it as any wait of the slot. Nothing else of the connection
 /// runs until then; a close meanwhile is heard as `ConnectionAborted`.
 #[allow(clippy::too_many_arguments)]
-pub(crate) unsafe fn connect(
-    l: &Loop,
-    stream: TcpStream,
-    ext: Arc<ExternalConnection>,
-    sink: Box<dyn BytesDst>,
-    source: Box<dyn BytesSrc>,
-    ws: Option<Box<Codec>>,
-    until: Option<i64>,
-    rep: super::TCP::Report,
-) {
+pub(crate) unsafe fn connect(l: &Loop, stream: TcpStream, ext: Arc<ExternalConnection>, sink: Box<dyn BytesDst>, source: Box<dyn BytesSrc>, ws: Option<Box<Codec>>, until: Option<i64>, rep: super::TCP::Report) {
     match l.attach(stream, ext.clone(), sink, source, ws, true) {
         Ok(p) => {
             (*p).connecting = true;
@@ -2032,7 +1979,7 @@ unsafe fn do_read(p: *mut Slot) {
                     (*p).dl[R].armed = false; // data came: the deadline is off until the next wait
                     (*p).ext.heard.store(true, Ordering::Relaxed); // the peer serves ( TCP::Redial )
                 } // else the wait for the session (a WebSocket's 101) runs on: data that is not all of it does not
-                  // stop it
+                // stop it
                 (*p).r_end = end + n;
                 (*p).ext.carry(n);
                 (*p).streaming = (*p).r_end == rbuf(p).len();
@@ -2145,8 +2092,7 @@ unsafe fn do_read_chain(p: *mut Slot) {
 /// the connection closes, it does not hang.
 #[cold]
 pub(crate) unsafe fn transport_failed(p: *mut Slot, e: io::Error) {
-    if let Some(s) = (*p).stream.as_ref().filter(|_| !pending(p)) {
-        // a record half out: anything behind it would break TLS
+    if let Some(s) = (*p).stream.as_ref().filter(|_| !pending(p)) { // a record half out: anything behind it would break TLS
         (*(*p).link).failed(s);
     }
     if (*p).report.is_some() {
@@ -2309,8 +2255,7 @@ pub(crate) unsafe fn wait_for_data(p: *mut Slot) {
 
 /// The destination that refused the tail has room again.
 pub(crate) unsafe fn drain_on_loop(p: *mut Slot) {
-    if !active(p) || !(*p).pending_tail {
-        // not paused
+    if !active(p) || !(*p).pending_tail { // not paused
         return;
     }
     if (*p).receiving {
@@ -2733,19 +2678,14 @@ pub(crate) unsafe fn close_on_loop(p: *mut Slot) {
             let _ = (*l.st()).poll.registry().deregister(s); // epoll drops the socket itself when it closes: one call less a close
         }
         if !(*p).fin_sent {
-            if !(*p).link.is_null() && !pending(p) {
-                // a record half out: anything behind it would break TLS
+            if !(*p).link.is_null() && !pending(p) { // a record half out: anything behind it would break TLS
                 (*(*p).link).closing(s);
             }
             let _ = s.shutdown(std::net::Shutdown::Write); // FIN, so the peer sees a close rather than a reset
         }
     }
     if (*p).report.is_some() {
-        let why = if (*p).connecting {
-            "the connection closed before it connected"
-        } else {
-            "the connection closed before its session started"
-        };
+        let why = if (*p).connecting { "the connection closed before it connected" } else { "the connection closed before its session started" };
         (*p).connecting = false;
         quiet_slot(p, || report(p, Err(io::Error::new(io::ErrorKind::ConnectionAborted, why))));
     }

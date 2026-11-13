@@ -11,8 +11,8 @@
 //! [`State::read`] uses one buffer: serialization writes into its tail and framing writes blocks
 //! into its head, allowing output before the entire packet is available.
 
-use crate::lib::adhoc::connection::transmitter::{TxHost, TxState};
 use crate::lib::adhoc::helpers::{crc32c, CRC_LEN_BYTES};
+use crate::lib::adhoc::connection::transmitter::{TxHost, TxState};
 
 use crate::lib::adhoc::connection::receiver::framing::{ff_free, ff_in, LONG};
 
@@ -166,11 +166,7 @@ where
     for<'a> &'a T: TxHost,
 {
     pub fn new(conn: std::sync::Arc<T>) -> Self {
-        Self {
-            conn,
-            tx: TxState::new(),
-            framing: State::new(),
-        }
+        Self { conn, tx: TxState::new(), framing: State::new() }
     }
 
     /// The keys of the session: a ChaCha20 stage of a pack chain takes the newest there.

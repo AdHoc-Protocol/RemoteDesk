@@ -159,25 +159,7 @@ impl Builder {
 
     /// Listens from here on.
     pub fn build(self) -> std::io::Result<Server> {
-        build(
-            self.name,
-            self.addr,
-            self.backlog,
-            self.ws,
-            self.on_connect,
-            self.on_event,
-            self.chain,
-            self.choose_chain,
-            self.max_connections,
-            self.accept_rate,
-            self.accept_window,
-            self.max_per_address,
-            self.socket_opts,
-            self.accept_retry,
-            self.handshake_timeout_ms,
-            self.engine,
-            self.on_failure,
-        )
+        build(self.name, self.addr, self.backlog, self.ws, self.on_connect, self.on_event, self.chain, self.choose_chain, self.max_connections, self.accept_rate, self.accept_window, self.max_per_address, self.socket_opts, self.accept_retry, self.handshake_timeout_ms, self.engine, self.on_failure)
     }
 }
 
@@ -225,14 +207,7 @@ pub(crate) fn build(
     });
     let first = engine.listen(addr, backlog.min(i32::MAX as u32) as i32, socket_opts.socket_receive_buffer, host.clone())?;
     engine.watch_parked(&pool); // the tick of the engine reaps its parked sessions
-    Ok(Server {
-        name,
-        listening: Arc::new(parking_lot::Mutex::new(vec![first])),
-        pool,
-        admission,
-        host,
-        engine,
-    })
+    Ok(Server { name, listening: Arc::new(parking_lot::Mutex::new(vec![first])), pool, admission, host, engine })
 }
 
 /// A listening TCP server: it accepts from the moment it is built, the tick of its engine reaps its
@@ -275,9 +250,7 @@ impl Server {
     /// Returns the address as bound. A server that was deafened listens again.
     pub fn bind(&self, addr: SocketAddr, backlog: u32) -> std::io::Result<SocketAddr> {
         let mut l = self.listening.lock();
-        let more = self
-            .engine
-            .listen(addr, backlog.min(i32::MAX as u32) as i32, self.host.socket_opts.socket_receive_buffer, self.host.clone())?;
+        let more = self.engine.listen(addr, backlog.min(i32::MAX as u32) as i32, self.host.socket_opts.socket_receive_buffer, self.host.clone())?;
         let at = more.local_addr();
         l.push(more);
         Ok(at)
@@ -289,10 +262,7 @@ impl Server {
     pub fn adopt(&self, stream: std::net::TcpStream) -> std::io::Result<()> {
         let peer = stream.peer_addr()?;
         stream.set_nonblocking(true)?;
-        let counted = self
-            .host
-            .admit(peer)
-            .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "the admission of the server refused it"))?;
+        let counted = self.host.admit(peer).ok_or_else(|| std::io::Error::new(std::io::ErrorKind::ConnectionRefused, "the admission of the server refused it"))?;
         let host = self.host.clone();
         let stream = mio::net::TcpStream::from_std(stream);
         self.engine.pick().submit_fn(Box::new(move |lp: &Loop| {
@@ -348,7 +318,7 @@ impl Server {
     /// ([`super::pool::Pool::stop`]). Returns how many sessions were closed.
     pub fn stop(&self, wait_ms: u64) -> usize {
         self.deafen(); // no peer comes back into this process: what it would take after the stop the next process
-                       // would not know
+        // would not know
         self.pool.stop(wait_ms)
     }
 
@@ -372,4 +342,6 @@ impl Server {
         self.deafen();
         super::stop(&self.pool, &self.engine, grace)
     }
+
 }
+

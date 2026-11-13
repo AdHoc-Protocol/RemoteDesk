@@ -49,13 +49,7 @@ impl Core {
     /// (Re)key for a fresh stream. Both ends must pass identical values (and the same `counter`,
     /// normally 0).
     pub fn new(key: &[u8; 32], nonce: &[u8; 12], counter: u32) -> Self {
-        Self {
-            key: *key,
-            nonce: *nonce,
-            counter,
-            pos: 64,
-            ks: [0; 64],
-        }
+        Self { key: *key, nonce: *nonce, counter, pos: 64, ks: [0; 64] }
     }
 
     /// A stream of its own nonce: `nonce XOR (0⁴ ‖ seq)`.

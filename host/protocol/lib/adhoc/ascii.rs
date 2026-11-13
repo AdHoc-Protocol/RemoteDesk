@@ -224,13 +224,7 @@ pub fn short_to_varints(src: &[u8], dst: &mut [u8]) -> usize {
     #[cfg(target_arch = "x86_64")]
     if 16 <= lim {
         // SAFETY: SSE2 is part of x86_64, AVX2 is checked; the kernels stay within `lim`
-        let (n, stop) = unsafe {
-            if 32 <= lim && std::is_x86_feature_detected!("avx2") {
-                s2v_avx2(src, dst, lim)
-            } else {
-                s2v_sse2(src, dst, lim)
-            }
-        };
+        let (n, stop) = unsafe { if 32 <= lim && std::is_x86_feature_detected!("avx2") { s2v_avx2(src, dst, lim) } else { s2v_sse2(src, dst, lim) } };
         if stop {
             return n;
         }
@@ -259,13 +253,7 @@ pub fn varints_to_short(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, 
     if 16 <= src.len() && 16 <= units {
         // SAFETY: SSE2 is part of x86_64, AVX2 is checked; the kernels stay within `src` and write
         // within the room they reserve
-        let (n, u, stop) = unsafe {
-            if 32 <= src.len() && 32 <= units && std::is_x86_feature_detected!("avx2") {
-                v2s_avx2(src, units, out)
-            } else {
-                v2s_sse2(src, units, out)
-            }
-        };
+        let (n, u, stop) = unsafe { if 32 <= src.len() && 32 <= units && std::is_x86_feature_detected!("avx2") { v2s_avx2(src, units, out) } else { v2s_sse2(src, units, out) } };
         if stop {
             return (n, u);
         }
@@ -331,13 +319,7 @@ fn v2s_swar(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize) {
         let s = h << 8;
         // 1yyyyyyy 0000xxxx -> 110xxxxy 10yyyyyy; ASCII as it is
         let o = w & !(h | s) | h & (0xC0C0_C0C0_C0C0_C0C0 | w >> 7 & 0x1E1E_1E1E_1E1E_1E1E | w >> 6 & 0x0101_0101_0101_0101) | s & (HI8 | w << 8 & 0x3F3F_3F3F_3F3F_3F3F);
-        let n = if bad != 0 {
-            bad.trailing_zeros() as usize >> 3
-        } else if cut != 0 {
-            7
-        } else {
-            8
-        };
+        let n = if bad != 0 { bad.trailing_zeros() as usize >> 3 } else if cut != 0 { 7 } else { 8 };
         out.extend_from_slice(&o.to_le_bytes()[..n]);
         i += n;
         if n != 0 {
@@ -357,14 +339,7 @@ fn v2s_swar(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize) {
 unsafe fn s2v_sse2(src: &[u8], dst: &mut [u8], lim: usize) -> (usize, bool) {
     use std::arch::x86_64::*;
     let (sp, dp) = (src.as_ptr(), dst.as_mut_ptr());
-    let (e0, c0, x80, x01, x3f, x1e) = (
-        _mm_set1_epi8(0xE0u8 as i8),
-        _mm_set1_epi8(0xC0u8 as i8),
-        _mm_set1_epi8(0x80u8 as i8),
-        _mm_set1_epi8(1),
-        _mm_set1_epi8(0x3F),
-        _mm_set1_epi8(0x1E),
-    );
+    let (e0, c0, x80, x01, x3f, x1e) = (_mm_set1_epi8(0xE0u8 as i8), _mm_set1_epi8(0xC0u8 as i8), _mm_set1_epi8(0x80u8 as i8), _mm_set1_epi8(1), _mm_set1_epi8(0x3F), _mm_set1_epi8(0x1E));
     let mut i = 0;
     while i + 16 <= lim {
         let v = _mm_loadu_si128(sp.add(i) as *const __m128i);
@@ -394,14 +369,7 @@ unsafe fn s2v_sse2(src: &[u8], dst: &mut [u8], lim: usize) -> (usize, bool) {
 unsafe fn s2v_avx2(src: &[u8], dst: &mut [u8], lim: usize) -> (usize, bool) {
     use std::arch::x86_64::*;
     let (sp, dp) = (src.as_ptr(), dst.as_mut_ptr());
-    let (e0, c0, x80, x01, x3f, x1e) = (
-        _mm256_set1_epi8(0xE0u8 as i8),
-        _mm256_set1_epi8(0xC0u8 as i8),
-        _mm256_set1_epi8(0x80u8 as i8),
-        _mm256_set1_epi8(1),
-        _mm256_set1_epi8(0x3F),
-        _mm256_set1_epi8(0x1E),
-    );
+    let (e0, c0, x80, x01, x3f, x1e) = (_mm256_set1_epi8(0xE0u8 as i8), _mm256_set1_epi8(0xC0u8 as i8), _mm256_set1_epi8(0x80u8 as i8), _mm256_set1_epi8(1), _mm256_set1_epi8(0x3F), _mm256_set1_epi8(0x1E));
     let mut i = 0;
     while i + 32 <= lim {
         let v = _mm256_loadu_si256(sp.add(i) as *const __m256i);
@@ -453,14 +421,7 @@ unsafe fn prev256(v: std::arch::x86_64::__m256i) -> std::arch::x86_64::__m256i {
 unsafe fn v2s_sse2(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize, bool) {
     use std::arch::x86_64::*;
     let sp = src.as_ptr();
-    let (zero, f0, c0, x80, x01, x3f) = (
-        _mm_setzero_si128(),
-        _mm_set1_epi8(0xF0u8 as i8),
-        _mm_set1_epi8(0xC0u8 as i8),
-        _mm_set1_epi8(0x80u8 as i8),
-        _mm_set1_epi8(1),
-        _mm_set1_epi8(0x3F),
-    );
+    let (zero, f0, c0, x80, x01, x3f) = (_mm_setzero_si128(), _mm_set1_epi8(0xF0u8 as i8), _mm_set1_epi8(0xC0u8 as i8), _mm_set1_epi8(0x80u8 as i8), _mm_set1_epi8(1), _mm_set1_epi8(0x3F));
     let (mut i, mut done) = (0, 0);
     while i + 16 <= src.len() && 16 <= units - done {
         let v = _mm_loadu_si128(sp.add(i) as *const __m128i);
@@ -478,13 +439,7 @@ unsafe fn v2s_sse2(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize
         let (mh, mf) = (_mm_movemask_epi8(high) as u32, _mm_movemask_epi8(first) as u32);
         let cut = mh & 0x8000; // a varint the next vector goes on with
         let bad = mh & !mf & !cut;
-        let n = if bad != 0 {
-            bad.trailing_zeros() as usize
-        } else if cut != 0 {
-            15
-        } else {
-            16
-        };
+        let n = if bad != 0 { bad.trailing_zeros() as usize } else if cut != 0 { 15 } else { 16 };
         out.reserve(16);
         let len = out.len();
         _mm_storeu_si128(out.as_mut_ptr().add(len) as *mut __m128i, o);
@@ -506,14 +461,7 @@ unsafe fn v2s_sse2(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize
 unsafe fn v2s_avx2(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize, bool) {
     use std::arch::x86_64::*;
     let sp = src.as_ptr();
-    let (zero, f0, c0, x80, x01, x3f) = (
-        _mm256_setzero_si256(),
-        _mm256_set1_epi8(0xF0u8 as i8),
-        _mm256_set1_epi8(0xC0u8 as i8),
-        _mm256_set1_epi8(0x80u8 as i8),
-        _mm256_set1_epi8(1),
-        _mm256_set1_epi8(0x3F),
-    );
+    let (zero, f0, c0, x80, x01, x3f) = (_mm256_setzero_si256(), _mm256_set1_epi8(0xF0u8 as i8), _mm256_set1_epi8(0xC0u8 as i8), _mm256_set1_epi8(0x80u8 as i8), _mm256_set1_epi8(1), _mm256_set1_epi8(0x3F));
     let (mut i, mut done) = (0, 0);
     while i + 32 <= src.len() && 32 <= units - done {
         let v = _mm256_loadu_si256(sp.add(i) as *const __m256i);
@@ -524,20 +472,11 @@ unsafe fn v2s_avx2(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize
         let second = prev256(first);
         let of = _mm256_or_si256(c0, _mm256_or_si256(_mm256_add_epi8(nx, nx), _mm256_and_si256(_mm256_srli_epi16::<6>(v), x01)));
         let os = _mm256_or_si256(x80, _mm256_and_si256(pv, x3f));
-        let o = _mm256_or_si256(
-            _mm256_andnot_si256(_mm256_or_si256(first, second), v),
-            _mm256_or_si256(_mm256_and_si256(of, first), _mm256_and_si256(os, second)),
-        );
+        let o = _mm256_or_si256(_mm256_andnot_si256(_mm256_or_si256(first, second), v), _mm256_or_si256(_mm256_and_si256(of, first), _mm256_and_si256(os, second)));
         let (mh, mf) = (_mm256_movemask_epi8(high) as u32, _mm256_movemask_epi8(first) as u32);
         let cut = mh & 0x8000_0000;
         let bad = mh & !mf & !cut;
-        let n = if bad != 0 {
-            bad.trailing_zeros() as usize
-        } else if cut != 0 {
-            31
-        } else {
-            32
-        };
+        let n = if bad != 0 { bad.trailing_zeros() as usize } else if cut != 0 { 31 } else { 32 };
         out.reserve(32);
         let len = out.len();
         _mm256_storeu_si256(out.as_mut_ptr().add(len) as *mut __m256i, o);
@@ -622,13 +561,7 @@ unsafe fn v2s_neon(src: &[u8], units: usize, out: &mut Vec<u8>) -> (usize, usize
         let (mh, mf) = (nibbles(high), nibbles(first));
         let cut = mh & 0xF000_0000_0000_0000;
         let bad = mh & !mf & !cut;
-        let n = if bad != 0 {
-            bad.trailing_zeros() as usize >> 2
-        } else if cut != 0 {
-            15
-        } else {
-            16
-        };
+        let n = if bad != 0 { bad.trailing_zeros() as usize >> 2 } else if cut != 0 { 15 } else { 16 };
         out.reserve(16);
         let len = out.len();
         vst1q_u8(out.as_mut_ptr().add(len), o);
@@ -652,12 +585,7 @@ fn short(b: &[u8]) -> usize {
     let (n, p) = (b.len(), b.as_ptr());
     if 8 <= n {
         // SAFETY: 8 <= n: [0, 8) and [n - 8, n) are in `b`
-        let (w0, w1) = unsafe {
-            (
-                (p as *const u64).read_unaligned() & 0x8080_8080_8080_8080,
-                (p.add(n - 8) as *const u64).read_unaligned() & 0x8080_8080_8080_8080,
-            )
-        };
+        let (w0, w1) = unsafe { ((p as *const u64).read_unaligned() & 0x8080_8080_8080_8080, (p.add(n - 8) as *const u64).read_unaligned() & 0x8080_8080_8080_8080) };
         if w0 != 0 {
             return (u64::from_le(w0).trailing_zeros() / 8) as usize;
         }
@@ -794,18 +722,7 @@ mod tests {
 
     #[test]
     fn utf16_len_as_encode_utf16() {
-        for s in [
-            "",
-            "a",
-            "abc",
-            "юникод",
-            "😀",
-            "a😀b",
-            "日本語テキスト",
-            "mixed: ascii, кириллица, 😀😀, 漢字",
-            &"x".repeat(1000),
-            &("ж".repeat(77) + "😀"),
-        ] {
+        for s in ["", "a", "abc", "юникод", "😀", "a😀b", "日本語テキスト", "mixed: ascii, кириллица, 😀😀, 漢字", &"x".repeat(1000), &("ж".repeat(77) + "😀")] {
             assert_eq!(utf16_len(s), s.encode_utf16().count(), "{s}");
         }
     }
@@ -854,14 +771,12 @@ mod tests {
         let mut rnd = 0x2545_F491_4F6C_DD1Du64;
         for len in [0usize, 1, 31, 32, 33, 1000, 4063, 4064, 4065, 9000, 20_000] {
             for weight in [0usize, 2, 7] {
-                let s: String = (0..len)
-                    .map(|_| {
-                        rnd ^= rnd << 13;
-                        rnd ^= rnd >> 7;
-                        rnd ^= rnd << 17;
-                        alphabet[rnd as usize % (alphabet.len() - weight.min(alphabet.len() - 1))]
-                    })
-                    .collect();
+                let s: String = (0..len).map(|_| {
+                    rnd ^= rnd << 13;
+                    rnd ^= rnd >> 7;
+                    rnd ^= rnd << 17;
+                    alphabet[rnd as usize % (alphabet.len() - weight.min(alphabet.len() - 1))]
+                }).collect();
                 assert_eq!(utf16_len(&s), s.encode_utf16().count(), "len {len} weight {weight}");
             }
         }
@@ -876,16 +791,12 @@ mod tests {
         let mut rnd = 0x9E37_79B9_7F4A_7C15u64;
         let mut cases: Vec<String> = vec![all.iter().collect()];
         for _ in 0..200 {
-            cases.push(
-                (0..rnd as usize % 40)
-                    .map(|_| {
-                        rnd ^= rnd << 13;
-                        rnd ^= rnd >> 7;
-                        rnd ^= rnd << 17;
-                        all[rnd as usize % all.len()]
-                    })
-                    .collect(),
-            );
+            cases.push((0..rnd as usize % 40).map(|_| {
+                rnd ^= rnd << 13;
+                rnd ^= rnd >> 7;
+                rnd ^= rnd << 17;
+                all[rnd as usize % all.len()]
+            }).collect());
         }
         for s in &cases {
             let want = varints(s);
@@ -924,11 +835,7 @@ mod tests {
                         rnd ^= rnd >> 7;
                         rnd ^= rnd << 17;
                         let r = rnd as usize % 16;
-                        if r < weight {
-                            ['ж', ' '][r & 1]
-                        } else {
-                            alphabet[r % alphabet.len()]
-                        }
+                        if r < weight { ['ж', ' '][r & 1] } else { alphabet[r % alphabet.len()] }
                     })
                     .collect();
                 let b = s.as_bytes();
@@ -947,10 +854,7 @@ mod tests {
                     for cap in [usize::MAX, 0, 7, 8, 9, 17] {
                         let mut out = vec![b'#'];
                         let (got, units) = varints_to_short(&want[at..], cap, &mut out);
-                        assert!(
-                            units <= cap && got <= lead_bytes && (lead_bytes - got < 8 || cap - units < 8),
-                            "{s:?} back from {from} cap {cap}: {got} of {lead_bytes}"
-                        );
+                        assert!(units <= cap && got <= lead_bytes && (lead_bytes - got < 8 || cap - units < 8), "{s:?} back from {from} cap {cap}: {got} of {lead_bytes}");
                         assert!(s.is_char_boundary(from + got), "{s:?} back from {from} cap {cap}: {got} cuts a character");
                         assert_eq!(out[1..], b[from..from + got], "{s:?} back from {from} cap {cap}");
                         assert_eq!(units, s[from..from + got].chars().count(), "{s:?} back from {from} cap {cap}");
@@ -962,10 +866,7 @@ mod tests {
         // overlong UTF-8
         let mut out = Vec::new();
         assert_eq!(varints_to_short(&[0xC1, 0x00, 0x9F, 0x08, 0x9F, 0x08, 0x9F, 0x08], usize::MAX, &mut out), (0, 0));
-        assert_eq!(
-            varints_to_short(&[b'a', 0x9F, 0x08, b' ', 0x9F, 0x08, 0x9F, 0x08, 0x9F, 0x08, 0xC1, 0x00, 0, 0, 0, 0], usize::MAX, &mut out),
-            (10, 6)
-        );
+        assert_eq!(varints_to_short(&[b'a', 0x9F, 0x08, b' ', 0x9F, 0x08, 0x9F, 0x08, 0x9F, 0x08, 0xC1, 0x00, 0, 0, 0, 0], usize::MAX, &mut out), (10, 6));
         assert_eq!(out, "aП ППП".as_bytes());
     }
 }

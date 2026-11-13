@@ -66,34 +66,14 @@ fn without(at: &arc_swap::ArcSwapOption<Vec<u32>>, v: u32) {
 impl<T: ?Sized + Send + Sync> Sessions<T> {
     /// Identities `[first, first + count)`; `ext` - the transport of a holder; `mine` - the holders whose sessions these are.
     pub fn new(first: u32, count: usize, ext: Ext<T>, mine: fn(&Arc<T>) -> bool) -> Self {
-        Self {
-            first,
-            count,
-            places: Arc::new(parking_lot::Mutex::new(vec![None; count])),
-            tokens: parking_lot::Mutex::new(vec![0; count]),
-            ext,
-            mine,
-            presence: std::sync::OnceLock::new(),
-            watchers: std::sync::OnceLock::new(),
-            watching: parking_lot::Mutex::new(Vec::new()),
-        }
+        Self { first, count, places: Arc::new(parking_lot::Mutex::new(vec![None; count])), tokens: parking_lot::Mutex::new(vec![0; count]), ext, mine, presence: std::sync::OnceLock::new(), watchers: std::sync::OnceLock::new(), watching: parking_lot::Mutex::new(Vec::new()) }
     }
 
     /// The places of `share`, tokens of its own, the sessions of the holders `mine` tells: two kinds of session of one peer, one of
     /// them on at a time - a program and the starter of it.
     pub fn of(share: &Sessions<T>, mine: fn(&Arc<T>) -> bool) -> Self {
         let count = share.count;
-        Self {
-            first: share.first,
-            count,
-            places: share.places.clone(),
-            tokens: parking_lot::Mutex::new(vec![0; count]),
-            ext: share.ext,
-            mine,
-            presence: std::sync::OnceLock::new(),
-            watchers: std::sync::OnceLock::new(),
-            watching: parking_lot::Mutex::new(Vec::new()),
-        }
+        Self { first: share.first, count, places: share.places.clone(), tokens: parking_lot::Mutex::new(vec![0; count]), ext: share.ext, mine, presence: std::sync::OnceLock::new(), watchers: std::sync::OnceLock::new(), watching: parking_lot::Mutex::new(Vec::new()) }
     }
 
     fn at(&self, id: u32) -> Option<usize> {
@@ -181,9 +161,7 @@ impl<T: ?Sized + Send + Sync> Sessions<T> {
 
     /// `watcher` is told no more about `id`; `false` - it did not watch it.
     pub fn unwatch(&self, watcher: u32, id: u32) -> bool {
-        let (Some(w), Some(i), Some(all)) = (self.at(watcher), self.at(id), self.watchers.get()) else {
-            return false;
-        };
+        let (Some(w), Some(i), Some(all)) = (self.at(watcher), self.at(id), self.watchers.get()) else { return false };
         let mut watching = self.watching.lock();
         let Some(k) = watching[w].iter().position(|&x| x == id) else { return false };
         watching[w].swap_remove(k);

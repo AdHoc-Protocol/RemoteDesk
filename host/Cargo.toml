@@ -82,10 +82,11 @@ arboard = { version = "*", features = ["wayland-data-control"] }
 dirs = "*"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# X11: the displays ( RandR ), the capture ( MIT-SHM, DAMAGE ), the pointer ( XFIXES ), the input ( XTEST ) - pure Rust. The
+# X11: the displays ( RandR ), the capture ( MIT-SHM, DAMAGE ), the pointer ( XFIXES ), the input ( XTEST ), the marks of the viewers that
+# the mouse goes through ( SHAPE ) - pure Rust. The
 # unsafe parts of x11rb come with `dl-libxcb`: libxcb would be loaded only for an XCB connection, and the program opens none -
 # it is neither linked nor needed to build or to run
-x11rb = { version = "*", features = ["dl-libxcb", "shm", "damage", "xfixes", "xtest", "randr"] }
+x11rb = { version = "*", features = ["dl-libxcb", "shm", "damage", "xfixes", "xtest", "randr", "shape"] }
 xkeysym = "*"
 # Wayland: the portals ScreenCast and RemoteDesktop - pure Rust over D-Bus
 ashpd = { version = "*", default-features = false, features = ["async-io", "screencast", "remote_desktop", "file_chooser"] }

@@ -76,10 +76,7 @@ impl<T: Default> RingBuffer<T> {
         assert!(capacity_power_of_two <= 30, "capacity_power_of_two must be 0..=30");
         let capacity = 1usize << capacity_power_of_two.max(1);
         let slots = (0..capacity as u64)
-            .map(|i| Slot {
-                sequence: AtomicU64::new(i << 1),
-                value: UnsafeCell::new(T::default()),
-            })
+            .map(|i| Slot { sequence: AtomicU64::new(i << 1), value: UnsafeCell::new(T::default()) })
             .collect();
         Self {
             slots,
@@ -94,6 +91,7 @@ impl<T: Default> RingBuffer<T> {
 }
 
 impl<T> RingBuffer<T> {
+
     /// How many values the queue holds at most.
     #[inline]
     pub fn capacity(&self) -> usize {
@@ -466,8 +464,7 @@ impl<T> RingBuffer<T> {
     /// Frees the slot of the taken position `pos` for the put of the next lap.
     #[inline(always)]
     fn release(&self, pos: u64) {
-        self.slot(pos).sequence.store((pos + self.slots.len() as u64) << 1, Ordering::Release);
-        // the reads of the value come first
+        self.slot(pos).sequence.store((pos + self.slots.len() as u64) << 1, Ordering::Release); // the reads of the value come first
     }
 }
 
@@ -504,13 +501,7 @@ impl<T> fmt::Debug for RingBuffer<T> {
 /// The state of the queue for a log line.
 impl<T> fmt::Display for RingBuffer<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "RingBuffer{{capacity={}, head={}, tail={}}}",
-            self.slots.len(),
-            self.head.0.load(Ordering::Acquire),
-            self.tail.0.load(Ordering::Acquire)
-        )
+        write!(f, "RingBuffer{{capacity={}, head={}, tail={}}}", self.slots.len(), self.head.0.load(Ordering::Acquire), self.tail.0.load(Ordering::Acquire))
     }
 }
 
@@ -522,34 +513,10 @@ mod tests {
     #[test]
     fn in_place_order_full_and_give_up() {
         let q: RingBuffer<u32> = RingBuffer::new(2); // 4 slots
-        assert_eq!(
-            q.put(|v| {
-                *v = 1;
-                true
-            }),
-            Some(true)
-        ); // the consumer slept
-        assert_eq!(
-            q.put(|v| {
-                *v = 2;
-                false
-            }),
-            Some(false)
-        ); // given up
-        assert_eq!(
-            q.put(|v| {
-                *v = 3;
-                true
-            }),
-            Some(false)
-        );
-        assert_eq!(
-            q.put(|v| {
-                *v = 4;
-                true
-            }),
-            Some(false)
-        );
+        assert_eq!(q.put(|v| { *v = 1; true }), Some(true)); // the consumer slept
+        assert_eq!(q.put(|v| { *v = 2; false }), Some(false)); // given up
+        assert_eq!(q.put(|v| { *v = 3; true }), Some(false));
+        assert_eq!(q.put(|v| { *v = 4; true }), Some(false));
         assert_eq!(q.put(|_| true), None); // full
         let mut got = vec![];
         while q.take() {
@@ -557,12 +524,7 @@ mod tests {
             q.free();
         }
         assert_eq!(got, vec![1, 3, 4]);
-        assert!(q
-            .put(|v| {
-                *v = 5;
-                true
-            })
-            .is_some()); // a quarter free again
+        assert!(q.put(|v| { *v = 5; true }).is_some()); // a quarter free again
     }
 
     /// The steps of a put one by one: the order of the claims is the order of the queue, whatever
@@ -596,13 +558,7 @@ mod tests {
                 let q = q.clone();
                 std::thread::spawn(move || {
                     for i in 0..10_000u64 {
-                        while q
-                            .put(|v| {
-                                *v = p << 32 | i;
-                                true
-                            })
-                            .is_none()
-                        {
+                        while q.put(|v| { *v = p << 32 | i; true }).is_none() {
                             std::hint::spin_loop();
                         }
                     }
@@ -673,10 +629,7 @@ mod tests {
         };
         for i in 0..20_000u64 {
             loop {
-                if let Some(wake) = q.put(|v| {
-                    *v = i;
-                    true
-                }) {
+                if let Some(wake) = q.put(|v| { *v = i; true }) {
                     if wake {
                         woken.store(true, Ordering::Release);
                         consumer.thread().unpark();
@@ -703,27 +656,14 @@ mod tests {
         let q: RingBuffer<u32> = RingBuffer::new(2); // 4 slots
         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| q.put(|_| panic!("a fill of the application"))));
         assert!(r.is_err());
-        q.put(|v| {
-            *v = 1;
-            true
-        });
+        q.put(|v| { *v = 1; true });
         assert!(q.take() && unsafe { *q.taken() } == 1, "the slot given up is passed by");
         q.free();
-        q.put(|v| {
-            *v = 2;
-            true
-        });
+        q.put(|v| { *v = 2; true });
         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| q.clear_in_place(|_| panic!("a handler of the application"))));
         assert!(r.is_err());
         for i in 0..4 {
-            assert!(
-                q.put(|v| {
-                    *v = i;
-                    true
-                })
-                .is_some(),
-                "value {i}: the ring came round"
-            );
+            assert!(q.put(|v| { *v = i; true }).is_some(), "value {i}: the ring came round");
         }
     }
 }

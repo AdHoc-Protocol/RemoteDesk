@@ -173,13 +173,7 @@ impl<T> BitsList<T> {
     /// allocate.
     pub fn new(bits_per_item: u32) -> Self {
         assert!((1..=8).contains(&bits_per_item), "bits per item must be 1..=8");
-        Self {
-            words: Vec::new(),
-            len: 0,
-            bits: bits_per_item,
-            default_value: 0,
-            _item: PhantomData,
-        }
+        Self { words: Vec::new(), len: 0, bits: bits_per_item, default_value: 0, _item: PhantomData }
     }
 
     /// An empty list with room for `items` items.
@@ -758,13 +752,7 @@ impl<T: ByteKey> BitsList<T> {
 
 impl<T> Clone for BitsList<T> {
     fn clone(&self) -> Self {
-        Self {
-            words: self.words.clone(),
-            len: self.len,
-            bits: self.bits,
-            default_value: self.default_value,
-            _item: PhantomData,
-        }
+        Self { words: self.words.clone(), len: self.len, bits: self.bits, default_value: self.default_value, _item: PhantomData }
     }
 }
 

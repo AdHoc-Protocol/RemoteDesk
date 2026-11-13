@@ -406,6 +406,7 @@ The bar of the page, on your device:
 | **Send files** | Sends files from your device to the Downloads folder of the remote computer. You can also drop them on the screen |
 | **Get a file** | The user of the remote computer picks a file, and the page saves it on your device |
 | **Ask for admin rights** | Windows: the user of the remote computer is asked to confirm. Then you can work in programs run as administrator too |
+| **✏️ Draw** | Your mouse or finger draws over the screen of the remote computer instead of controlling it: see [Drawing over the screen](#drawing-over-the-screen) |
 | **Take control** | Shown to a viewer who only watches: the control passes to you at once |
 | **Disconnect** | Ends the session |
 
@@ -419,6 +420,31 @@ Also:
   nothing on it. The picture comes back when you return.
 - **Slow network.** The picture gets coarser instead of lagging: the remote computer lowers the quality when the network falls
   behind, and raises it again when the network keeps up.
+
+### Drawing over the screen
+
+To show the user of the remote computer where to tap or which field to fill, draw on its screen instead of explaining. Press
+**✏️ Draw**: while it is on, your mouse or finger draws, and the remote computer gets no input.
+
+| You | The user of the remote computer sees |
+| --- | --- |
+| Draw a line | The line, over every window, as you draw it |
+| Tap or click | A ring there, rippling: here |
+| **➚ Arrow** on, then draw | An arrow from where you began to where you let go |
+| **●** | Changes the colour: red, yellow, green, blue |
+
+Each mark holds a moment and fades by itself in about 2.5 seconds. The marks let the mouse and the touches through: the user goes
+on working under them. You see them in the picture as the user does. Every viewer can draw, not only the one who controls.
+
+A value to type goes the way of the clipboard: copy it on your device and press **Ctrl+V** on the page, then the user pastes it
+into the field the mark shows.
+
+| Remote computer | The marks |
+| --- | --- |
+| Windows, macOS | Shown over everything |
+| Linux with X11 | Shown when a compositor runs (GNOME, KDE and most desktops have one) |
+| Linux with Wayland | Not shown: Wayland lets no program put a window over the others |
+| Android | Shown over the other apps once its user allows **Display over other apps**: the app has a button for it |
 
 ### Several viewers
 
@@ -470,7 +496,9 @@ What the phone does in this version:
 Android lets an app read the clipboard only while the app is in front, so the phone sends text when you send it, not by itself.
 
 The viewer only watches the phone for now: the taps and keys of the page come in the next version (the service of accessibility
-of Android). The microphone of the page and sending files from the phone come with them.
+of Android). The microphone of the page and sending files from the phone come with them. To show the user where to tap, draw
+over the screen: **Let the viewer draw over the screen** in the app allows it once, see
+[Drawing over the screen](#drawing-over-the-screen).
 
 ## The first start
 

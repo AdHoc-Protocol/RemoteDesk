@@ -17,6 +17,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.media.AudioAttributes
@@ -35,10 +37,15 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.Process
+import android.provider.Settings
+import android.view.Gravity
 import android.view.Surface
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.ImageView
 import java.io.File
 import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicInteger
 
 class HostService : Service() {
     companion object {
@@ -133,6 +140,7 @@ class HostService : Service() {
 
     private fun stop() {
         Host.service = null
+        runCatching { overlayGone() }
         runCatching { soundStop() }
         runCatching { videoStop() }
         runCatching { display?.release() }
@@ -291,6 +299,90 @@ class HostService : Service() {
             }
         }, "sound").apply { start() }
         return true
+    }
+
+    // ── the marks of the viewers: their images in a window over the other apps, the touches going through it ──
+
+    private var overlay: FrameLayout? = null
+    /** On the main thread: the image of each stroke, by number. */
+    private val marks = HashMap<Int, ImageView>()
+    /** On the thread of the marks of the host: two bitmaps of each stroke in turn - one is shown while the other is filled. */
+    private val filling = HashMap<Int, Array<Bitmap?>>()
+    private val turnOf = HashMap<Int, Int>()
+    private val nextMark = AtomicInteger(1)
+
+    fun markNew(): Int = if (Settings.canDrawOverlays(this)) nextMark.getAndIncrement() else -1
+
+    fun markShow(id: Int, x: Int, y: Int, width: Int, height: Int, pixels: ByteBuffer, alpha: Float) {
+        if (width <= 0 || height <= 0) return
+        val pair = filling.getOrPut(id) { arrayOfNulls(2) }
+        val turn = turnOf[id] ?: 0
+        turnOf[id] = turn xor 1
+        var bitmap = pair[turn]
+        if (bitmap == null || bitmap.width != width || bitmap.height != height) {
+            bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            pair[turn] = bitmap
+        }
+        pixels.rewind()
+        bitmap.copyPixelsFromBuffer(pixels) // the memory of the host is its own again after this call
+        val shown: Bitmap = bitmap
+        main.post {
+            val o = overlay() ?: return@post
+            val v = marks.getOrPut(id) { ImageView(this).also { o.addView(it, FrameLayout.LayoutParams(width, height)) } }
+            if (v.layoutParams.width != width || v.layoutParams.height != height) v.layoutParams = FrameLayout.LayoutParams(width, height)
+            v.setImageBitmap(shown)
+            v.translationX = x.toFloat()
+            v.translationY = y.toFloat()
+            v.alpha = alpha
+        }
+    }
+
+    fun markFade(id: Int, alpha: Float) {
+        main.post { marks[id]?.alpha = alpha }
+    }
+
+    fun markGone(id: Int) {
+        filling.remove(id)
+        turnOf.remove(id)
+        main.post {
+            marks.remove(id)?.let { overlay?.removeView(it) }
+            if (marks.isEmpty()) overlayGone()
+        }
+    }
+
+    /** The window over the other apps, made the first time: all the screen, the touches going through. */
+    private fun overlay(): FrameLayout? {
+        overlay?.let { return it }
+        if (!Settings.canDrawOverlays(this)) return null
+        val o = FrameLayout(this)
+        val p = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT,
+        )
+        p.gravity = Gravity.TOP or Gravity.START
+        // Android 12 lets the touches through a window of another app only when it is this clear at least
+        p.alpha = 0.8f
+        p.layoutInDisplayCutoutMode =
+            if (Build.VERSION.SDK_INT >= 30) WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS else WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        if (Build.VERSION.SDK_INT >= 30) p.fitInsetsTypes = 0
+        return try {
+            getSystemService(WindowManager::class.java).addView(o, p)
+            overlay = o
+            o
+        } catch (e: RuntimeException) {
+            null
+        }
+    }
+
+    private fun overlayGone() {
+        val o = overlay ?: return
+        overlay = null
+        marks.clear()
+        runCatching { getSystemService(WindowManager::class.java).removeView(o) }
     }
 
     @Synchronized

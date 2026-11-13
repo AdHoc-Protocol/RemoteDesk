@@ -38,11 +38,7 @@ const POOL: usize = 1 << 10;
 const KEEP_MAX: usize = 64 << 10;
 
 fn fresh() -> Box<Bytes> {
-    Box::new(Bytes {
-        refs: AtomicUsize::new(1),
-        id: 0,
-        body: Vec::new(),
-    })
+    Box::new(Bytes { refs: AtomicUsize::new(1), id: 0, body: Vec::new() })
 }
 
 /// The captures given back, to be taken again.
@@ -245,11 +241,7 @@ mod bench {
                 for i in 0..N {
                     let mut v = Vec::new();
                     v.extend_from_slice(&body);
-                    let b = Box::new(Bytes {
-                        refs: AtomicUsize::new(1),
-                        id: i as u32,
-                        body: v,
-                    });
+                    let b = Box::new(Bytes { refs: AtomicUsize::new(1), id: i as u32, body: v });
                     for _ in 0..4 {
                         b.refs.fetch_add(1, Ordering::Relaxed);
                     }

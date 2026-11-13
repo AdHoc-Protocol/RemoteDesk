@@ -157,18 +157,12 @@ pub struct StreamOut {
 impl StreamOut {
     /// A `Stream` pack: the bytes of `src` up to its end.
     pub fn new(src: Box<dyn std::io::Read + Send>) -> Self {
-        Self {
-            src: parking_lot::Mutex::new(Some(src)),
-            len: 0,
-        }
+        Self { src: parking_lot::Mutex::new(Some(src)), len: 0 }
     }
 
     /// A `File` pack: exactly `len` bytes of `src`.
     pub fn file(src: Box<dyn std::io::Read + Send>, len: u64) -> Self {
-        Self {
-            src: parking_lot::Mutex::new(Some(src)),
-            len,
-        }
+        Self { src: parking_lot::Mutex::new(Some(src)), len }
     }
 
     /// The source, once.

@@ -37,20 +37,14 @@ pub struct Map<K, V, S = FxBuildHasher> {
 impl<K, V, S> Map<K, V, S> {
     /// First physical slot; see [`super::token`] for validity and iteration order.
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        self.raw.token()
-    }
+    pub fn token(&self) -> Option<Token> { self.raw.token() }
 
     #[inline(always)]
-    pub fn next_token(&self, token: Token) -> Option<Token> {
-        self.raw.next_token(token)
-    }
+    pub fn next_token(&self, token: Token) -> Option<Token> { self.raw.next_token(token) }
 
     /// Checks slot occupancy, without detecting a stale or foreign token.
     #[inline(always)]
-    pub fn contains_token(&self, token: Token) -> bool {
-        self.raw.contains_token(token)
-    }
+    pub fn contains_token(&self, token: Token) -> bool { self.raw.contains_token(token) }
 
     /// Direct slot access without hashing; token is not an ordinal `entry_at` index.
     #[inline(always)]
@@ -176,10 +170,7 @@ impl<K: Eq + Hash, V, S: BuildHasher> Map<K, V, S> {
     /// Finds a physical slot using any borrowed form of the key.
     #[inline(always)]
     pub fn token_of<Q>(&self, key: &Q) -> Option<Token>
-    where
-        K: Borrow<Q>,
-        Q: Hash + Eq + ?Sized,
-    {
+    where K: Borrow<Q>, Q: Hash + Eq + ?Sized {
         let h = self.hash(key);
         self.raw.find(h, |e| e.hash as u64 == h && e.key.borrow() == key)
     }
@@ -191,10 +182,7 @@ impl<K: Eq + Hash, V, S: BuildHasher> Map<K, V, S> {
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> Self {
-        Self {
-            raw: RawTable::with_capacity(capacity),
-            hasher,
-        }
+        Self { raw: RawTable::with_capacity(capacity), hasher }
     }
 
     /// The table uses the low 32 bits only: the bucket index and the cached hash.
@@ -306,10 +294,7 @@ impl<K: Eq + Hash, V, S: BuildHasher> Map<K, V, S> {
 
 impl<K: Clone, V: Clone, S: Clone> Clone for Map<K, V, S> {
     fn clone(&self) -> Self {
-        Self {
-            raw: self.raw.clone(),
-            hasher: self.hasher.clone(),
-        }
+        Self { raw: self.raw.clone(), hasher: self.hasher.clone() }
     }
 }
 

@@ -46,11 +46,7 @@ impl<V> Flat<V> {
     fn new() -> Self {
         let bits = vec![0u64; WORDS].into_boxed_slice().try_into().unwrap();
         // For `V = ()` (sets) the slots take no memory.
-        Self {
-            bits,
-            values: Box::new_uninit_slice(SLOTS),
-            len: 0,
-        }
+        Self { bits, values: Box::new_uninit_slice(SLOTS), len: 0 }
     }
 
     #[inline(always)]
@@ -209,10 +205,7 @@ impl<K, V> TwoBytesMap<K, V> {
     /// First lo/hi slot or flat key token; see [`super::token`].
     #[inline(always)]
     pub fn token(&self) -> Option<Token> {
-        match &self.repr {
-            Repr::Hash(t) => t.token(),
-            Repr::Flat(f) => f.next_from(0).map(|k| k as usize),
-        }
+        match &self.repr { Repr::Hash(t) => t.token(), Repr::Flat(f) => f.next_from(0).map(|k| k as usize) }
     }
 
     #[inline(always)]
@@ -220,9 +213,7 @@ impl<K, V> TwoBytesMap<K, V> {
         match &self.repr {
             Repr::Hash(t) => t.next_token(token),
             Repr::Flat(f) => {
-                if !self.contains_token(token) {
-                    return None;
-                }
+                if !self.contains_token(token) { return None; }
                 f.next_from(token + 1).map(|k| k as usize)
             }
         }
@@ -230,23 +221,14 @@ impl<K, V> TwoBytesMap<K, V> {
 
     #[inline(always)]
     pub fn contains_token(&self, token: Token) -> bool {
-        match &self.repr {
-            Repr::Hash(t) => t.contains_token(token),
-            Repr::Flat(f) => token < SLOTS && f.contains(token as u16),
-        }
+        match &self.repr { Repr::Hash(t) => t.contains_token(token), Repr::Flat(f) => token < SLOTS && f.contains(token as u16) }
     }
 
     #[inline(always)]
     pub fn value_by_token(&self, token: Token) -> Option<&V> {
         match &self.repr {
             Repr::Hash(t) => t.get_by_token(token).map(|(_, v)| v),
-            Repr::Flat(f) => {
-                if token < SLOTS {
-                    f.get(token as u16)
-                } else {
-                    None
-                }
-            }
+            Repr::Flat(f) => if token < SLOTS { f.get(token as u16) } else { None },
         }
     }
 
@@ -254,23 +236,14 @@ impl<K, V> TwoBytesMap<K, V> {
     pub fn value_by_token_mut(&mut self, token: Token) -> Option<&mut V> {
         match &mut self.repr {
             Repr::Hash(t) => t.get_by_token_mut(token),
-            Repr::Flat(f) => {
-                if token < SLOTS {
-                    f.get_mut(token as u16)
-                } else {
-                    None
-                }
-            }
+            Repr::Flat(f) => if token < SLOTS { f.get_mut(token as u16) } else { None },
         }
     }
 
     /// Does not allocate.
     #[inline]
     pub fn new() -> Self {
-        Self {
-            repr: Repr::Hash(RawTable::new()),
-            _key: PhantomData,
-        }
+        Self { repr: Repr::Hash(RawTable::new()), _key: PhantomData }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
@@ -389,13 +362,7 @@ impl<K: TwoBytesKey, V> TwoBytesMap<K, V> {
     pub fn entry_by_token(&self, token: Token) -> Option<(K, &V)> {
         match &self.repr {
             Repr::Hash(t) => t.get_by_token(token).map(|(e, v)| (K::from_u16(*e), v)),
-            Repr::Flat(f) => {
-                if token < SLOTS {
-                    f.get(token as u16).map(|v| (K::from_u16(token as u16), v))
-                } else {
-                    None
-                }
-            }
+            Repr::Flat(f) => if token < SLOTS { f.get(token as u16).map(|v| (K::from_u16(token as u16), v)) } else { None },
         }
     }
 
@@ -693,12 +660,7 @@ struct FlatCursor<'a> {
 impl<'a> FlatCursor<'a> {
     #[inline]
     fn new(bits: &'a [u64; WORDS], len: usize) -> Self {
-        Self {
-            bits,
-            word: 0,
-            cur: bits[0],
-            remaining: len,
-        }
+        Self { bits, word: 0, cur: bits[0], remaining: len }
     }
 
     #[inline]

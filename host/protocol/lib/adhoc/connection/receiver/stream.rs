@@ -13,9 +13,7 @@ impl<'a> Rx<'a> {
     /// [`try_get_bytes`](Self::try_get_bytes), from chunks through the stages of the chain wire to
     /// leaf, up to the terminator. `this_case` — the case of the pack that calls it.
     #[inline]
-    pub fn get_chain<D: BytesDst + ?Sized>(&mut self, chain: u32, dst: &mut D, this_case: u32) -> bool {
-        self.get_chain_at(chain, dst, 0, this_case)
-    }
+    pub fn get_chain<D: BytesDst + ?Sized>(&mut self, chain: u32, dst: &mut D, this_case: u32) -> bool { self.get_chain_at(chain, dst, 0, this_case) }
 
     /// [`get_chain`](Self::get_chain) whose nested level starts at `enter`: a pack that is the leaf
     /// of the chain on one of its collection fields reads the field from its own case.
@@ -78,15 +76,7 @@ impl<'a> Rx<'a> {
         self.stream_(chain, Some(keys), open, i64::MAX, this_case, true)
     }
 
-    fn stream_<K: FnOnce() -> crate::lib::stages::Keys, F: FnOnce() -> Box<dyn std::io::Write + Send>>(
-        &mut self,
-        chain: Option<u32>,
-        keys: Option<K>,
-        open: F,
-        max: i64,
-        this_case: u32,
-        tunnel: bool,
-    ) -> bool {
+    fn stream_<K: FnOnce() -> crate::lib::stages::Keys, F: FnOnce() -> Box<dyn std::io::Write + Send>>(&mut self, chain: Option<u32>, keys: Option<K>, open: F, max: i64, this_case: u32, tunnel: bool) -> bool {
         let parent = self.st.level;
         let level = parent + 1;
         if self.st.chains.len() <= level {
@@ -262,12 +252,7 @@ impl<'a> Rx<'a> {
             if let Err(e) = std::io::Write::write_all(dst, &self.buffer[self.byte_..self.byte_ + n]) {
                 // the sink of the application failed: it is told, and the rest of the file is read
                 // unseen - the connection goes on
-                crate::lib::adhoc::connection::receiver::on_error::rx_at(
-                    crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error,
-                    &"the sink of a file",
-                    &"failed: the rest of the file is read unseen",
-                    Some(&e),
-                );
+                crate::lib::adhoc::connection::receiver::on_error::rx_at(crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error, &"the sink of a file", &"failed: the rest of the file is read unseen", Some(&e));
                 self.st.file_dst = Some(Box::new(std::io::sink()));
             }
             self.byte_ += n;
@@ -275,12 +260,7 @@ impl<'a> Rx<'a> {
         }
         if let Some(mut dst) = self.st.file_dst.take() {
             if let Err(e) = std::io::Write::flush(&mut dst) {
-                crate::lib::adhoc::connection::receiver::on_error::rx_at(
-                    crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error,
-                    &"the sink of a file",
-                    &"its flush failed",
-                    Some(&e),
-                );
+                crate::lib::adhoc::connection::receiver::on_error::rx_at(crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error, &"the sink of a file", &"its flush failed", Some(&e));
             }
         }
         self.st.file_phase = 0;

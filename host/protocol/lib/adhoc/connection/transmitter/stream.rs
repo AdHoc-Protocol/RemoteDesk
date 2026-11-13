@@ -13,9 +13,7 @@ impl<'a> Tx<'a> {
     /// the terminator. The stages are those the connection gives for the chain ([`TxHost::chain`]).
     /// `this_case` — the case of the pack that calls it.
     #[inline]
-    pub fn put_chain<S: BytesSrc + ?Sized>(&mut self, chain: u32, src: &S, this_case: u32) -> bool {
-        self.put_chain_at(chain, src, 1, this_case)
-    }
+    pub fn put_chain<S: BytesSrc + ?Sized>(&mut self, chain: u32, src: &S, this_case: u32) -> bool { self.put_chain_at(chain, src, 1, this_case) }
 
     /// [`put_chain`](Self::put_chain) whose nested level starts at `enter`: a pack that is the leaf
     /// of the chain on one of its collection fields writes the field from its own case.
@@ -95,9 +93,7 @@ impl<'a> Tx<'a> {
             self.st.stream_complete = None; // armed again as the stream goes on: it is this stream's, armed already
         }
         let done = {
-            let TxChain {
-                stages, terminator, raw, total, max, ..
-            } = &mut ch;
+            let TxChain { stages, terminator, raw, total, max, .. } = &mut ch;
             let max = *max;
             self.chain_body(stages, terminator, &mut |t: &mut Tx<'_>| chunked::raw_leaf(t, raw, total, max))
         };
@@ -225,7 +221,7 @@ impl<'a> Tx<'a> {
                 Ok(read) => read,
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => 0, // nothing now: the pack pauses, its producer wakes the transmit
-                Err(e) => panic!("the source of a file failed: {e}"),      // A stream read error terminates the connection.
+                Err(e) => panic!("the source of a file failed: {e}"), // A stream read error terminates the connection.
             };
             if read == 0 {
                 self.retry_at(this_case);

@@ -12,8 +12,8 @@
 //! checked for the delimiter so decoding can restart after a damaged frame. Packet delivery
 //! completes only after its checksum matches.
 
-use crate::lib::adhoc::connection::receiver::{RxHost, RxState};
 use crate::lib::adhoc::helpers::{crc32c, CRC_LEN_BYTES};
+use crate::lib::adhoc::connection::receiver::{RxHost, RxState};
 
 /// The bytes of a long block at most: its length goes as two bytes 0..254, the low one first.
 pub(crate) const LONG: usize = 254 + 254 * 255;
@@ -377,12 +377,7 @@ impl<H: RxHost> Framing<H> {
     /// `id_bytes` — the bytes of a pack id with the address of its actor (`Receiver::ID_BYTES` of
     /// the generated code).
     pub fn new(host: H, id_bytes: i32) -> Self {
-        Self {
-            host,
-            rx: RxState::new(id_bytes),
-            framing: State::new(),
-            copy: Vec::new(),
-        }
+        Self { host, rx: RxState::new(id_bytes), framing: State::new(), copy: Vec::new() }
     }
 
     pub fn host(&self) -> &H {
@@ -451,8 +446,8 @@ impl<H: RxHost + Send> crate::lib::adhoc::BytesDst for Framing<H> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lib::adhoc::connection::receiver::{BytesDst, Rx};
     use crate::lib::adhoc::connection::transmitter::framing::State as TxFraming;
+    use crate::lib::adhoc::connection::receiver::{BytesDst, Rx};
     use crate::lib::adhoc::connection::transmitter::{BytesSrc, Tx, TxHost, TxState};
 
     #[derive(Default, Clone, Debug, PartialEq)]
@@ -543,14 +538,9 @@ mod tests {
     fn packs() -> Vec<P> {
         vec![
             // 0x7F and 0xFF bytes in the value: escaping is exercised
-            P {
-                a: 0x7F7F_FFFF_7F00_FF7F,
-                s: "a\u{7F}\u{FF}b".into(),
-            },
+            P { a: 0x7F7F_FFFF_7F00_FF7F, s: "a\u{7F}\u{FF}b".into() },
             P { a: 0, s: "x".repeat(300) },
-            P {
-                a: u64::MAX, s: "юникод 😀".into()
-            },
+            P { a: u64::MAX, s: "юникод 😀".into() },
         ]
     }
 
@@ -695,14 +685,7 @@ mod tests {
                         let mut c = chunk.to_vec();
                         assert!(fr.write(&mut c, &mut st, &mut host));
                     }
-                    assert!(
-                        host.1 == [p[0].clone(), p[2].clone()],
-                        "id {id_bytes} torn at {} of {}, window {window}: {} packs, {:?}",
-                        cut - ff[1],
-                        ff[2] - ff[1],
-                        host.1.len(),
-                        fr.last_error
-                    );
+                    assert!(host.1 == [p[0].clone(), p[2].clone()], "id {id_bytes} torn at {} of {}, window {window}: {} packs, {:?}", cut - ff[1], ff[2] - ff[1], host.1.len(), fr.last_error);
                     assert!(fr.last_error.is_some(), "id {id_bytes} torn at {} of {}, window {window}: told", cut - ff[1], ff[2] - ff[1]);
                 }
             }
@@ -794,10 +777,7 @@ mod tests {
                     _ => (b'a' + (seed >> 8) as u8 % 26) as char,
                 });
             }
-            packs.push(P {
-                a: (seed as u64) << 32 | (n as u64 * 0x0101_7F7F),
-                s,
-            });
+            packs.push(P { a: (seed as u64) << 32 | (n as u64 * 0x0101_7F7F), s });
         }
         let mut st = TxState::new();
         let mut fr = TxFraming::new();
@@ -828,10 +808,10 @@ mod tests {
 #[cfg(test)]
 mod framed_tests {
     use super::*;
+    use crate::lib::adhoc::{BytesDst, BytesSrc as _};
+    use crate::lib::adhoc::connection::transmitter::{TxHost, TxState};
     use crate::lib::adhoc::connection::receiver::Rx;
     use crate::lib::adhoc::connection::transmitter::Tx;
-    use crate::lib::adhoc::connection::transmitter::{TxHost, TxState};
-    use crate::lib::adhoc::{BytesDst, BytesSrc as _};
 
     /// Packs of id 9 with a 4-byte value; what it got and what it was told.
     #[derive(Default)]
@@ -947,10 +927,7 @@ mod framed_tests {
         assert!(s.on_bytes(&[9, 5, 1, 2, 3, 4, 5, 9, 2, 6, 7]));
         assert!(!BytesDst::broken(&s));
         assert_eq!(s.host().0, 2, "both packs received");
-        assert_eq!(
-            crate::lib::adhoc::connection::receiver::on_error::heard::take(),
-            vec![crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error; 2]
-        );
+        assert_eq!(crate::lib::adhoc::connection::receiver::on_error::heard::take(), vec![crate::lib::adhoc::connection::receiver::on_error::RxOnError::Error; 2]);
     }
 
     struct Out(usize);

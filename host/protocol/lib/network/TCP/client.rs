@@ -29,18 +29,7 @@ pub fn connect_with(
     seat: impl FnOnce(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) + Send + 'static,
     on_connected: impl FnOnce(std::io::Result<Arc<ExternalConnection>>) + Send + 'static,
 ) {
-    dial(
-        engine,
-        addr,
-        timeout,
-        None,
-        SocketOptions::default(),
-        SlotOf::Clients,
-        false,
-        SeatBy::Fn(Box::new(move |s| Some(seat(s)))),
-        Report::of(Box::new(on_connected)),
-        None,
-    );
+    dial(engine, addr, timeout, None, SocketOptions::default(), SlotOf::Clients, false, SeatBy::Fn(Box::new(move |s| Some(seat(s)))), Report::of(Box::new(on_connected)), None);
 }
 
 /// As [`connect_with`](connect_with), with `opts` for the socket.
@@ -52,18 +41,7 @@ pub fn connect_with_options(
     seat: impl FnOnce(&Arc<ExternalConnection>) -> (Box<dyn BytesDst>, Box<dyn BytesSrc>) + Send + 'static,
     on_connected: impl FnOnce(std::io::Result<Arc<ExternalConnection>>) + Send + 'static,
 ) {
-    dial(
-        engine,
-        addr,
-        timeout,
-        None,
-        opts,
-        SlotOf::Clients,
-        false,
-        SeatBy::Fn(Box::new(move |s| Some(seat(s)))),
-        Report::of(Box::new(on_connected)),
-        None,
-    );
+    dial(engine, addr, timeout, None, opts, SlotOf::Clients, false, SeatBy::Fn(Box::new(move |s| Some(seat(s)))), Report::of(Box::new(on_connected)), None);
 }
 
 /// Continues the parked session of the client connection `state` on a new socket to `addr`: its
@@ -80,6 +58,7 @@ pub fn reconnect(
 ) {
     redial(state, engine, addr, timeout, None, SocketOptions::default(), Report::of(Box::new(on_connected)));
 }
+
 
 /// A client dials again on its own while its session is parked and holds what the peer has not
 /// confirmed (the journal of guaranteed packs): only the side that made the connection can make it
@@ -222,10 +201,7 @@ impl Client {
     /// Its failures - of its connection, of the connects - go to `on_failure`; the engine's handler
     /// when none. Before the first connect.
     pub fn on_failure(self, on_failure: crate::lib::network::failure::OnFailure) -> Self {
-        Self {
-            core: self.core.with_failure(on_failure),
-            ..self
-        }
+        Self { core: self.core.with_failure(on_failure), ..self }
     }
 
     /// The engine its connection runs on.
@@ -244,7 +220,12 @@ impl Client {
     /// out ends and a new one starts. A connect while one is under way hears with that one. Called
     /// from a close handler, it waits for the teardown under way. `Err`: connected already -
     /// disconnect first.
-    pub fn connect(&self, server: SocketAddr, timeout: Option<Duration>, on_connected: impl FnOnce(std::io::Result<Arc<ExternalConnection>>) + Send + 'static) -> std::io::Result<()> {
+    pub fn connect(
+        &self,
+        server: SocketAddr,
+        timeout: Option<Duration>,
+        on_connected: impl FnOnce(std::io::Result<Arc<ExternalConnection>>) + Send + 'static,
+    ) -> std::io::Result<()> {
         self.core.connect(server, timeout, None, Box::new(on_connected))
     }
 
@@ -409,27 +390,13 @@ impl Core {
     /// receive is - read there, with no lock. `true` - the link is almost still while the session
     /// needs it: the socket is taken as lost, the session parks and the client dials again.
     pub(crate) fn tick(s: &ExternalConnection) -> bool {
-        let Some(core) = s.owner.lock().clone().and_then(|o| o.downcast::<Core>().ok()) else {
-            return false;
-        }; // the slot of a client only
+        let Some(core) = s.owner.lock().clone().and_then(|o| o.downcast::<Core>().ok()) else { return false }; // the slot of a client only
         let stalled = {
             let mut w = core.watch.lock();
-            Redial::stalled(
-                s.progress(),
-                s.carried.load(Ordering::Relaxed),
-                s.writing.load(Ordering::Relaxed),
-                super::external_connection::now_ms(),
-                &mut w,
-            )
+            Redial::stalled(s.progress(), s.carried.load(Ordering::Relaxed), s.writing.load(Ordering::Relaxed), super::external_connection::now_ms(), &mut w)
         };
         if stalled {
-            let e = std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
-                format!(
-                    "The link carried almost nothing for {} s while the session needed it: the socket is taken as lost, the client dials again.",
-                    Redial::STALL_MS / 1000
-                ),
-            );
+            let e = std::io::Error::new(std::io::ErrorKind::TimedOut, format!("The link carried almost nothing for {} s while the session needed it: the socket is taken as lost, the client dials again.", Redial::STALL_MS / 1000));
             s.failure(&e);
             s.lost(); // the session parks, and the client dials again
         }
@@ -520,10 +487,7 @@ impl Core {
 
     pub(crate) fn connect(self: &Arc<Self>, server: SocketAddr, timeout: Option<Duration>, ws: Option<Arc<Upgrade>>, on_connected: OnConnected) -> std::io::Result<()> {
         if self.is_connected() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::AlreadyExists,
-                "Client is already connected. Close the existing connection before attempting a new one.",
-            ));
+            return Err(std::io::Error::new(std::io::ErrorKind::AlreadyExists, "Client is already connected. Close the existing connection before attempting a new one."));
         }
         {
             let mut w = self.waiting.lock();
@@ -565,18 +529,7 @@ impl Core {
             }
         }
         let opts = self.opts.lock().clone();
-        dial(
-            &self.engine,
-            server,
-            timeout,
-            codec(&ws),
-            opts,
-            SlotOf::Pool(self.pool.clone(), self.home),
-            false,
-            SeatBy::Client(self.clone()),
-            Report::client(self.clone()),
-            slot.as_ref(),
-        );
+        dial(&self.engine, server, timeout, codec(&ws), opts, SlotOf::Pool(self.pool.clone(), self.home), false, SeatBy::Client(self.clone()), Report::client(self.clone()), slot.as_ref());
     }
 
     /// The protocol layer of the client on the slot `s` of its connect: the client lives with its
@@ -601,8 +554,7 @@ impl Core {
         }
         if let Ok(s) = &r {
             *self.slot.lock() = Some(s.clone());
-            *self.watch.lock() = (u64::MAX, super::external_connection::now_ms());
-            // the speed is watched anew from now
+            *self.watch.lock() = (u64::MAX, super::external_connection::now_ms()); // the speed is watched anew from now
         }
         let mut list = {
             let mut w = self.waiting.lock();
@@ -680,22 +632,16 @@ mod tests {
     /// A client whose session parks on a loss holding what the peer has not confirmed: it dials
     /// by itself.
     fn holding(name: &str) -> Client {
-        Client::new(
-            name,
-            crate::lib::network::engine::MIN_BUFFER,
-            Arc::new(|s: &Arc<ExternalConnection>| {
-                s.identify(1);
-                s.set_resumable_seconds_hook(Arc::new(|_| 60));
-                s.set_seat_hook(Arc::new(|_: &Arc<ExternalConnection>| {
-                    Some((Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>))
-                })); // the session goes on on the next socket
-                s.set_progress_hook(Arc::new(|| super::super::external_connection::Progress {
-                    unconfirmed: crate::lib::adhoc::connection::transmitter::resumable::Unconfirmed { held: true, owed: false },
-                    ..Default::default()
-                }));
-                (Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>)
-            }),
-        )
+        Client::new(name, crate::lib::network::engine::MIN_BUFFER, Arc::new(|s: &Arc<ExternalConnection>| {
+            s.identify(1);
+            s.set_resumable_seconds_hook(Arc::new(|_| 60));
+            s.set_seat_hook(Arc::new(|_: &Arc<ExternalConnection>| Some((Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>)))); // the session goes on on the next socket
+            s.set_progress_hook(Arc::new(|| super::super::external_connection::Progress {
+                unconfirmed: crate::lib::adhoc::connection::transmitter::resumable::Unconfirmed { held: true, owed: false },
+                ..Default::default()
+            }));
+            (Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>)
+        }))
         .on_failure(Arc::new(|_: &dyn std::fmt::Display, _: &(dyn std::error::Error + 'static)| {}))
     }
 
@@ -722,26 +668,17 @@ mod tests {
         let (addr, taken) = door(false);
         let asked = Arc::new(parking_lot::Mutex::new(Vec::<String>::new()));
         let a = asked.clone();
-        let c = Client::new(
-            "loopdial",
-            crate::lib::network::engine::MIN_BUFFER,
-            Arc::new(move |s: &Arc<ExternalConnection>| {
-                s.identify(1);
-                s.set_resumable_seconds_hook(Arc::new(|_| 60));
-                s.set_seat_hook(Arc::new(|_: &Arc<ExternalConnection>| {
-                    Some((Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>))
-                }));
-                let a = a.clone();
-                s.set_progress_hook(Arc::new(move || {
-                    a.lock().push(std::thread::current().name().unwrap_or("").to_string());
-                    super::super::external_connection::Progress {
-                        unconfirmed: crate::lib::adhoc::connection::transmitter::resumable::Unconfirmed { held: true, owed: false },
-                        ..Default::default()
-                    }
-                }));
-                (Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>)
-            }),
-        )
+        let c = Client::new("loopdial", crate::lib::network::engine::MIN_BUFFER, Arc::new(move |s: &Arc<ExternalConnection>| {
+            s.identify(1);
+            s.set_resumable_seconds_hook(Arc::new(|_| 60));
+            s.set_seat_hook(Arc::new(|_: &Arc<ExternalConnection>| Some((Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>))));
+            let a = a.clone();
+            s.set_progress_hook(Arc::new(move || {
+                a.lock().push(std::thread::current().name().unwrap_or("").to_string());
+                super::super::external_connection::Progress { unconfirmed: crate::lib::adhoc::connection::transmitter::resumable::Unconfirmed { held: true, owed: false }, ..Default::default() }
+            }));
+            (Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>)
+        }))
         .on_failure(Arc::new(|_: &dyn std::fmt::Display, _: &(dyn std::error::Error + 'static)| {}));
         c.connect(addr, Some(Duration::from_secs(5)), |_| {}).unwrap();
         let until = Instant::now() + Duration::from_secs(15);
@@ -758,10 +695,7 @@ mod tests {
         }
         c.shutdown();
         let (first, second) = (at[1] - at[0], at[2] - at[1]);
-        assert!(
-            Duration::from_millis(750) <= first && first < Duration::from_millis(2_500),
-            "the first dial after the loss waits a second or so: {first:?}"
-        );
+        assert!(Duration::from_millis(750) <= first && first < Duration::from_millis(2_500), "the first dial after the loss waits a second or so: {first:?}");
         assert!(Duration::from_millis(1_200) <= second && second < Duration::from_millis(3_500), "the next waits longer: {second:?}");
         let asked = asked.lock();
         assert!(!asked.is_empty() && asked.iter().all(|t| t.contains("-io-")), "the session is asked on its loop only: {asked:?}");
@@ -781,14 +715,10 @@ mod tests {
                 held.push(s);
             }
         });
-        let c = Client::new(
-            "sleep",
-            crate::lib::network::engine::MIN_BUFFER,
-            Arc::new(|s: &Arc<ExternalConnection>| {
-                s.set_receive_timeout_ms(30_000); // before the read starts: a read that waits keeps the deadline it has
-                (Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>)
-            }),
-        );
+        let c = Client::new("sleep", crate::lib::network::engine::MIN_BUFFER, Arc::new(|s: &Arc<ExternalConnection>| {
+            s.set_receive_timeout_ms(30_000); // before the read starts: a read that waits keeps the deadline it has
+            (Box::new(Quiet) as Box<dyn BytesDst>, Box::new(Quiet) as Box<dyn BytesSrc>)
+        }));
         let (tx, rx) = std::sync::mpsc::channel();
         c.connect(addr, Some(Duration::from_secs(5)), move |r| {
             let _ = tx.send(r);

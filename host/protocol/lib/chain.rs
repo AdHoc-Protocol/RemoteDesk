@@ -192,15 +192,8 @@ fn system_roots(certs: &[&[u8]]) -> bool {
         if symbols.iter().any(|s| s.is_null()) {
             return false;
         }
-        let (open, add, create, chain, free_chain, free_cert, close): (Open, Add, Create, Chain, Free, Free, Close) = (
-            cast(symbols[0]),
-            cast(symbols[1]),
-            cast(symbols[2]),
-            cast(symbols[3]),
-            cast(symbols[4]),
-            cast(symbols[5]),
-            cast(symbols[6]),
-        );
+        let (open, add, create, chain, free_chain, free_cert, close): (Open, Add, Create, Chain, Free, Free, Close) =
+            (cast(symbols[0]), cast(symbols[1]), cast(symbols[2]), cast(symbols[3]), cast(symbols[4]), cast(symbols[5]), cast(symbols[6]));
         let store = open(MEMORY, 0, 0, 0, std::ptr::null());
         for c in &certs[1..] {
             add(store, ASN, c.as_ptr(), c.len() as u32, ADD_ALWAYS, std::ptr::null_mut());
@@ -208,12 +201,7 @@ fn system_roots(certs: &[&[u8]]) -> bool {
         let leaf = create(ASN, certs[0].as_ptr(), certs[0].len() as u32);
         let mut ok = false;
         if !leaf.is_null() {
-            let para = Para {
-                size: std::mem::size_of::<Para>() as u32,
-                usage_kind: 0,
-                usages: 0,
-                usage: std::ptr::null(),
-            };
+            let para = Para { size: std::mem::size_of::<Para>() as u32, usage_kind: 0, usages: 0, usage: std::ptr::null() };
             let mut context: *const Context = std::ptr::null();
             let flags = if CHECK_REVOCATION.load(std::sync::atomic::Ordering::Relaxed) { 0x2000_0000 } else { 0 }; // CERT_CHAIN_REVOCATION_CHECK_CHAIN
             if chain(std::ptr::null_mut(), leaf, std::ptr::null(), store, &para, flags, std::ptr::null(), &mut context) != 0 {
@@ -249,17 +237,7 @@ pub struct Chain {
 
 impl Default for Chain {
     fn default() -> Self {
-        Self {
-            tls_host: None,
-            tls_alpn: None,
-            tls_server: 0,
-            pattern: -1,
-            static_secret: None,
-            static_public: std::sync::OnceLock::new(),
-            peer: None,
-            on_peer: None,
-            tx_limit: 0,
-        }
+        Self { tls_host: None, tls_alpn: None, tls_server: 0, pattern: -1, static_secret: None, static_public: std::sync::OnceLock::new(), peer: None, on_peer: None, tx_limit: 0 }
     }
 }
 
@@ -379,11 +357,7 @@ impl Chain {
 
     /// This end of this chain has TLS.
     pub(crate) fn has_tls_for(&self, server: bool) -> bool {
-        if server {
-            self.tls_server != 0
-        } else {
-            self.tls_host.is_some()
-        }
+        if server { self.tls_server != 0 } else { self.tls_host.is_some() }
     }
 
     /// A new connection of TLS for this end of this chain; 0 - this chain has no TLS for it.
@@ -658,11 +632,7 @@ impl Link {
     #[cold]
     unsafe fn error(&self) -> io::Error {
         let e = (self.a.tls_error)(self.tls);
-        io::Error::other(if e.is_null() {
-            "TLS".to_string()
-        } else {
-            std::ffi::CStr::from_ptr(e).to_string_lossy().into_owned()
-        })
+        io::Error::other(if e.is_null() { "TLS".to_string() } else { std::ffi::CStr::from_ptr(e).to_string_lossy().into_owned() })
     }
 
     /// What came goes through the handshake: how much of it was taken.
@@ -837,12 +807,7 @@ impl Link {
             let length = if self.tls != 0 {
                 RECORD_BUFFER
             } else {
-                2 + 16
-                    + if self.carry_len < 2 {
-                        0
-                    } else {
-                        engine::rbyte(p, whole) as usize | (engine::rbyte(p, whole + 1) as usize) << 8
-                    }
+                2 + 16 + if self.carry_len < 2 { 0 } else { engine::rbyte(p, whole) as usize | (engine::rbyte(p, whole + 1) as usize) << 8 }
             };
             self.fit(p, length);
             ws_end = whole;
@@ -1039,14 +1004,7 @@ impl Pack {
     pub fn new() -> Self {
         // SAFETY: a call with no arguments
         let state = Mem::new(128 + unsafe { (api().aead_size)() } as usize);
-        Self {
-            state,
-            ctx: 0,
-            secret: 0,
-            public: 0,
-            number: std::sync::atomic::AtomicU64::new(super::chacha20::Core::next_seq()),
-            id: 0,
-        }
+        Self { state, ctx: 0, secret: 0, public: 0, number: std::sync::atomic::AtomicU64::new(super::chacha20::Core::next_seq()), id: 0 }
     }
 
     /// Sealed under the key of this pair, for what it is used: both ends get the same one, and the
@@ -1056,18 +1014,7 @@ impl Pack {
         let (mut key, mut iv, mut id) = ([0u8; 32], [0u8; 12], 0i32);
         // SAFETY: the sizes the call takes; the context fits the memory
         unsafe {
-            assert!(
-                (a.pair_key)(
-                    key.as_mut_ptr(),
-                    iv.as_mut_ptr(),
-                    &mut id,
-                    my_secret.as_ptr(),
-                    their_public.as_ptr(),
-                    purpose.as_ptr(),
-                    purpose.len() as i32
-                ) != 0,
-                "A key of a low order."
-            );
+            assert!((a.pair_key)(key.as_mut_ptr(), iv.as_mut_ptr(), &mut id, my_secret.as_ptr(), their_public.as_ptr(), purpose.as_ptr(), purpose.len() as i32) != 0, "A key of a low order.");
             self.ctx = self.state.at() + 128;
             assert!((a.aead_init)(0, self.ctx as *mut u8, key.as_ptr(), 32) != 0, "aead");
         }

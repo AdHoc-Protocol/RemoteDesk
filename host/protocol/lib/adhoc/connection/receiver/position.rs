@@ -6,6 +6,7 @@
 //! Tracks packet boundaries and committed bytes so a transport can acknowledge progress and resume
 //! a guaranteed packet after interruption.
 
+
 /// The position of the receiving side in the peer's journal: the bytes of the guaranteed packs
 /// taken whole, and of the one in progress. It lives with the session, and so does the parse of a
 /// guaranteed pack a lost socket cut: the receiver of the next socket takes it over and goes on
@@ -59,17 +60,7 @@ unsafe fn drop_box<T>(p: *mut ()) {
 
 impl Default for Position {
     fn default() -> Self {
-        Self {
-            guarded: 0,
-            from: -1,
-            positioned: false,
-            told: i64::MAX,
-            seen: 0,
-            id: 0,
-            parked: None,
-            head: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()),
-            control: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()),
-        }
+        Self { guarded: 0, from: -1, positioned: false, told: i64::MAX, seen: 0, id: 0, parked: None, head: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()), control: std::sync::atomic::AtomicPtr::new(std::ptr::null_mut()) }
     }
 }
 
@@ -128,11 +119,7 @@ impl Position {
     /// of the guaranteed pack in progress is kept for the next one (`parse`).
     pub(crate) fn park<T: Send>(&mut self, consumed: i64, parse: T) {
         self.seen = consumed;
-        self.parked = Some(Parked {
-            ptr: Box::into_raw(Box::new(parse)) as *mut (),
-            kind: std::any::type_name::<T>(),
-            drop: drop_box::<T>,
-        });
+        self.parked = Some(Parked { ptr: Box::into_raw(Box::new(parse)) as *mut (), kind: std::any::type_name::<T>(), drop: drop_box::<T> });
     }
 
     /// The parse a receiver of a lost socket kept, taken by the receiver of the next one: `None` -
@@ -173,11 +160,7 @@ impl Position {
     /// is known.
     #[inline]
     pub fn received(&self) -> i64 {
-        if self.positioned {
-            self.guarded
-        } else {
-            -1
-        }
+        if self.positioned { self.guarded } else { -1 }
     }
 
     /// The position in the peer's journal, the bytes of the guaranteed pack in progress up to
@@ -272,8 +255,7 @@ impl Position {
             // SAFETY: the header is mapped while it is set here; the control set it, and lives in the connection as this does
             unsafe {
                 crate::lib::adhoc::connection::control::set_i64(h, crate::lib::adhoc::connection::control::Control::H_GUARDED, self.guarded);
-                at = (*self.control.load(std::sync::atomic::Ordering::Relaxed)).durable(self.guarded, at);
-                // no pack end past the disk ( resumable_sync_ms )
+                at = (*self.control.load(std::sync::atomic::Ordering::Relaxed)).durable(self.guarded, at); // no pack end past the disk ( resumable_sync_ms )
             }
         }
         let borders = (at >> shift) - (self.told >> shift);

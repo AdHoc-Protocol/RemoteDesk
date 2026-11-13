@@ -21,28 +21,20 @@
 // Commercial licenses that remove the noncompete restriction are available.
 // For licensing and inquiries: al8v5C6HU4UtqE9@gmail.com
 
-class Pool<T> {
+class Pool<T>{
     private readonly array: T[] = [];
 
-    constructor(private readonly factory: () => T) {}
+    constructor( private readonly factory: () => T ){}
 
     /** Number of pooled instances currently available without invoking the factory. */
-    public get size(): number {
-        return this.array.length;
-    }
+    public get size(): number{ return this.array.length; }
 
-    public acquire(): T {
-        return this.array.pop() ?? this.factory();
-    }
+    public acquire(): T{ return this.array.pop() ?? this.factory(); }
 
-    public release(t: T): void {
-        this.array.push(t);
-    }
+    public release( t: T ): void{ this.array.push( t ); }
 
     /** Drops all pooled instances. The factory itself is preserved. */
-    public clear(): void {
-        this.array.length = 0;
-    }
+    public clear(): void{ this.array.length = 0; }
 }
 
 export default Pool;

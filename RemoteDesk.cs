@@ -40,6 +40,8 @@ namespace org.unirail.RemoteDesk
         <see cref='Viewer.Hello'/>ĉ                    0
         <see cref='Viewer.KeyEvent'/>Č                 6
         <see cref='Viewer.KeyframeRequest'/>ĝ          21
+        <see cref='Viewer.Mark'/>ğ                     22
+        <see cref='Viewer.Mark.Kind'/>Ģ
         <see cref='Viewer.MicrophoneControl'/>ę        17
         <see cref='Viewer.MouseButton'/>ď              9
         <see cref='Viewer.MouseButton.Button'/>Ĵ
@@ -259,6 +261,30 @@ namespace org.unirail.RemoteDesk
             /// </summary>
             public class EventTime { uint ms; }
 
+            // ── marks ──
+
+            /// <summary>
+            /// A mark the viewer draws over the screen of the machine for its user - where to tap, which field: it shows at once and
+            /// fades by itself. Sent as it is drawn: each pack carries the points added to its stroke since the last one. Any viewer
+            /// draws, not only the one that controls.
+            /// </summary>
+            public class Mark
+            {
+                /// <summary>LINE - drawn by hand; RING - a ring about the first point, a tap of the viewer: here; ARROW - from the first point to the last.</summary>
+                public enum Kind { LINE, RING, ARROW, }
+
+                Kind                      kind;
+                /// <summary>Numbers the strokes of the viewer: a pack of another number begins another stroke.</summary>
+                byte                      stroke;
+                /// <summary>The stroke is drawn: it fades from now.</summary>
+                bool                      done;
+                /// <summary>Its colour, of the few the page offers: 0 red, 1 yellow, 2 green, 3 blue.</summary>
+                [MinMax(0, 3)] byte       color;
+                [MinMax(0, 15)] byte      screen;
+                /// <summary>The points added: x, y, x, y … as fractions of the display, 0 … 65535 for [0, 1].</summary>
+                [D(512)] ushort[,,]       points;
+            }
+
             // ── control ──
 
             /// <summary>
@@ -459,7 +485,7 @@ namespace org.unirail.RemoteDesk
             struct Granting { }
 
             /// <summary>The session: input and control from the page, video, layout and pointer from the machine; clipboard, files and sound both ways.</summary>
-            [l____________<(Viewer.KeyEvent, Viewer.TextEvent, Viewer.MouseMove, Viewer.MouseButton, Viewer.MouseDelta, Viewer.MouseWheel, Viewer.TouchEvent, Viewer.EventTime,
+            [l____________<(Viewer.KeyEvent, Viewer.TextEvent, Viewer.MouseMove, Viewer.MouseButton, Viewer.MouseDelta, Viewer.MouseWheel, Viewer.TouchEvent, Viewer.EventTime, Viewer.Mark,
                             Viewer.ClientResolution, Viewer.VideoControl, Viewer.AudioControl, Viewer.MicrophoneControl, Viewer.SelectDisplay,
                             Viewer.VideoAck, Viewer.KeyframeRequest, Viewer.TakeControl, Viewer.ElevationRequest,
                             ClipboardEvent, AudioPacket,

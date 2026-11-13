@@ -4,8 +4,9 @@
 //! The sending end of a tunnel: [`Out`] writes a burst of the transmitter of the virtual connection
 //! into the window of the carrier's transmitter.
 
-use crate::lib::adhoc::chain::Stage;
+
 use crate::lib::adhoc::connection::transmitter::chunked::{pull, TxChain, ABORT, MAX};
+use crate::lib::adhoc::chain::Stage;
 use crate::lib::adhoc::connection::transmitter::{Tx, TxHost, TxState};
 use crate::lib::adhoc::connection::tunnel::end_point::EndPoint;
 use crate::lib::noise::{ByteSource, NoiseStream, Pull};
@@ -53,13 +54,7 @@ impl<H: TxHost> ByteSource for (&mut TxState, &mut H, bool) {
         } else {
             tx.read(buf, *host)
         };
-        Ok(if 0 < n {
-            Pull::Bytes(n as usize)
-        } else if n == 0 {
-            Pull::Pending
-        } else {
-            Pull::Eof
-        })
+        Ok(if 0 < n { Pull::Bytes(n as usize) } else if n == 0 { Pull::Pending } else { Pull::Eof })
     }
 }
 

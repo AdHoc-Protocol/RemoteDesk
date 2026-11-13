@@ -37,6 +37,7 @@ mod elevate;
 mod files;
 mod input;
 mod keymap;
+mod marks;
 mod direct;
 mod menu;
 mod portmap;

@@ -109,11 +109,7 @@ pub trait External: Send + Sync {
     /// The seconds the parked session still waits for its peer, 0 once its wait ran out, -1 - none
     /// parked.
     fn parked(&self) -> i32 {
-        if self.is_parked() {
-            0
-        } else {
-            -1
-        }
+        if self.is_parked() { 0 } else { -1 }
     }
     /// The identity the session was given; 0 while it is not set: a guaranteed pack is refused
     /// before it.

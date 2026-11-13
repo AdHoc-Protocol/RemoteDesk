@@ -23,40 +23,40 @@
 
 import AdHoc from "../AdHoc";
 
-export namespace BitList {
+export namespace BitList{
     /** Number of '1' bits of the 32-bit `x`. */
-    function popcnt(x: number): number {
-        x = x - ((x >>> 1) & 0x55555555);
-        x = (x & 0x33333333) + ((x >>> 2) & 0x33333333);
-        x = (x + (x >>> 4)) & 0x0f0f0f0f;
-        return Math.imul(x, 0x01010101) >>> 24;
+    function popcnt( x: number ): number{
+        x = x - ( ( x >>> 1 ) & 0x55555555 );
+        x = ( x & 0x33333333 ) + ( ( x >>> 2 ) & 0x33333333 );
+        x = ( x + ( x >>> 4 ) ) & 0x0f0f0f0f;
+        return Math.imul( x, 0x01010101 ) >>> 24;
     }
 
     /** Index of the lowest '1' of the non-zero 32-bit `x`. */
-    function ctz(x: number): number {
-        return 31 - Math.clz32(x & -x);
+    function ctz( x: number ): number{
+        return 31 - Math.clz32( x & -x );
     }
 
     // `values` is allocated in pairs of 32-bit words - in Java's 64-bit words - with Java's growth policies, so that
     // `length` (the capacity) is exactly the Java one. `L`: 32-bit words -> 64-bit words, rounded up.
-    function L(ints: number): number {
-        return (ints + 1) >> 1;
+    function L( ints: number ): number{
+        return ( ints + 1 ) >> 1;
     }
 
     /** Java's `len4bits`: the 64-bit words for `bits` bits. */
-    function len4L(bits: number): number {
-        return (bits + 63) >> 6;
+    function len4L( bits: number ): number{
+        return ( bits + 63 ) >> 6;
     }
 
     /** A copy of `src` with `longs` 64-bit words. */
-    function copyOfL(src: Uint32Array, longs: number): Uint32Array {
-        return copyOf(src, longs << 1);
+    function copyOfL( src: Uint32Array, longs: number ): Uint32Array{
+        return copyOf( src, longs << 1 );
     }
 
-    function copyOf(src: Uint32Array, newLength: number): Uint32Array {
-        if (newLength === src.length) return src;
-        const ret = new Uint32Array(newLength);
-        ret.set(src.subarray(0, Math.min(src.length, newLength)));
+    function copyOf( src: Uint32Array, newLength: number ): Uint32Array{
+        if( newLength === src.length ) return src;
+        const ret = new Uint32Array( newLength );
+        ret.set( src.subarray( 0, Math.min( src.length, newLength ) ) );
         return ret;
     }
 
@@ -94,14 +94,14 @@ export namespace BitList {
      * {@link BitList} implementations.
      * </para>
      */
-    export abstract class R {
+    export abstract class R{
         /**
          * The logical number of bits in this list. This defines the valid range of
          * indices [0, size-1].
          * It includes implicitly stored trailing ones and trailing zeros, as well as
          * explicitly stored bits in {@code values}.
          */
-        protected _size: number = 0;
+        protected _size: number             = 0;
         /**
          * The count of consecutive '1' bits starting from index 0. These bits are
          * stored implicitly and are *not* represented in the {@code values} array.
@@ -124,7 +124,7 @@ export namespace BitList {
          * May contain trailing {@code number} elements that are all zero.
          * Initialized to a shared empty array for efficiency.
          */
-        protected values: Uint32Array = new Uint32Array(0);
+        protected values: Uint32Array = new Uint32Array( 0 );
         /**
          * The number of {@code number} elements currently used in the {@code values} array.
          * This is the index of the highest element containing a '1' bit, plus one.
@@ -133,7 +133,7 @@ export namespace BitList {
          * indicates that the count might be stale (due to operations like clearing bits
          * in the last used word) and needs recalculation via {@link R.used}.
          */
-        protected _used: number = 0;
+        protected _used: number       = 0;
 
         /**
          * Returns the logical size (number of bits) of this {@code BitList}.
@@ -141,7 +141,7 @@ export namespace BitList {
          *
          * @return The number of bits in the list.
          */
-        get size(): number {
+        get size(): number{
             return this._size;
         }
 
@@ -152,15 +152,15 @@ export namespace BitList {
          * @param bits The number of bits.
          * @return The required length of a {@code Uint32Array} array.
          */
-        static len4bits(bits: number): number {
-            return (bits + R.BITS - 1) >>> R.LEN;
+        static len4bits( bits: number ): number{
+            return ( bits + R.BITS - 1 ) >>> R.LEN;
         }
 
         /**
          * The base-2 logarithm of {@link R.BITS}, used for calculating array indices
          * ({@code bit >> LEN}). Value is 5 (for 32-bit words).
          */
-        protected static readonly LEN: number = 5; // log2(32)
+        protected static readonly LEN: number  = 5; // log2(32)
         /**
          * The number of bits in a {@code number} (element of Uint32Array). Value is 32.
          */
@@ -179,7 +179,7 @@ export namespace BitList {
          * @param bit The bit index *relative to the start of the {@code values} array*.
          * @return The index in the {@code values} array.
          */
-        static index(bit: number): number {
+        static index( bit: number ): number{
             return bit >>> R.LEN;
         }
 
@@ -191,11 +191,11 @@ export namespace BitList {
          * @param bits The number of low-order bits to set (0-32).
          * @return A {@code number} with the specified number of LSBs set.
          */
-        static mask(bits: number): number {
+        static mask( bits: number ): number{
             bits |= 0; // Ensure integer
-            if (bits <= 0) return 0;
-            if (bits >= R.BITS) return -1; // All 1s for a 32-bit word (0xFFFFFFFF)
-            return (1 << bits) - 1;
+            if( bits <= 0 ) return 0;
+            if( bits >= R.BITS ) return -1; // All 1s for a 32-bit word (0xFFFFFFFF)
+            return ( 1 << bits ) - 1;
         }
 
         /**
@@ -220,12 +220,12 @@ export namespace BitList {
          * @return The number of {@code number} elements in {@code values} actively storing bits.
          * Returns 0 if {@code values} is empty or contains only zeros.
          */
-        protected used(): number {
-            if (this._used >= 0) return this._used;
+        protected used(): number{
+            if( this._used >= 0 ) return this._used;
             this._used &= R.OI;
             let u = this._used - 1;
-            while (u >= 0 && this.values[u] === 0) u--;
-            return (this._used = u + 1);
+            while( u >= 0 && this.values[u] === 0 ) u--;
+            return ( this._used = u + 1 );
         }
 
         /**
@@ -243,18 +243,18 @@ export namespace BitList {
          * @return The index in the {@code values} array where the bit resides,
          * or -1 if the bit falls within the implicit {@code trailingOnesCount} range.
          */
-        protected used_(bit: number): number {
-            if (this.size <= bit) this._size = bit + 1;
-            const index = (bit - this.trailingOnesCount) >> R.LEN;
-            if (index < 0) return -1;
+        protected used_( bit: number ): number{
+            if( this.size <= bit ) this._size = bit + 1;
+            const index = ( bit - this.trailingOnesCount ) >> R.LEN;
+            if( index < 0 ) return -1;
 
             const currentActualUsed = this.used();
-            if (index < currentActualUsed) return index;
+            if( index < currentActualUsed ) return index;
 
             this._used = index + 1;
-            if (this.values.length < this._used) {
+            if( this.values.length < this._used ){
                 const v = this.values.length >> 1;
-                this.values = copyOfL(this.values, Math.max(L(this._used), Math.max(v + (v >> 1), 4)));
+                this.values = copyOfL( this.values, Math.max( L( this._used ), Math.max( v + ( v >> 1 ), 4 ) ) );
             }
             return index;
         }
@@ -267,11 +267,11 @@ export namespace BitList {
          * if it is '0'. Returns {@code false} if the index is negative or
          * greater than or equal to {@link R.size}.
          */
-        public get(bit: number): boolean {
-            if (bit < 0 || bit >= this._size) return false;
-            if (bit < this.trailingOnesCount) return true;
-            const index = (bit - this.trailingOnesCount) >>> R.LEN;
-            return index < this.used() && (this.values[index] & (1 << ((bit - this.trailingOnesCount) & R.MASK))) !== 0;
+        public get( bit: number ): boolean{
+            if( bit < 0 || bit >= this._size ) return false;
+            if( bit < this.trailingOnesCount ) return true;
+            const index = ( bit - this.trailingOnesCount ) >>> R.LEN;
+            return index < this.used() && ( this.values[index] & ( 1 << ( ( bit - this.trailingOnesCount ) & R.MASK ) ) ) !== 0;
         }
 
         /**
@@ -284,8 +284,10 @@ export namespace BitList {
          * @param TRUE  The value to return if the bit at {@code bit} is '1'.
          * @return {@code TRUE} if {@code get(bit)} is true, otherwise {@code FALSE}.
          */
-        public get_(bit: number, FALSE: number, TRUE: number): number {
-            return this.get(bit) ? TRUE : FALSE;
+        public get_( bit: number, FALSE: number, TRUE: number ): number{
+            return this.get( bit ) ?
+                   TRUE :
+                   FALSE;
         }
 
         /**
@@ -305,20 +307,20 @@ export namespace BitList {
          * the destination array's capacity. Returns 0 if the range is invalid
          * or out of bounds.
          */
-        public get$(dst: Uint32Array, from_bit: number, to_bit: number): number {
-            if (to_bit <= from_bit || from_bit < 0 || this._size <= from_bit) return 0;
-            to_bit = Math.min(to_bit, this._size);
+        public get$( dst: Uint32Array, from_bit: number, to_bit: number ): number{
+            if( to_bit <= from_bit || from_bit < 0 || this._size <= from_bit ) return 0;
+            to_bit             = Math.min( to_bit, this._size );
             const bits_to_copy = to_bit - from_bit;
-            if (bits_to_copy <= 0) return 0;
+            if( bits_to_copy <= 0 ) return 0;
 
             const dst_capacity_bits = dst.length << R.LEN;
-            const total_bits = Math.min(bits_to_copy, dst_capacity_bits);
-            const words_to_copy = R.len4bits(total_bits);
+            const total_bits        = Math.min( bits_to_copy, dst_capacity_bits );
+            const words_to_copy     = R.len4bits( total_bits );
 
-            for (let i = 0; i < words_to_copy; i++) dst[i] = this.get32(from_bit + (i << R.LEN));
+            for( let i = 0; i < words_to_copy; i++ ) dst[i] = this.get32( from_bit + ( i << R.LEN ) );
 
             const remaining_bits_in_last_word = total_bits & R.MASK;
-            if (remaining_bits_in_last_word > 0) dst[words_to_copy - 1] &= R.mask(remaining_bits_in_last_word);
+            if( remaining_bits_in_last_word > 0 ) dst[words_to_copy - 1] &= R.mask( remaining_bits_in_last_word );
 
             return total_bits;
         }
@@ -334,23 +336,21 @@ export namespace BitList {
          * @param bit The starting bit index (exclusive) for the search. A value of -1 starts the search from index 0.
          * @return The index of the next '1' bit, or -1 if no '1' bit is found or if the list is empty or the input is less than -1.
          */
-        public next1(bit: number): number {
-            if (bit < -1 || ++bit >= this.size) return -1; // below -1: invalid input, as documented
-            if (bit < this.trailingOnesCount) return bit;
+        public next1( bit: number ): number{
+            if( bit < -1 || ++bit >= this.size ) return -1; // below -1: invalid input, as documented
+            if( bit < this.trailingOnesCount ) return bit;
 
             // Ones never lie past last1() < size, so the scan of the used words needs no other bound.
-            const u = this.used(),
-                bitOffset = bit - this.trailingOnesCount,
-                v = this.values;
+            const u = this.used(), bitOffset = bit - this.trailingOnesCount, v = this.values;
             let index = bitOffset >>> R.LEN;
-            if (u <= index) return -1;
-            let value = v[index] & (-1 << (bitOffset & R.MASK));
+            if( u <= index ) return -1;
+            let value = v[index] & ( -1 << ( bitOffset & R.MASK ) );
 
-            while (value === 0) {
-                if (++index >= u) return -1;
+            while( value === 0 ){
+                if( ++index >= u ) return -1;
                 value = v[index];
             }
-            return this.trailingOnesCount + (index << R.LEN) + ctz(value);
+            return this.trailingOnesCount + ( index << R.LEN ) + ctz( value );
         }
 
         /**
@@ -364,26 +364,31 @@ export namespace BitList {
          * @param bit The starting bit index (exclusive) for the search. A value of -1 starts the search from index 0.
          * @return The index of the next '0' bit, or -1 if no '0' bit is found or if the list is empty.
          */
-        public next0(bit: number): number {
-            if (this.size === 0 || ++bit >= this.size) return -1;
-            if (bit < 0) bit = 0;
-            if (bit < this.trailingOnesCount) return this.trailingOnesCount < this.size ? this.trailingOnesCount : -1;
+        public next0( bit: number ): number{
+            if( this.size === 0 || ++bit >= this.size ) return -1;
+            if( bit < 0 ) bit = 0;
+            if( bit < this.trailingOnesCount ) return this.trailingOnesCount < this.size ?
+                                                      this.trailingOnesCount :
+                                                      -1;
             const last1 = this.last1();
-            if (last1 < bit) return bit;
-            const bitOffset = bit - this.trailingOnesCount,
-                u = this.used();
-            let index = bitOffset >>> R.LEN;
-            let value = ~this.values[index] & (-1 << (bitOffset & R.MASK));
+            if( last1 < bit ) return bit;
+            const bitOffset = bit - this.trailingOnesCount, u = this.used();
+            let index       = bitOffset >>> R.LEN;
+            let value       = ~this.values[index] & ( -1 << ( bitOffset & R.MASK ) );
             // bit <= last1, so index < used: the first zero is in a used word or right after the last one
-            while (value === 0) {
-                if (++index >= u) {
-                    const zero = this.trailingOnesCount + (index << R.LEN);
-                    return zero < this.size ? zero : -1;
+            while( value === 0 ){
+                if( ++index >= u ){
+                    const zero = this.trailingOnesCount + ( index << R.LEN );
+                    return zero < this.size ?
+                           zero :
+                           -1;
                 }
                 value = ~this.values[index];
             }
-            const zero = this.trailingOnesCount + (index << R.LEN) + AdHoc.numberOfTrailingZeros(value);
-            return zero < this.size ? zero : -1;
+            const zero = this.trailingOnesCount + ( index << R.LEN ) + AdHoc.numberOfTrailingZeros( value );
+            return zero < this.size ?
+                   zero :
+                   -1;
         }
 
         /**
@@ -397,20 +402,22 @@ export namespace BitList {
          * @param bit The starting bit index (exclusive) for the backward search. If -1 or greater than or equal to the list size, the search starts from the last index.
          * @return The index of the previous '1' bit, or -1 if no '1' bit is found or if the list is empty or the input is less than -1.
          */
-        public prev1(bit: number): number {
-            if (this.size === 0 || bit < -1) return -1;
-            bit = bit === -1 || this.size <= bit ? this.size - 1 : bit - 1;
+        public prev1( bit: number ): number{
+            if( this.size === 0 || bit < -1 ) return -1;
+            bit = bit === -1 || this.size <= bit ?
+                  this.size - 1 :
+                  bit - 1;
             const last1 = this.last1();
-            if (last1 < bit) bit = last1;
-            if (bit < this.trailingOnesCount) return bit; // -1 included
+            if( last1 < bit ) bit = last1;
+            if( bit < this.trailingOnesCount ) return bit; // -1 included
             const bitOffset = bit - this.trailingOnesCount;
-            let index = bitOffset >>> R.LEN;
-            let value = this.values[index] & R.mask((bitOffset & R.MASK) + 1);
-            while (value === 0) {
-                if (--index < 0) return this.trailingOnesCount - 1;
+            let index       = bitOffset >>> R.LEN;
+            let value       = this.values[index] & R.mask( ( bitOffset & R.MASK ) + 1 );
+            while( value === 0 ){
+                if( --index < 0 ) return this.trailingOnesCount - 1;
                 value = this.values[index];
             }
-            return this.trailingOnesCount + (index << R.LEN) + R.BITS - 1 - AdHoc.numberOfLeadingZeros(value);
+            return this.trailingOnesCount + ( index << R.LEN ) + R.BITS - 1 - AdHoc.numberOfLeadingZeros( value );
         }
 
         /**
@@ -424,19 +431,21 @@ export namespace BitList {
          * @param bit The starting bit index (exclusive) for the backward search. If -1 or greater than or equal to the list size, the search starts from the last index.
          * @return The index of the previous '0' bit, or -1 if no '0' bit is found or if the list is empty or the input is less than -1.
          */
-        public prev0(bit: number): number {
-            if (this.size === 0 || bit < -1) return -1;
-            bit = bit === -1 || this.size <= bit ? this.size - 1 : bit - 1;
-            if (bit < this.trailingOnesCount) return -1;
-            if (this.last1() < bit) return bit;
+        public prev0( bit: number ): number{
+            if( this.size === 0 || bit < -1 ) return -1;
+            bit = bit === -1 || this.size <= bit ?
+                  this.size - 1 :
+                  bit - 1;
+            if( bit < this.trailingOnesCount ) return -1;
+            if( this.last1() < bit ) return bit;
             const bitInValues = bit - this.trailingOnesCount;
-            let index = bitInValues >>> R.LEN;
-            let value = ~this.values[index] & R.mask((bitInValues & R.MASK) + 1);
-            while (value === 0) {
-                if (--index < 0) return -1;
+            let index         = bitInValues >>> R.LEN;
+            let value         = ~this.values[index] & R.mask( ( bitInValues & R.MASK ) + 1 );
+            while( value === 0 ){
+                if( --index < 0 ) return -1;
                 value = ~this.values[index];
             }
-            return this.trailingOnesCount + (index << R.LEN) + R.BITS - 1 - AdHoc.numberOfLeadingZeros(value);
+            return this.trailingOnesCount + ( index << R.LEN ) + R.BITS - 1 - AdHoc.numberOfLeadingZeros( value );
         }
 
         /**
@@ -446,9 +455,11 @@ export namespace BitList {
          * @return The index of the highest set bit, or -1 if the {@code BitList}
          * contains no '1' bits (i.e., it's empty or all zeros).
          */
-        public last1(): number {
+        public last1(): number{
             const u = this.used();
-            return u === 0 ? this.trailingOnesCount - 1 : this.trailingOnesCount + ((u - 1) << R.LEN) + R.BITS - 1 - Math.clz32(this.values[u - 1]);
+            return u === 0 ?
+                   this.trailingOnesCount - 1 :
+                   this.trailingOnesCount + ( ( u - 1 ) << R.LEN ) + R.BITS - 1 - Math.clz32( this.values[u - 1] );
         }
 
         /**
@@ -458,7 +469,7 @@ export namespace BitList {
          * is 0 and the {@code _used} (actual used count) is 0;
          * {@code false} otherwise.
          */
-        public isAllZeros(): boolean {
+        public isAllZeros(): boolean{
             return this.trailingOnesCount === 0 && this.used() === 0;
         }
 
@@ -471,22 +482,22 @@ export namespace BitList {
          *            counts up to {@code _size() - 1}.
          * @return The total number of '1' bits in the range [0, bit].
          */
-        public rank(bit: number): number {
-            if (bit < 0) return 0;
-            if (bit >= this.size) bit = this.size - 1;
+        public rank( bit: number ): number{
+            if( bit < 0 ) return 0;
+            if( bit >= this.size ) bit = this.size - 1;
 
-            if (bit < this.trailingOnesCount) return bit + 1;
+            if( bit < this.trailingOnesCount ) return bit + 1;
 
-            if (this.used() === 0) return this.trailingOnesCount;
+            if( this.used() === 0 ) return this.trailingOnesCount;
 
             const last1 = this.last1();
-            if (bit > last1) bit = last1;
+            if( bit > last1 ) bit = last1;
 
             const relBit = bit - this.trailingOnesCount;
-            const index = relBit >>> R.LEN;
-            const v = this.values;
-            let sum = this.trailingOnesCount + popcnt(v[index] & R.mask((relBit & R.MASK) + 1));
-            for (let i = 0; i < index; i++) sum += popcnt(v[i]);
+            const index  = relBit >>> R.LEN;
+            const v      = this.values;
+            let sum      = this.trailingOnesCount + popcnt( v[index] & R.mask( ( relBit & R.MASK ) + 1 ) );
+            for( let i = 0; i < index; i++ ) sum += popcnt( v[i] );
 
             return sum;
         }
@@ -497,11 +508,10 @@ export namespace BitList {
          *
          * @return The total number of '1' bits (cardinality).
          */
-        public cardinality(): number {
+        public cardinality(): number{
             let sum = this.trailingOnesCount;
-            const u = this.used(),
-                v = this.values;
-            for (let i = 0; i < u; i++) sum += popcnt(v[i]);
+            const u = this.used(), v = this.values;
+            for( let i = 0; i < u; i++ ) sum += popcnt( v[i] );
             return sum;
         }
 
@@ -516,27 +526,26 @@ export namespace BitList {
          * or -1 if the cardinality is less than 1 or greater than the total
          * number of '1's in the list ({@link #cardinality()}).
          */
-        public bit(cardinality: number): number {
-            if (cardinality <= 0) return -1;
-            if (cardinality <= this.trailingOnesCount) return cardinality - 1;
+        public bit( cardinality: number ): number{
+            if( cardinality <= 0 ) return -1;
+            if( cardinality <= this.trailingOnesCount ) return cardinality - 1;
 
             let rem = cardinality - this.trailingOnesCount;
-            const u = this.used(),
-                v = this.values;
-            let i = 0;
+            const u = this.used(), v = this.values;
+            let i   = 0;
             // Skip 4 words per step: only the sum of their popcounts is compared.
-            for (const end = u & ~3; i < end; i += 4) {
-                const c = popcnt(v[i]) + popcnt(v[i + 1]) + popcnt(v[i + 2]) + popcnt(v[i + 3]);
-                if (rem <= c) break;
+            for( const end = u & ~3; i < end; i += 4 ){
+                const c = popcnt( v[i] ) + popcnt( v[i + 1] ) + popcnt( v[i + 2] ) + popcnt( v[i + 3] );
+                if( rem <= c ) break;
                 rem -= c;
             }
-            for (; i < u; i++) {
+            for( ; i < u; i++ ){
                 let value = v[i];
-                const c = popcnt(value);
-                if (rem <= c) {
+                const c   = popcnt( value );
+                if( rem <= c ){
                     // Clear the first (rem - 1) set bits; the lowest remaining '1' is the answer.
-                    while (--rem > 0) value &= value - 1;
-                    return this.trailingOnesCount + (i << R.LEN) + ctz(value);
+                    while( --rem > 0 ) value &= value - 1;
+                    return this.trailingOnesCount + ( i << R.LEN ) + ctz( value );
                 }
                 rem -= c;
             }
@@ -551,8 +560,10 @@ export namespace BitList {
          * @param {R | undefined} src - The BitList instance to generate a hash for.
          * @returns {number} The combined hash value.
          */
-        static hash(hash: number, src: R | undefined): number {
-            return src ? AdHoc.hash_array(hash, src.values, AdHoc.hash_number, src.used()) ^ src.trailingOnesCount : hash;
+        static hash( hash: number, src: R | undefined ): number{
+            return src ?
+                   AdHoc.hash_array( hash, src.values, AdHoc.hash_number, src.used() ) ^ src.trailingOnesCount :
+                   hash;
         }
 
         /**
@@ -564,8 +575,8 @@ export namespace BitList {
          *
          * @return The current storage capacity in bits.
          */
-        get length(): number {
-            return this.trailingOnesCount + (this.values.length << R.LEN);
+        get length(): number{
+            return this.trailingOnesCount + ( this.values.length << R.LEN );
         }
 
         /**
@@ -576,12 +587,12 @@ export namespace BitList {
          *
          * @return A new {@code R} instance identical to this one.
          */
-        public clone(): R {
-            const dst = new (this.constructor as any)() as R;
-            dst._size = this._size;
+        public clone(): R{
+            const dst             = new ( this.constructor as any )() as R;
+            dst._size             = this._size;
             dst.trailingOnesCount = this.trailingOnesCount;
-            dst.values = new Uint32Array(this.values);
-            dst._used = this._used;
+            dst.values            = new Uint32Array( this.values );
+            dst._used             = this._used;
             return dst;
         }
 
@@ -594,14 +605,14 @@ export namespace BitList {
          * @param {R | undefined} two - The second BitList instance to compare.
          * @returns {boolean} True if the BitLists are equal, false otherwise.
          */
-        static equals(one: R | undefined, two: R | undefined): boolean {
-            if (two === one) return true;
-            if (!one || !two || one.size !== two.size || one.trailingOnesCount !== two.trailingOnesCount) return false;
+        static equals( one: R | undefined, two: R | undefined ): boolean{
+            if( two === one ) return true;
+            if( !one || !two || one.size !== two.size || one.trailingOnesCount !== two.trailingOnesCount ) return false;
 
             const usedCount = one.used();
-            if (usedCount !== two.used()) return false;
+            if( usedCount !== two.used() ) return false;
 
-            for (let i = 0; i < usedCount; i++) if (one.values[i] !== two.values[i]) return false;
+            for( let i = 0; i < usedCount; i++ ) if( one.values[i] !== two.values[i] ) return false;
 
             return true;
         }
@@ -611,7 +622,7 @@ export namespace BitList {
          * @property {string} [Symbol.toStringTag] - Custom string tag for instances of this class.
          * Used for `Object.prototype.toString.call()` to identify the class type.
          */
-        get [Symbol.toStringTag]() {
+        get [Symbol.toStringTag](){
             return "BitList.R";
         }
 
@@ -620,8 +631,8 @@ export namespace BitList {
          * Returns a string representation of the BitList, including length and JSON format.
          * @returns {string} A string describing the BitList.
          */
-        toString() {
-            return `length = ${this.size}\n \n${this.toJSON()}`;
+        toString(){
+            return `length = ${ this.size }\n \n${ this.toJSON() }`;
         }
 
         /**
@@ -629,26 +640,28 @@ export namespace BitList {
          * Converts the BitList to a JSON string representation as an array of bits (0 and 1).
          * @returns {string} A JSON string representing the BitList.
          */
-        toJSON() {
+        toJSON(){
             let size = this.size;
-            if (!size) return "[]";
+            if( !size ) return "[]";
 
             const lines: Array<string> = [];
-            const maxWords = R.len4bits(size);
+            const maxWords             = R.len4bits( size );
 
-            for (let i = 0; i < maxWords; i++) {
-                const v = this.get32(i << R.LEN);
-                const bitsInThisWord = Math.min(R.BITS, size - (i << R.LEN));
-                let line = "";
-                for (let s = 0; s < bitsInThisWord; s++) {
-                    line += v & (1 << s) ? "1" : "0";
-                    if (s < bitsInThisWord - 1) line += ",";
-                    if ((s + 1) % 8 === 0 && s < bitsInThisWord - 1) line += " ";
+            for( let i = 0; i < maxWords; i++ ){
+                const v              = this.get32( i << R.LEN );
+                const bitsInThisWord = Math.min( R.BITS, size - ( i << R.LEN ) );
+                let line             = "";
+                for( let s = 0; s < bitsInThisWord; s++ ){
+                    line += v & ( 1 << s ) ?
+                            "1" :
+                            "0";
+                    if( s < bitsInThisWord - 1 ) line += ",";
+                    if( ( s + 1 ) % 8 === 0 && s < bitsInThisWord - 1 ) line += " ";
                 }
-                lines.push(line);
+                lines.push( line );
             }
 
-            return `[\n${lines.join(",\n")}\n]`;
+            return `[\n${ lines.join( ",\n" ) }\n]`;
         }
 
         /**
@@ -660,7 +673,7 @@ export namespace BitList {
          * is all zeros or empty. Returns 0 if the highest bit (at {@code _size()-1})
          * is '1'.
          */
-        public get numberOfLeading0(): number {
+        public get numberOfLeading0(): number{
             return this.size - 1 - this.last1();
         }
 
@@ -673,10 +686,12 @@ export namespace BitList {
          * @return The number of trailing zero bits. Returns {@code _size()} if the list
          * is all zeros or empty. Returns 0 if the first bit (index 0) is '1'.
          */
-        public get numberOfTrailing0(): number {
-            if (this.trailingOnesCount > 0) return 0;
-            const i = this.next1(-1);
-            return i === -1 ? this.size : i;
+        public get numberOfTrailing0(): number{
+            if( this.trailingOnesCount > 0 ) return 0;
+            const i = this.next1( -1 );
+            return i === -1 ?
+                   this.size :
+                   i;
         }
 
         /**
@@ -687,7 +702,7 @@ export namespace BitList {
          * @return The number of implicitly stored trailing '1' bits. Returns 0 if the
          * list starts with '0' or is empty.
          */
-        public get numberOfTrailing1(): number {
+        public get numberOfTrailing1(): number{
             return this.trailingOnesCount;
         }
 
@@ -699,10 +714,12 @@ export namespace BitList {
          * is empty, or contains only '0's. Returns {@code _size()} if the list
          * contains only '1's.
          */
-        public get numberOfLeading1(): number {
-            if (this.size > 0) {
+        public get numberOfLeading1(): number{
+            if( this.size > 0 ){
                 const last1 = this.last1();
-                return last1 + 1 === this.size ? last1 - this.prev0(last1) : 0;
+                return last1 + 1 === this.size ?
+                       last1 - this.prev0( last1 ) :
+                       0;
             }
             return 0;
         }
@@ -719,29 +736,32 @@ export namespace BitList {
          * The `n` bits (1..32) from `bit` on, packed LSB first - bit `bit` in the lowest: exactly how they travel.
          * Unsigned: 0 .. 2^32 - 1.
          */
-        public raw32(bit: number, n: number): number {
-            const v = this.get32(bit);
-            return n === 32 ? v : (v & ((1 << n) - 1)) >>> 0;
+        public raw32( bit: number, n: number ): number{
+            const v = this.get32( bit );
+            return n === 32 ?
+                   v :
+                   ( v & ( 1 << n ) - 1 ) >>> 0;
         }
 
         /**
          * The 32 bits from global bit `bit` on, packed LSB first - bit `bit` in the lowest; bits past the last one read
          * as 0. Unsigned: 0 .. 2^32 - 1, whatever part of the list the bits come from.
          */
-        public get32(bit: number): number {
+        public get32( bit: number ): number{
             const toc = this.trailingOnesCount;
-            if (bit < toc) {
+            if( bit < toc ){
                 const k = toc - bit; // ones at the bottom of the result
-                if (R.BITS <= k) return 0xffffffff;
-                return (this.used() === 0 ? R.mask(k) : R.mask(k) | (this.values[0] << k)) >>> 0;
+                if( R.BITS <= k ) return 0xFFFFFFFF;
+                return ( this.used() === 0 ?
+                         R.mask( k ) :
+                         R.mask( k ) | this.values[0] << k ) >>> 0;
             }
-            const off = bit - toc,
-                index = off >>> R.LEN,
-                u = this.used();
-            if (u <= index) return 0;
-            const pos = off & R.MASK,
-                lo = this.values[index] >>> pos;
-            return pos !== 0 && index + 1 < u ? (lo | (this.values[index + 1] << (R.BITS - pos))) >>> 0 : lo; // `>>>` already gives an unsigned value
+            const off = bit - toc, index = off >>> R.LEN, u = this.used();
+            if( u <= index ) return 0;
+            const pos = off & R.MASK, lo = this.values[index] >>> pos;
+            return pos !== 0 && index + 1 < u ?
+                   ( lo | this.values[index + 1] << ( R.BITS - pos ) ) >>> 0 :
+                   lo; // `>>>` already gives an unsigned value
         }
 
         /**
@@ -751,17 +771,17 @@ export namespace BitList {
          * @return The index of the first differing bit, or min(other.size, r2.size) if
          * they are identical up to the shorter length.
          */
-        public findFirstDifference(other: R): number {
-            const checkLimit = Math.min(this.size, other.size);
-            if (this.trailingOnesCount !== other.trailingOnesCount) return Math.min(this.trailingOnesCount, other.trailingOnesCount);
+        public findFirstDifference( other: R ): number{
+            const checkLimit = Math.min( this.size, other.size );
+            if( this.trailingOnesCount !== other.trailingOnesCount ) return Math.min( this.trailingOnesCount, other.trailingOnesCount );
 
             const startBit = this.trailingOnesCount;
-            for (let bit = startBit; bit < checkLimit; bit += R.BITS) {
-                const word1 = this.get32(bit);
-                const word2 = other.get32(bit);
-                if (word1 !== word2) {
-                    const diffOffset = AdHoc.numberOfTrailingZeros(word1 ^ word2);
-                    return Math.min(bit + diffOffset, checkLimit);
+            for( let bit = startBit; bit < checkLimit; bit += R.BITS ){
+                const word1 = this.get32( bit );
+                const word2 = other.get32( bit );
+                if( word1 !== word2 ){
+                    const diffOffset = AdHoc.numberOfTrailingZeros( word1 ^ word2 );
+                    return Math.min( bit + diffOffset, checkLimit );
                 }
             }
             return checkLimit;
@@ -778,21 +798,20 @@ export namespace BitList {
      * {@code trailingOnesCount} and a {@code values} array) and updates this
      * structure efficiently during modifications.
      */
-    export class RW extends R {
+    export class RW extends R{
         /**
          * Appends the `n` lowest bits (1..32) of `src` at the end, LSB first - how a receiver fills a list, in order: a
          * leading run of ones only extends the implicit trailing ones, the rest is OR-ed into `values` a word at a time.
          */
-        public append32(src: number, n: number): RW {
-            if (n < 32) src &= (1 << n) - 1;
+        public append32( src: number, n: number ): RW{
+            if( n < 32 ) src &= ( 1 << n ) - 1;
             let at = this._size;
             this._size += n;
 
-            if (at === this.trailingOnesCount && this.used() === 0) {
-                // all ones so far: the ones of `src` extend them
-                const inv = ~src;
-                const ones = inv === 0 ? 32 : 31 - Math.clz32(inv & -inv);
-                if (n <= ones) {
+            if( at === this.trailingOnesCount && this.used() === 0 ){ // all ones so far: the ones of `src` extend them
+                const inv  = ~src;
+                const ones = inv === 0 ? 32 : 31 - Math.clz32( inv & -inv );
+                if( n <= ones ){
                     this.trailingOnesCount += n;
                     return this;
                 }
@@ -800,16 +819,14 @@ export namespace BitList {
                 src >>>= ones;
                 at += ones;
             }
-            if (src === 0) return this; // zeros behind the last one are implicit
+            if( src === 0 ) return this; // zeros behind the last one are implicit
 
-            const off = at - this.trailingOnesCount,
-                idx = off >>> 5,
-                bit = off & 31;
-            const last = (off + 31 - Math.clz32(src)) >>> 5; // word of the last '1'
-            if (this.values.length <= last) this.values = copyOfL(this.values, Math.max(((this.values.length >> 1) * 3) >> 1, (last >> 1) + 1));
+            const off = at - this.trailingOnesCount, idx = off >>> 5, bit = off & 31;
+            const last = ( off + 31 - Math.clz32( src ) ) >>> 5; // word of the last '1'
+            if( this.values.length <= last ) this.values = copyOfL( this.values, Math.max( ( this.values.length >> 1 ) * 3 >> 1, ( last >> 1 ) + 1 ) );
             this.values[idx] |= src << bit;
-            if (idx < last) this.values[idx + 1] |= src >>> (32 - bit);
-            if (this.used() <= last) this._used = last + 1;
+            if( idx < last ) this.values[idx + 1] |= src >>> 32 - bit;
+            if( this.used() <= last ) this._used = last + 1;
             return this;
         }
 
@@ -818,7 +835,7 @@ export namespace BitList {
          * @property {string} [Symbol.toStringTag] - Custom string tag for instances of this class.
          * Used for `Object.prototype.toString.call()` to identify the class type.
          */
-        override get [Symbol.toStringTag]() {
+        override get [Symbol.toStringTag](){
             return "BitList.RW";
         }
 
@@ -829,7 +846,7 @@ export namespace BitList {
          * @param bits The initial capacity hint in bits. If zero or omitted, no backing array is allocated.
          * @throws RangeError if {@code bits} is negative.
          */
-        public constructor(bits?: number);
+        public constructor( bits?: number );
         /**
          * Constructs a {@code RW} BitList of {@code size} bits, all set to {@code default_value}, as the Java
          * {@code RW(boolean default_value, int size)}.
@@ -837,31 +854,31 @@ export namespace BitList {
          * @param default_value The value of every bit ({@code true} for '1', {@code false} for '0').
          * @param size          The initial number of bits; a non-positive one gives an empty list.
          */
-        public constructor(default_value: boolean, size: number);
-        public constructor(arg: number | boolean = 0, size: number = 0) {
+        public constructor( default_value: boolean, size: number );
+        public constructor( arg: number | boolean = 0, size: number = 0 ){
             super();
-            if (typeof arg === "boolean") {
-                if (0 < size) {
-                    if (arg) this.trailingOnesCount = size; // all bits are 1, stored as trailing ones
+            if( typeof arg === "boolean" ){
+                if( 0 < size ){
+                    if( arg ) this.trailingOnesCount = size; // all bits are 1, stored as trailing ones
                     this._size = size;
                 }
                 return;
             }
-            if (arg < 0) throw new RangeError("bits cannot be negative: " + arg);
-            if (0 < arg) this.values = new Uint32Array(len4L(arg) << 1);
+            if( arg < 0 ) throw new RangeError( "bits cannot be negative: " + arg );
+            if( 0 < arg ) this.values = new Uint32Array( len4L( arg ) << 1 );
         }
 
         /**
          * Creates an empty BitList with the given bit capacity reserved up front.
          * Equivalent to `new RW(capacity)`.
          */
-        static withCapacity(capacity: number): RW {
-            return new RW(capacity);
+        static withCapacity( capacity: number ): RW{
+            return new RW( capacity );
         }
 
         /** Creates a BitList of `size` bits, all set to `defaultBit`. Equivalent to `new RW(defaultBit, size)`. */
-        static filled(size: number, defaultBit: boolean = false): RW {
-            return new RW(defaultBit, size);
+        static filled( size: number, defaultBit: boolean = false ): RW{
+            return new RW( defaultBit, size );
         }
 
         /**
@@ -872,21 +889,21 @@ export namespace BitList {
          * @param and The other {@code BitList} to perform AND with.
          * @return This {@code RW} instance after the AND operation.
          */
-        and(and: R): this {
+        and( and: R ): this{
             // Bits past the end of `and` count as zeros; the size stays.
-            if (and === this) return this;
+            if( and === this ) return this;
             const a = and ?? new RW();
-            this.apply(RW.AND, a, Math.min(this.trailingOnesCount, a.trailingOnesCount), Math.min(this.last1() + 1, a.last1() + 1));
+            this.apply( RW.AND, a, Math.min( this.trailingOnesCount, a.trailingOnesCount ), Math.min( this.last1() + 1, a.last1() + 1 ) );
             return this;
         }
 
-        or(or: R): this {
+        or( or: R ): this{
             // The size becomes the larger one.
-            if (!or || or.size === 0 || or === this) return this;
-            const toc = Math.max(this.trailingOnesCount, or.trailingOnesCount);
-            const end = Math.max(this.last1() + 1, or.last1() + 1);
-            if (this._size < or.size) this._size = or.size;
-            this.apply(RW.OR, or, toc, end);
+            if( !or || or.size === 0 || or === this ) return this;
+            const toc = Math.max( this.trailingOnesCount, or.trailingOnesCount );
+            const end = Math.max( this.last1() + 1, or.last1() + 1 );
+            if( this._size < or.size ) this._size = or.size;
+            this.apply( RW.OR, or, toc, end );
             return this;
         }
 
@@ -902,13 +919,13 @@ export namespace BitList {
          * @return This {@code RW} (read-write) instance after the XOR operation,
          * allowing for method chaining.
          */
-        xor(xor: R): this {
+        xor( xor: R ): this{
             // The size becomes the larger one.
-            if (!xor || xor.size === 0) return this;
-            if (xor === this) return this.zeros();
-            const end = Math.max(this.last1() + 1, xor.last1() + 1);
-            if (this._size < xor.size) this._size = xor.size;
-            this.apply(RW.XOR, xor, 0, end);
+            if( !xor || xor.size === 0 ) return this;
+            if( xor === this ) return this.zeros();
+            const end = Math.max( this.last1() + 1, xor.last1() + 1 );
+            if( this._size < xor.size ) this._size = xor.size;
+            this.apply( RW.XOR, xor, 0, end );
             return this;
         }
 
@@ -921,12 +938,12 @@ export namespace BitList {
          * @param not The {@code BitList} to perform NOT and AND with.
          * @return This {@code RW} instance after the AND NOT operation.
          */
-        andNot(not: R): this {
+        andNot( not: R ): this{
             // Clears the bits set in `not`; the size stays.
-            if (!not || not.isAllZeros() || this._size === 0) return this;
-            if (not === this) return this.zeros();
-            const first1 = not.next1(-1); // not -1: `not` has a one
-            this.apply(RW.AND_NOT, not, Math.min(this.trailingOnesCount, first1), this.last1() + 1);
+            if( !not || not.isAllZeros() || this._size === 0 ) return this;
+            if( not === this ) return this.zeros();
+            const first1 = not.next1( -1 ); // not -1: `not` has a one
+            this.apply( RW.AND_NOT, not, Math.min( this.trailingOnesCount, first1 ), this.last1() + 1 );
             return this;
         }
 
@@ -937,34 +954,31 @@ export namespace BitList {
          * @param other The other {@code BitList} to check for intersection.
          * @return {@code true} if there is an intersection, {@code false} otherwise.
          */
-        intersects(other: R): boolean {
-            if (!other || this._size === 0 || other.size === 0) return false;
-            if (other === this) return !this.isAllZeros();
-            const t1 = this.trailingOnesCount,
-                t2 = other.trailingOnesCount;
-            if (0 < t1 && 0 < t2) return true; // both start with a one
+        intersects( other: R ): boolean{
+            if( !other || this._size === 0 || other.size === 0 ) return false;
+            if( other === this ) return !this.isAllZeros();
+            const t1 = this.trailingOnesCount, t2 = other.trailingOnesCount;
+            if( 0 < t1 && 0 < t2 ) return true; // both start with a one
             // At most one run is not empty: a one of the other list inside it intersects.
             // Past the runs, `a` (the list with the longer run) is read word-aligned straight from its `values`.
-            const a = (t1 < t2 ? other : this) as RW,
-                b = (t1 < t2 ? this : other) as RW;
+            const a = ( t1 < t2 ? other : this ) as RW, b = ( t1 < t2 ? this : other ) as RW;
             const ta = a.trailingOnesCount;
-            if (0 < ta) {
-                const i = b.next1(-1);
-                if (i !== -1 && i < ta) return true;
+            if( 0 < ta ){
+                const i = b.next1( -1 );
+                if( i !== -1 && i < ta ) return true;
             }
-            const end = Math.min(a.last1(), b.last1()) + 1;
-            if (end <= ta) return false;
-            const av = a.values,
-                n = Math.min(R.len4bits(end - ta), a.used());
+            const end = Math.min( a.last1(), b.last1() ) + 1;
+            if( end <= ta ) return false;
+            const av = a.values, n = Math.min( R.len4bits( end - ta ), a.used() );
             // b's run is shorter than a's, so b holds no implicit ones at or past ta.
-            const boff = ta - b.trailingOnesCount,
-                q = boff >>> R.LEN,
-                sh = boff & R.MASK,
-                bu = b.used(),
-                bv = b.values;
-            for (let i = 0, j = q; i < n && j < bu; i++, j++) {
-                const w = sh === 0 ? bv[j] : (bv[j] >>> sh) | (j + 1 < bu ? bv[j + 1] << (R.BITS - sh) : 0);
-                if ((av[i] & w) !== 0) return true;
+            const boff = ta - b.trailingOnesCount, q = boff >>> R.LEN, sh = boff & R.MASK, bu = b.used(), bv = b.values;
+            for( let i = 0, j = q; i < n && j < bu; i++, j++ ){
+                const w = sh === 0 ?
+                          bv[j] :
+                          bv[j] >>> sh | ( j + 1 < bu ?
+                                           bv[j + 1] << ( R.BITS - sh ) :
+                                           0 );
+                if( ( av[i] & w ) !== 0 ) return true;
             }
             return false;
         }
@@ -976,7 +990,7 @@ export namespace BitList {
          * @param bit The bit position to flip (0-indexed).
          * @return This {@code RW} instance after flipping the bit.
          */
-        public flip(bit: number): RW;
+        public flip( bit: number ): RW;
         /**
          * Flips a range of bits from {@code from_bit} (inclusive) to {@code to_bit}
          * (exclusive).
@@ -993,18 +1007,22 @@ export namespace BitList {
          * @return This {@code RW} instance after flipping the bits in the specified
          * range.
          */
-        public flip(from_bit: number, to_bit?: number): RW;
-        public flip(arg1: number, arg2?: number): RW {
-            if (arg2 === undefined) {
-                if (arg1 < 0) return this;
-                return this.get(arg1) ? this.set0(arg1) : this.set1(arg1);
+        public flip( from_bit: number, to_bit?: number ): RW;
+        public flip( arg1: number, arg2?: number ): RW{
+            if( arg2 === undefined ){
+                if( arg1 < 0 ) return this;
+                return this.get( arg1 ) ?
+                       this.set0( arg1 ) :
+                       this.set1( arg1 );
             }
-            const from_bit = arg1 < 0 ? 0 : arg1;
-            const to_bit = arg2;
-            if (to_bit <= from_bit) return this;
-            if (this._size < to_bit) this._size = to_bit;
-            if (from_bit < this.trailingOnesCount) this.lowerToc(from_bit); // the ones of the range become explicit bits
-            this.fillWords(2, from_bit - this.trailingOnesCount, to_bit - this.trailingOnesCount);
+            const from_bit = arg1 < 0 ?
+                             0 :
+                             arg1;
+            const to_bit   = arg2;
+            if( to_bit <= from_bit ) return this;
+            if( this._size < to_bit ) this._size = to_bit;
+            if( from_bit < this.trailingOnesCount ) this.lowerToc( from_bit ); // the ones of the range become explicit bits
+            this.fillWords( 2, from_bit - this.trailingOnesCount, to_bit - this.trailingOnesCount );
             this.normalize();
             return this;
         }
@@ -1020,10 +1038,14 @@ export namespace BitList {
          * @param TRUE Optional: the value that means '1'.
          * @returns This RW instance for method chaining.
          */
-        set(bit: number, value: number | boolean, TRUE?: number): RW {
-            if (bit < 0) return this;
-            if (this._size <= bit) this._size = bit + 1;
-            return (TRUE === undefined ? value : value === TRUE) ? this.set1(bit) : this.set0(bit);
+        set( bit: number, value: number | boolean, TRUE?: number ): RW{
+            if( bit < 0 ) return this;
+            if( this._size <= bit ) this._size = bit + 1;
+            return ( TRUE === undefined ?
+                     value :
+                     value === TRUE ) ?
+                   this.set1( bit ) :
+                   this.set0( bit );
         }
 
         /**
@@ -1036,42 +1058,39 @@ export namespace BitList {
          *               at index + i (true for '1', false for '0').
          * @returns This RW instance for method chaining.
          */
-        set$<T>(index: number, ...values: T[]): RW {
-            if (index < 0) return this;
-            const len = values.length,
-                end = index + len;
-            if (this._size < end) this._size = end;
-            if (len === 0) return this;
+        set$<T>( index: number, ...values: T[] ): RW{
+            if( index < 0 ) return this;
+            const len = values.length, end = index + len;
+            if( this._size < end ) this._size = end;
+            if( len === 0 ) return this;
 
-            this.set0(index, end); // the range becomes zeros and the run ends at or before `index`
+            this.set0( index, end ); // the range becomes zeros and the run ends at or before `index`
             const from = index - this.trailingOnesCount; // >= 0
-            let top = -1; // highest word written
+            let top    = -1; // highest word written
             // 64 values a step, as Java: the storage then grows exactly as there
-            for (let c = 0; c < len; c += 64) {
-                let w0 = 0,
-                    w1 = 0;
-                for (let k = 0, m = Math.min(64, len - c); k < m; k++)
-                    if (values[c + k]) {
-                        if (k < 32) w0 |= 1 << k;
-                        else w1 |= 1 << (k - 32);
+            for( let c = 0; c < len; c += 64 ){
+                let w0 = 0, w1 = 0;
+                for( let k = 0, m = Math.min( 64, len - c ); k < m; k++ )
+                    if( values[c + k] ){
+                        if( k < 32 ) w0 |= 1 << k;
+                        else w1 |= 1 << k - 32;
                     }
-                if ((w0 | w1) === 0) continue;
-                const off = from + c,
-                    hi = off + (w1 !== 0 ? 63 - Math.clz32(w1) : 31 - Math.clz32(w0)); // explicit offset of the last '1'
-                this.ensureL((hi >>> 6) + 1);
-                for (let h = 0; h < 2; h++) {
+                if( ( w0 | w1 ) === 0 ) continue;
+                const off = from + c, hi = off + ( w1 !== 0 ?
+                                                   63 - Math.clz32( w1 ) :
+                                                   31 - Math.clz32( w0 ) ); // explicit offset of the last '1'
+                this.ensureL( ( hi >>> 6 ) + 1 );
+                for( let h = 0; h < 2; h++ ){
                     const w = h === 0 ? w0 : w1;
-                    if (w === 0) continue;
-                    const o = off + (h << 5),
-                        i = o >>> R.LEN,
-                        sh = o & R.MASK;
+                    if( w === 0 ) continue;
+                    const o = off + ( h << 5 ), i = o >>> R.LEN, sh = o & R.MASK;
                     this.values[i] |= w << sh;
-                    if (sh !== 0 && w >>> (R.BITS - sh) !== 0) this.values[i + 1] |= w >>> (R.BITS - sh);
+                    if( sh !== 0 && w >>> ( R.BITS - sh ) !== 0 ) this.values[i + 1] |= w >>> ( R.BITS - sh );
                 }
                 top = hi >>> R.LEN;
             }
-            if (top < 0) return this;
-            this.usedFrom(Math.max(this.used(), top + 1));
+            if( top < 0 ) return this;
+            this.usedFrom( Math.max( this.used(), top + 1 ) );
             this.normalize(); // a '1' at `index` may join the run
             return this;
         }
@@ -1088,10 +1107,12 @@ export namespace BitList {
          * @param value The value to set all bits in the range to (true for '1', false for '0').
          * @returns This RW instance for method chaining.
          */
-        set_(from_bit: number, to_bit: number, value: number | boolean): RW {
-            if (from_bit >= to_bit || from_bit < 0) return this;
-            if (this.size < to_bit) this.size = to_bit;
-            return value ? this.set1(from_bit, to_bit) : this.set0(from_bit, to_bit);
+        set_( from_bit: number, to_bit: number, value: number | boolean ): RW{
+            if( from_bit >= to_bit || from_bit < 0 ) return this;
+            if( this.size < to_bit ) this.size = to_bit;
+            return value ?
+                   this.set1( from_bit, to_bit ) :
+                   this.set0( from_bit, to_bit );
         }
 
         /**
@@ -1105,7 +1126,7 @@ export namespace BitList {
          * @param bit The global bit index (0-indexed) to set to '1'. Must be non-negative.
          * @return This {@code RW} instance for method chaining.
          */
-        public set1(bit: number): RW;
+        public set1( bit: number ): RW;
         /**
          * Sets all bits within a specified range to '1'.
          * The range is {@code [from_bit, to_bit)}. Handles adjustments to
@@ -1117,37 +1138,34 @@ export namespace BitList {
          * @param to_bit   The ending global bit index (exclusive, 0-indexed). Must not be less than {@code from_bit}.
          * @return This {@code RW} instance for method chaining.
          */
-        public set1(from_bit: number, to_bit: number): RW;
-        public set1(arg1: number, arg2?: number): RW {
-            if (arg2 === undefined) {
+        public set1( from_bit: number, to_bit: number ): RW;
+        public set1( arg1: number, arg2?: number ): RW{
+            if( arg2 === undefined ){
                 const bit = arg1;
-                if (bit < 0) return this;
-                if (this._size <= bit) this._size = bit + 1;
-                if (bit < this.trailingOnesCount) return this;
+                if( bit < 0 ) return this;
+                if( this._size <= bit ) this._size = bit + 1;
+                if( bit < this.trailingOnesCount ) return this;
                 const off = bit - this.trailingOnesCount;
-                if (off === 0) {
-                    // the first zero after the run becomes one: the run takes it and the ones after it
+                if( off === 0 ){ // the first zero after the run becomes one: the run takes it and the ones after it
                     this.trailingOnesCount++;
-                    if (0 < this.used()) {
-                        this.shrWords(1);
+                    if( 0 < this.used() ){
+                        this.shrWords( 1 );
                         this.normalize();
                     }
                     return this;
                 }
-                this.fillWords(1, off, off + 1);
+                this.fillWords( 1, off, off + 1 );
                 return this;
             }
-            const from_bit = arg1,
-                to_bit = arg2;
-            if (from_bit < 0 || to_bit <= from_bit) return this;
-            if (this._size < to_bit) this._size = to_bit;
-            if (to_bit <= this.trailingOnesCount) return this;
-            if (from_bit <= this.trailingOnesCount) {
-                // the run reaches to_bit: the explicit bits below it go
-                this.shrWords(to_bit - this.trailingOnesCount);
+            const from_bit = arg1, to_bit = arg2;
+            if( from_bit < 0 || to_bit <= from_bit ) return this;
+            if( this._size < to_bit ) this._size = to_bit;
+            if( to_bit <= this.trailingOnesCount ) return this;
+            if( from_bit <= this.trailingOnesCount ){ // the run reaches to_bit: the explicit bits below it go
+                this.shrWords( to_bit - this.trailingOnesCount );
                 this.trailingOnesCount = to_bit;
                 this.normalize();
-            } else this.fillWords(1, from_bit - this.trailingOnesCount, to_bit - this.trailingOnesCount);
+            }else this.fillWords( 1, from_bit - this.trailingOnesCount, to_bit - this.trailingOnesCount );
             return this;
         }
 
@@ -1162,7 +1180,7 @@ export namespace BitList {
          * @param bit The global bit index (0-indexed) to set to '0'. Must be non-negative.
          * @return This {@code RW} instance for method chaining.
          */
-        public set0(bit: number): RW;
+        public set0( bit: number ): RW;
         /**
          * Sets all bits within a specified range to '0'.
          * The range is {@code [from_bit, to_bit)}. Handles adjustments to
@@ -1174,34 +1192,33 @@ export namespace BitList {
          * @param to_bit   The ending global bit index (exclusive, 0-indexed). Must not be less than {@code from_bit}.
          * @return This {@code RW} instance for method chaining.
          */
-        public set0(from_bit: number, to_bit: number): RW;
-        public set0(arg1: number, arg2?: number): RW {
-            if (arg2 === undefined) {
+        public set0( from_bit: number, to_bit: number ): RW;
+        public set0( arg1: number, arg2?: number ): RW{
+            if( arg2 === undefined ){
                 const bit = arg1;
-                if (bit < 0) return this;
-                if (this._size <= bit) {
+                if( bit < 0 ) return this;
+                if( this._size <= bit ){
                     this._size = bit + 1;
                     return this;
                 }
-                if (bit < this.trailingOnesCount) {
-                    if (bit + 1 === this.trailingOnesCount && this.used() === 0) {
+                if( bit < this.trailingOnesCount ){
+                    if( bit + 1 === this.trailingOnesCount && this.used() === 0 ){
                         this.trailingOnesCount--;
                         return this;
                     }
-                    this.lowerToc(bit);
-                    this.fillWords(0, 0, 1);
+                    this.lowerToc( bit );
+                    this.fillWords( 0, 0, 1 );
                     return this;
                 }
                 const off = bit - this.trailingOnesCount;
-                this.fillWords(0, off, off + 1);
+                this.fillWords( 0, off, off + 1 );
                 return this;
             }
-            const from_bit = arg1,
-                to_bit = arg2;
-            if (from_bit < 0 || to_bit <= from_bit) return this;
-            if (this._size < to_bit) this._size = to_bit;
-            if (from_bit < this.trailingOnesCount) this.lowerToc(from_bit);
-            this.fillWords(0, from_bit - this.trailingOnesCount, to_bit - this.trailingOnesCount);
+            const from_bit = arg1, to_bit = arg2;
+            if( from_bit < 0 || to_bit <= from_bit ) return this;
+            if( this._size < to_bit ) this._size = to_bit;
+            if( from_bit < this.trailingOnesCount ) this.lowerToc( from_bit );
+            this.fillWords( 0, from_bit - this.trailingOnesCount, to_bit - this.trailingOnesCount );
             return this;
         }
 
@@ -1213,10 +1230,10 @@ export namespace BitList {
          * @param word The 32-bit number to write.
          * @returns This RW instance for method chaining.
          */
-        public set32(bit: number, word: number): RW {
-            if (bit < 0) return this;
-            this.set0(bit, bit + R.BITS); // the place of the word: zeros, past the leading run, inside the size
-            this.orWord(bit, word);
+        public set32( bit: number, word: number ): RW{
+            if( bit < 0 ) return this;
+            this.set0( bit, bit + R.BITS ); // the place of the word: zeros, past the leading run, inside the size
+            this.orWord( bit, word );
             this.normalize();
             return this;
         }
@@ -1229,13 +1246,15 @@ export namespace BitList {
          * @param src The source BitList to copy from.
          * @returns This RW instance for method chaining.
          */
-        public setAll(offset: number, src: R): RW {
-            if (offset < 0 || !src || src.size === 0) return this;
-            if (src === this) src = this.clone();
-            this.set0(offset, offset + src.size); // the place of `src`: zeros, past the leading run, inside the size
-            for (let bit = 0, last = src.last1(); bit <= last; bit += R.BITS) {
+        public setAll( offset: number, src: R ): RW{
+            if( offset < 0 || !src || src.size === 0 ) return this;
+            if( src === this ) src = this.clone();
+            this.set0( offset, offset + src.size ); // the place of `src`: zeros, past the leading run, inside the size
+            for( let bit = 0, last = src.last1(); bit <= last; bit += R.BITS ){
                 const n = src.size - bit;
-                this.orWord(offset + bit, n < R.BITS ? src.get32(bit) & R.mask(n) : src.get32(bit));
+                this.orWord( offset + bit, n < R.BITS ?
+                                           src.get32( bit ) & R.mask( n ) :
+                                           src.get32( bit ) );
             }
             this.normalize();
             return this;
@@ -1250,25 +1269,27 @@ export namespace BitList {
          *            and less than the current size.
          * @return This {@code RW} instance for method chaining.
          */
-        public remove(bit: number): RW {
-            if (bit < 0 || this._size <= bit) return this;
+        public remove( bit: number ): RW{
+            if( bit < 0 || this._size <= bit ) return this;
             this._size--;
-            if (bit < this.trailingOnesCount) {
+            if( bit < this.trailingOnesCount ){
                 this.trailingOnesCount--;
                 return this;
             }
             const off = bit - this.trailingOnesCount;
-            this.removeBit(off);
-            if (off === 0) this.normalize(); // the bit after the removed zero may be a one
+            this.removeBit( off );
+            if( off === 0 ) this.normalize(); // the bit after the removed zero may be a one
             return this;
         }
 
-        public add(value: boolean | number): RW {
-            return this.add$(this.size, value);
+        public add( value: boolean | number ): RW{
+            return this.add$( this.size, value );
         }
 
-        public add$(bit: number, value: boolean | number): RW {
-            return value ? this.add1(bit) : this.add0(bit);
+        public add$( bit: number, value: boolean | number ): RW{
+            return value ?
+                   this.add1( bit ) :
+                   this.add0( bit );
         }
 
         /**
@@ -1281,15 +1302,15 @@ export namespace BitList {
          *            Must be non-negative. If {@code bit >= _size}, acts like appending a '0'.
          * @return This {@code RW} instance for method chaining.
          */
-        public add0(bit: number): RW {
-            if (bit < 0) return this;
-            if (this._size <= bit) {
+        public add0( bit: number ): RW{
+            if( bit < 0 ) return this;
+            if( this._size <= bit ){
                 this._size = bit + 1; // a zero past the end is implicit
                 return this;
             }
             this._size++;
-            if (bit < this.trailingOnesCount) this.lowerToc(bit);
-            this.insertBit(bit - this.trailingOnesCount, false);
+            if( bit < this.trailingOnesCount ) this.lowerToc( bit );
+            this.insertBit( bit - this.trailingOnesCount, false );
             return this;
         }
 
@@ -1303,15 +1324,15 @@ export namespace BitList {
          *            Must be non-negative. If {@code bit >= size}, acts like appending a '1'.
          * @return This {@code RW} instance for method chaining.
          */
-        public add1(bit: number): RW {
-            if (bit < 0) return this;
-            if (this._size <= bit) return this.set1(bit);
+        public add1( bit: number ): RW{
+            if( bit < 0 ) return this;
+            if( this._size <= bit ) return this.set1( bit );
             this._size++;
-            if (bit <= this.trailingOnesCount) {
+            if( bit <= this.trailingOnesCount ){
                 this.trailingOnesCount++; // the run grows; the explicit bits keep their offsets
                 return this;
             }
-            this.insertBit(bit - this.trailingOnesCount, true);
+            this.insertBit( bit - this.trailingOnesCount, true );
             return this;
         }
 
@@ -1322,7 +1343,7 @@ export namespace BitList {
          *
          * @return This {@code RW} instance after trimming.
          */
-        public trim(): RW {
+        public trim(): RW{
             this.length = this.last1() + 1;
             return this;
         }
@@ -1336,10 +1357,10 @@ export namespace BitList {
          *
          * @return This {@code RW} instance after adjusting capacity.
          */
-        public fit(): RW {
+        public fit(): RW{
             // Shrink only: the zeros up to size past last1() are implicit and need no words.
-            const len = Math.max(len4L(this._size - this.trailingOnesCount), L(this.used()));
-            if (len < this.values.length >> 1) this.values = copyOfL(this.values, len);
+            const len = Math.max( len4L( this._size - this.trailingOnesCount ), L( this.used() ) );
+            if( len < this.values.length >> 1 ) this.values = copyOfL( this.values, len );
             return this;
         }
 
@@ -1348,7 +1369,7 @@ export namespace BitList {
          * @property {number} length - Gets the total allocated length (in bits) of the BitList.
          * @override
          */
-        override get length(): number {
+        override get length(): number{
             return super.length;
         }
 
@@ -1365,18 +1386,18 @@ export namespace BitList {
          *
          * @param bits The desired capacity in bits.
          */
-        override set length(bits: number) {
-            if (bits < 0) throw new Error("length cannot be negative");
-            if (bits <= this.trailingOnesCount) {
+        override set length( bits: number ){
+            if( bits < 0 ) throw new Error( "length cannot be negative" );
+            if( bits <= this.trailingOnesCount ){
                 this.trailingOnesCount = bits;
-                this.values = new Uint32Array(0);
-                this._used = 0;
-                this._size = bits;
+                this.values            = new Uint32Array( 0 );
+                this._used             = 0;
+                this._size             = bits;
                 return;
             }
-            if (bits < this._size) this.truncate(bits);
-            const len = Math.max(len4L(bits - this.trailingOnesCount), L(this.used()));
-            if (len !== this.values.length >> 1) this.values = copyOfL(this.values, len);
+            if( bits < this._size ) this.truncate( bits );
+            const len = Math.max( len4L( bits - this.trailingOnesCount ), L( this.used() ) );
+            if( len !== this.values.length >> 1 ) this.values = copyOfL( this.values, len );
         }
 
         /**
@@ -1384,7 +1405,7 @@ export namespace BitList {
          * @property {number} size - Gets the logical size (number of bits) of the BitList.
          * @override
          */
-        override get size(): number {
+        override get size(): number{
             return this._size;
         }
 
@@ -1399,189 +1420,175 @@ export namespace BitList {
          * @param size The desired new size of the {@code BitList}. Must be non-negative.
          * @return This {@code RW} instance after resizing.
          */
-        override set size(size: number) {
-            if (size < this._size) {
-                if (size <= 0) this.clear();
-                else this.truncate(size);
-            } else if (this._size < size) this._size = size;
+        override set size( size: number ){
+            if( size < this._size ){
+                if( size <= 0 ) this.clear();
+                else this.truncate( size );
+            }else if( this._size < size ) this._size = size;
         }
-// region canonical-layout helpers
+
+        // region canonical-layout helpers
         // `values` holds the bits after the leading run, LSB first; its first bit is the first zero
         // after the run, and the words at and past `used` are zero. Every mutator keeps that.
 
         /** At least `n` 32-bit words. */
-        private ensureWords(n: number): void {
-            this.ensureL(L(n));
+        private ensureWords( n: number ): void{
+            this.ensureL( L( n ) );
         }
 
         /** At least `n` 64-bit words: Java's `ensureWords`. */
-        private ensureL(n: number): void {
+        private ensureL( n: number ): void{
             const v = this.values.length >> 1;
-            if (v < n) this.values = copyOfL(this.values, Math.max(n, v + (v >> 1)));
+            if( v < n ) this.values = copyOfL( this.values, Math.max( n, v + ( v >> 1 ) ) );
         }
 
         /** Recomputes `used` from `n` words down. */
-        private usedFrom(n: number): void {
+        private usedFrom( n: number ): void{
             this._used = n | R.IO;
             this.used();
         }
 
         /** Shortens the list to `n` bits, n < size. */
-        private truncate(n: number): void {
-            if (n <= this.trailingOnesCount) {
+        private truncate( n: number ): void{
+            if( n <= this.trailingOnesCount ){
                 this.trailingOnesCount = n;
-                this.values.fill(0, 0, this.used());
+                this.values.fill( 0, 0, this.used() );
                 this._used = 0;
-            } else {
-                const u = this.used(),
-                    off = n - this.trailingOnesCount,
-                    i = off >>> R.LEN;
-                if (i < u) {
-                    this.values[i] &= R.mask(off & R.MASK);
-                    this.values.fill(0, i + 1, u);
-                    this.usedFrom(i + 1);
+            }else{
+                const u = this.used(), off = n - this.trailingOnesCount, i = off >>> R.LEN;
+                if( i < u ){
+                    this.values[i] &= R.mask( off & R.MASK );
+                    this.values.fill( 0, i + 1, u );
+                    this.usedFrom( i + 1 );
                 }
             }
             this._size = n;
         }
 
         /** Drops the lowest `n` explicit bits. */
-        private shrWords(n: number): void {
-            const u = this.used(),
-                q = n >>> R.LEN,
-                s = n & R.MASK,
-                v = this.values;
-            if (u <= q) {
-                v.fill(0, 0, u);
+        private shrWords( n: number ): void{
+            const u = this.used(), q = n >>> R.LEN, s = n & R.MASK, v = this.values;
+            if( u <= q ){
+                v.fill( 0, 0, u );
                 this._used = 0;
                 return;
             }
-            if (s === 0) v.copyWithin(0, q, u);
-            else {
-                for (let i = 0; i < u - q - 1; i++) v[i] = (v[i + q] >>> s) | (v[i + q + 1] << (R.BITS - s));
+            if( s === 0 ) v.copyWithin( 0, q, u );
+            else{
+                for( let i = 0; i < u - q - 1; i++ ) v[i] = v[i + q] >>> s | v[i + q + 1] << ( R.BITS - s );
                 v[u - q - 1] = v[u - 1] >>> s;
             }
-            v.fill(0, u - q, u);
-            this.usedFrom(u - q);
+            v.fill( 0, u - q, u );
+            this.usedFrom( u - q );
         }
 
         /** Inserts `n` zero bits below the explicit bits. */
-        private shlWords(n: number): void {
+        private shlWords( n: number ): void{
             const u = this.used();
-            if (u === 0 || n === 0) return;
-            const q = n >>> R.LEN,
-                s = n & R.MASK;
-            this.ensureL(L(u) + (n >>> 6) + 1); // Java: u + q + 1 in 64-bit words
+            if( u === 0 || n === 0 ) return;
+            const q = n >>> R.LEN, s = n & R.MASK;
+            this.ensureL( L( u ) + ( n >>> 6 ) + 1 ); // Java: u + q + 1 in 64-bit words
             const v = this.values;
-            if (s === 0) v.copyWithin(q, 0, u);
-            else {
-                // top down: word i reads the lower words i - q and i - q - 1, not yet overwritten
-                for (let i = u + q; q < i; i--) v[i] = (i - q < u ? v[i - q] << s : 0) | (v[i - q - 1] >>> (R.BITS - s));
+            if( s === 0 ) v.copyWithin( q, 0, u );
+            else{ // top down: word i reads the lower words i - q and i - q - 1, not yet overwritten
+                for( let i = u + q; q < i; i-- ) v[i] = ( i - q < u ?
+                                                          v[i - q] << s :
+                                                          0 ) | v[i - q - 1] >>> ( R.BITS - s );
                 v[q] = v[0] << s;
             }
-            v.fill(0, 0, q);
-            this.usedFrom(u + q + 1);
+            v.fill( 0, 0, q );
+            this.usedFrom( u + q + 1 );
         }
 
         /** Applies `op` (0: clear, 1: set, other: flip) to explicit bits [from, to); grows for set and flip. */
-        private fillWords(op: number, from: number, to: number): void {
-            if (to <= from) return;
+        private fillWords( op: number, from: number, to: number ): void{
+            if( to <= from ) return;
             let u = this.used();
-            if (op === 0) {
-                to = Math.min(to, u << R.LEN);
-                if (to <= from) return;
-            } else {
-                const need = ((to - 1) >>> R.LEN) + 1;
-                this.ensureL(((to - 1) >>> 6) + 1);
-                u = Math.max(u, need);
+            if( op === 0 ){
+                to = Math.min( to, u << R.LEN );
+                if( to <= from ) return;
+            }else{
+                const need = ( ( to - 1 ) >>> R.LEN ) + 1;
+                this.ensureL( ( ( to - 1 ) >>> 6 ) + 1 );
+                u = Math.max( u, need );
             }
-            RW.fill(op, this.values, from, to);
-            this.usedFrom(u);
+            RW.fill( op, this.values, from, to );
+            this.usedFrom( u );
         }
 
         /** ORs the 32 bits of `w` in at global bit `at` (not below the leading run). Leaves normalizing to the caller. */
-        private orWord(at: number, w: number): void {
-            if (w === 0) return;
-            const off = at - this.trailingOnesCount,
-                i = off >>> R.LEN,
-                b = off & R.MASK;
-            const need = b === 0 ? i + 1 : i + 2;
-            this.ensureWords(need);
+        private orWord( at: number, w: number ): void{
+            if( w === 0 ) return;
+            const off = at - this.trailingOnesCount, i = off >>> R.LEN, b = off & R.MASK;
+            const need = b === 0 ?
+                         i + 1 :
+                         i + 2;
+            this.ensureWords( need );
             const v = this.values;
             v[i] |= w << b;
-            if (b !== 0) v[i + 1] |= w >>> (R.BITS - b);
-            this.usedFrom(Math.max(this.used(), need));
+            if( b !== 0 ) v[i + 1] |= w >>> ( R.BITS - b );
+            this.usedFrom( Math.max( this.used(), need ) );
         }
 
         /** Moves the run down to `t` (below trailingOnesCount): its ones from t on become explicit bits. */
-        private lowerToc(t: number): void {
+        private lowerToc( t: number ): void{
             const d = this.trailingOnesCount - t;
-            this.shlWords(d);
-            this.fillWords(1, 0, d);
+            this.shlWords( d );
+            this.fillWords( 1, 0, d );
             this.trailingOnesCount = t;
         }
 
         /** Moves the ones at the start of `values` into the run, so the first explicit bit is a zero. */
-        private normalize(): void {
-            const u = this.used(),
-                v = this.values;
-            if (u === 0 || (v[0] & 1) === 0) return;
-            let k = 0,
-                i = 0;
-            for (; i < u && v[i] === 0xffffffff; i++) k += R.BITS;
-            if (i < u) k += AdHoc.numberOfTrailingZeros(~v[i]);
-            this.shrWords(k);
+        private normalize(): void{
+            const u = this.used(), v = this.values;
+            if( u === 0 || ( v[0] & 1 ) === 0 ) return;
+            let k = 0, i = 0;
+            for( ; i < u && v[i] === 0xFFFFFFFF; i++ ) k += R.BITS;
+            if( i < u ) k += AdHoc.numberOfTrailingZeros( ~v[i] );
+            this.shrWords( k );
             this.trailingOnesCount += k;
         }
 
         /** Inserts `bit` at explicit bit `off`; the bits from `off` on move up by one. */
-        private insertBit(off: number, bit: boolean): void {
-            const u = this.used(),
-                i = off >>> R.LEN,
-                b = off & R.MASK;
-            if (L(u) <= off >>> 6) {
-                // as Java, in 64-bit words: past the explicit bits nothing moves
-                if (bit) this.fillWords(1, off, off + 1);
+        private insertBit( off: number, bit: boolean ): void{
+            const u = this.used(), i = off >>> R.LEN, b = off & R.MASK;
+            if( L( u ) <= off >>> 6 ){ // as Java, in 64-bit words: past the explicit bits nothing moves
+                if( bit ) this.fillWords( 1, off, off + 1 );
                 return;
             }
-            this.ensureL(L(u) + 1); // Java: u + 1 in 64-bit words
-            if (u <= i) {
-                // in the upper half of the last 64-bit word: nothing moves either
-                if (bit) this.fillWords(1, off, off + 1);
+            this.ensureL( L( u ) + 1 ); // Java: u + 1 in 64-bit words
+            if( u <= i ){ // in the upper half of the last 64-bit word: nothing moves either
+                if( bit ) this.fillWords( 1, off, off + 1 );
                 return;
             }
-            const v = this.values,
-                x = v[i],
-                m = R.mask(b);
+            const v = this.values, x = v[i], m = R.mask( b );
             let carry = x >>> 31;
-            v[i] = (x & m) | ((x & ~m) << 1) | ((bit ? 1 : 0) << b);
-            for (let j = i + 1; j < u; j++) {
+            v[i]      = x & m | ( x & ~m ) << 1 | ( bit ?
+                                                    1 :
+                                                    0 ) << b;
+            for( let j = i + 1; j < u; j++ ){
                 const y = v[j];
-                v[j] = (y << 1) | carry;
-                carry = y >>> 31;
+                v[j]    = y << 1 | carry;
+                carry   = y >>> 31;
             }
             let n = u;
-            if (carry !== 0) v[n++] = carry;
-            this.usedFrom(n);
+            if( carry !== 0 ) v[n++] = carry;
+            this.usedFrom( n );
         }
 
         /** Removes explicit bit `off`; the bits above move down by one. */
-        private removeBit(off: number): void {
-            const u = this.used(),
-                i = off >>> R.LEN,
-                b = off & R.MASK;
-            if (u <= i) return;
-            const v = this.values,
-                x = v[i],
-                m = R.mask(b);
-            let cur = (x & m) | ((x >>> 1) & ~m);
-            for (let j = i + 1; j < u; j++) {
-                const y = v[j];
-                v[j - 1] = cur | (y << 31);
-                cur = y >>> 1;
+        private removeBit( off: number ): void{
+            const u = this.used(), i = off >>> R.LEN, b = off & R.MASK;
+            if( u <= i ) return;
+            const v = this.values, x = v[i], m = R.mask( b );
+            let cur = x & m | x >>> 1 & ~m;
+            for( let j = i + 1; j < u; j++ ){
+                const y  = v[j];
+                v[j - 1] = cur | y << 31;
+                cur      = y >>> 1;
             }
             v[u - 1] = cur;
-            this.usedFrom(u);
+            this.usedFrom( u );
         }
 
         private static readonly AND = 0;
@@ -1590,9 +1597,9 @@ export namespace BitList {
         private static readonly AND_NOT = 3;
 
         /** All zeros, the size stays. */
-        private zeros(): this {
-            this.values.fill(0, 0, this.used());
-            this._used = 0;
+        private zeros(): this{
+            this.values.fill( 0, 0, this.used() );
+            this._used             = 0;
             this.trailingOnesCount = 0;
             return this;
         }
@@ -1601,64 +1608,67 @@ export namespace BitList {
          * this = this `op` x, in place and in one pass: ones below `toc`, the combined words from `toc` up to `end`,
          * zeros after. x !== this. end >= toc.
          */
-        private apply(op: number, x: R, toc: number, end: number): void {
+        private apply( op: number, x: R, toc: number, end: number ): void{
             const xr = x as RW; // protected members of x are reached through the RW type
-            const n = toc < end ? R.len4bits(end - toc) : 0,
-                u = this.used();
-            this.ensureL(toc < end ? len4L(end - toc) : 0);
+            const n  = toc < end ?
+                       R.len4bits( end - toc ) :
+                       0, u = this.used();
+            this.ensureL( toc < end ?
+                          len4L( end - toc ) :
+                          0 );
             const w = this.values;
 
             // Result word i takes the bits at toc + 32 * i of both lists. For a list with run t and `used` words, past
             // its run that word is v[i + q] >>> s | v[i + q + 1] << 32 - s, q = (toc - t) >> 5, s = (toc - t) & 31.
             // Words [lo, hi) read that way with both indices in range go through a tight loop; the few words around it
             // (inside a run, at the top of `values`) go through get32.
-            const ta = this.trailingOnesCount,
-                tx = x.trailingOnesCount;
-            const qa = (toc - ta) >> R.LEN,
-                sa = (toc - ta) & R.MASK,
-                qx = (toc - tx) >> R.LEN,
-                sx = (toc - tx) & R.MASK;
-            const lo = Math.min(n, Math.max(ta <= toc ? 0 : R.len4bits(ta - toc), tx <= toc ? 0 : R.len4bits(tx - toc)));
-            const hi = Math.max(lo, Math.min(n, u - qa - 1, xr.used() - qx - 1));
+            const ta = this.trailingOnesCount, tx = x.trailingOnesCount;
+            const qa = ( toc - ta ) >> R.LEN, sa = ( toc - ta ) & R.MASK, qx = ( toc - tx ) >> R.LEN, sx = ( toc - tx ) & R.MASK;
+            const lo = Math.min( n, Math.max( ta <= toc ?
+                                              0 :
+                                              R.len4bits( ta - toc ), tx <= toc ?
+                                                                      0 :
+                                                                      R.len4bits( tx - toc ) ) );
+            const hi = Math.max( lo, Math.min( n, u - qa - 1, xr.used() - qx - 1 ) );
 
             // get32 reads this list through the unchanged trailingOnesCount and `used`, so writing over `values` is
             // safe while no word is read after it was overwritten:
             // - the run shrinks (toc < ta): word i reads words <= i, so go top-down;
             // - otherwise word i reads words >= i, so go bottom-up.
-            if (toc < ta) {
-                this.edge(op, x, toc, w, hi, n, false);
-                RW.mid(op, w, qa, sa, xr.values, qx, sx, lo, hi, false);
-                this.edge(op, x, toc, w, 0, lo, false);
-            } else {
-                this.edge(op, x, toc, w, 0, lo, true);
-                RW.mid(op, w, qa, sa, xr.values, qx, sx, lo, hi, true);
-                this.edge(op, x, toc, w, hi, n, true);
+            if( toc < ta ){
+                this.edge( op, x, toc, w, hi, n, false );
+                RW.mid( op, w, qa, sa, xr.values, qx, sx, lo, hi, false );
+                this.edge( op, x, toc, w, 0, lo, false );
+            }else{
+                this.edge( op, x, toc, w, 0, lo, true );
+                RW.mid( op, w, qa, sa, xr.values, qx, sx, lo, hi, true );
+                this.edge( op, x, toc, w, hi, n, true );
             }
 
             // Nothing past `end`.
-            if (0 < n && ((end - toc) & R.MASK) !== 0) w[n - 1] &= R.mask((end - toc) & R.MASK);
-            if (n < u) w.fill(0, n, u);
-            this.trailingOnesCount = Math.min(toc, this._size);
-            this.usedFrom(n);
+            if( 0 < n && ( ( end - toc ) & R.MASK ) !== 0 ) w[n - 1] &= R.mask( ( end - toc ) & R.MASK );
+            if( n < u ) w.fill( 0, n, u );
+            this.trailingOnesCount = Math.min( toc, this._size );
+            this.usedFrom( n );
             this.normalize();
         }
 
         /** Result words [from, to) through get32. */
-        private edge(op: number, x: R, toc: number, w: Uint32Array, from: number, to: number, up: boolean): void {
-            if (up)
-                for (let i = from; i < to; i++) {
-                    const bit = toc + (i << R.LEN);
-                    w[i] = RW.op(op, this.get32(bit), x.get32(bit));
+        private edge( op: number, x: R, toc: number, w: Uint32Array, from: number, to: number, up: boolean ): void{
+            if( up )
+                for( let i = from; i < to; i++ ){
+                    const bit = toc + ( i << R.LEN );
+                    w[i]      = RW.op( op, this.get32( bit ), x.get32( bit ) );
                 }
             else
-                for (let i = to; from <= --i; ) {
-                    const bit = toc + (i << R.LEN);
-                    w[i] = RW.op(op, this.get32(bit), x.get32(bit));
+                for( let i = to; from <= --i; ){
+                    const bit = toc + ( i << R.LEN );
+                    w[i]      = RW.op( op, this.get32( bit ), x.get32( bit ) );
                 }
         }
 
-        private static op(op: number, a: number, b: number): number {
-            switch (op) {
+        private static op( op: number, a: number, b: number ): number{
+            switch( op ){
                 case RW.AND:
                     return a & b;
                 case RW.OR:
@@ -1675,41 +1685,41 @@ export namespace BitList {
          * `(y << 1) << ~s` is `y << 32 - s` for s in 1..31 and 0 for s === 0, without a branch.
          * One loop per op, so each stays a straight loop.
          */
-        private static mid(op: number, w: Uint32Array, qa: number, sa: number, v: Uint32Array, qx: number, sx: number, lo: number, hi: number, up: boolean): void {
-            if (hi <= lo) return;
-            const na = ~sa,
-                nx = ~sx;
-            if (up)
-                switch (op) {
+        private static mid( op: number, w: Uint32Array, qa: number, sa: number, v: Uint32Array, qx: number, sx: number, lo: number, hi: number, up: boolean ): void{
+            if( hi <= lo ) return;
+            const na = ~sa, nx = ~sx;
+            if( up )
+                switch( op ){
                     case RW.AND:
-                        for (let i = lo; i < hi; i++) w[i] = ((w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na)) & ((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                        for( let i = lo; i < hi; i++ ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) & ( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                         return;
                     case RW.OR:
-                        for (let i = lo; i < hi; i++) w[i] = (w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na) | ((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                        for( let i = lo; i < hi; i++ ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) | ( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                         return;
                     case RW.XOR:
-                        for (let i = lo; i < hi; i++) w[i] = ((w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na)) ^ ((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                        for( let i = lo; i < hi; i++ ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) ^ ( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                         return;
                     default:
-                        for (let i = lo; i < hi; i++) w[i] = ((w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na)) & ~((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                        for( let i = lo; i < hi; i++ ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) & ~( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                         return;
                 }
-            switch (op) {
+            switch( op ){
                 case RW.AND:
-                    for (let i = hi; lo <= --i; ) w[i] = ((w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na)) & ((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                    for( let i = hi; lo <= --i; ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) & ( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                     return;
                 case RW.OR:
-                    for (let i = hi; lo <= --i; ) w[i] = (w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na) | ((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                    for( let i = hi; lo <= --i; ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) | ( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                     return;
                 case RW.XOR:
-                    for (let i = hi; lo <= --i; ) w[i] = ((w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na)) ^ ((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                    for( let i = hi; lo <= --i; ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) ^ ( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                     return;
                 default:
-                    for (let i = hi; lo <= --i; ) w[i] = ((w[i + qa] >>> sa) | ((w[i + qa + 1] << 1) << na)) & ~((v[i + qx] >>> sx) | ((v[i + qx + 1] << 1) << nx));
+                    for( let i = hi; lo <= --i; ) w[i] = ( w[i + qa] >>> sa | w[i + qa + 1] << 1 << na ) & ~( v[i + qx] >>> sx | v[i + qx + 1] << 1 << nx );
                     return;
             }
         }
-// endregion
+
+        // endregion
 
         /**
          * Resets this {@code BitList} to an empty state.
@@ -1719,10 +1729,10 @@ export namespace BitList {
          *
          * @return This {@code RW} instance after clearing.
          */
-        public clear(): RW {
-            if (this.used() > 0) this.values.fill(0, 0, this.used());
-            this._used = 0;
-            this._size = 0;
+        public clear(): RW{
+            if( this.used() > 0 ) this.values.fill( 0, 0, this.used() );
+            this._used             = 0;
+            this._size             = 0;
             this.trailingOnesCount = 0;
             return this;
         }
@@ -1734,7 +1744,7 @@ export namespace BitList {
          *
          * @return A new {@code RW} instance identical to this one.
          */
-        public override clone(): RW {
+        public override clone(): RW{
             return super.clone() as RW;
         }
 
@@ -1748,11 +1758,11 @@ export namespace BitList {
          * @param src_bits The total number of valid bits in the conceptual bitstream represented by src (used for boundary checks).
          * @return The 32-bit word starting at the specified bit position. Bits beyond src_bits are treated as 0.
          */
-        protected static get__(src: Uint32Array, bit: number, src_bits: number): number {
-            const index = bit >>> this.LEN;
+        protected static get__( src: Uint32Array, bit: number, src_bits: number ): number{
+            const index  = bit >>> this.LEN;
             const offset = bit & this.MASK;
-            let result = src[index] >>> offset;
-            if (offset > 0 && index + 1 < this.len4bits(src_bits)) result |= src[index + 1] << (this.BITS - offset);
+            let result   = src[index] >>> offset;
+            if( offset > 0 && index + 1 < this.len4bits( src_bits ) ) result |= src[index + 1] << ( this.BITS - offset );
             return result;
         }
 
@@ -1767,14 +1777,14 @@ export namespace BitList {
          * @param bit      The starting bit position (0-based index relative to start of dst) to write to.
          * @param dst_bits The total number of valid bits in the destination conceptual bitstream (used for boundary checks/masking).
          */
-        private static set(src: number, dst: Uint32Array, bit: number, dst_bits: number): void {
-            const index = bit >>> this.LEN;
+        private static set( src: number, dst: Uint32Array, bit: number, dst_bits: number ): void{
+            const index  = bit >>> this.LEN;
             const offset = bit & this.MASK;
-            if (offset === 0) dst[index] = src;
-            else {
-                dst[index] = (dst[index] & this.mask(offset)) | (src << offset);
+            if( offset === 0 ) dst[index] = src;
+            else{
+                dst[index] = ( dst[index] & this.mask( offset ) ) | ( src << offset );
                 const next = index + 1;
-                if (next < dst.length && next < this.len4bits(dst_bits)) dst[next] = (dst[next] & (-1 << offset)) | (src >>> (this.BITS - offset));
+                if( next < dst.length && next < this.len4bits( dst_bits ) ) dst[next] = ( dst[next] & ( -1 << offset ) ) | ( src >>> ( this.BITS - offset ) );
             }
         }
 
@@ -1789,31 +1799,31 @@ export namespace BitList {
          * @param dst_bit The starting bit position in the destination (relative index).
          * @param bits    The number of bits to copy.
          */
-        private static bitcpy(src: Uint32Array, src_bit: number, dst: Uint32Array, dst_bit: number, bits: number): void {
-            if (bits <= 0) return;
-            const src_bits = src_bit + bits;
-            const dst_bits = dst_bit + bits;
-            const last = bits >>> this.LEN;
+        private static bitcpy( src: Uint32Array, src_bit: number, dst: Uint32Array, dst_bit: number, bits: number ): void{
+            if( bits <= 0 ) return;
+            const src_bits  = src_bit + bits;
+            const dst_bits  = dst_bit + bits;
+            const last      = bits >>> this.LEN;
             const last_bits = bits & this.MASK;
 
-            if (dst === src && dst_bit < src_bit)
-                for (let i = 0; i < last; i++) {
+            if( dst === src && dst_bit < src_bit )
+                for( let i = 0; i < last; i++ ){
                     const i_bit = i << this.LEN;
-                    this.set(this.get__(src, src_bit + i_bit, src_bits), dst, dst_bit + i_bit, dst_bits);
+                    this.set( this.get__( src, src_bit + i_bit, src_bits ), dst, dst_bit + i_bit, dst_bits );
                 }
             else
-                for (let i = last; --i >= 0; ) {
+                for( let i = last; --i >= 0; ){
                     const i_bit = i << this.LEN;
-                    this.set(this.get__(src, src_bit + i_bit, src_bits), dst, dst_bit + i_bit, dst_bits);
+                    this.set( this.get__( src, src_bit + i_bit, src_bits ), dst, dst_bit + i_bit, dst_bits );
                 }
 
-            if (last_bits > 0) {
+            if( last_bits > 0 ){
                 const i_bit = last << this.LEN;
-                const s = this.get__(src, src_bit + i_bit, src_bits);
-                const d = this.get__(dst, dst_bit + i_bit, dst_bits);
-                this.set(d ^ ((s ^ d) & this.mask(last_bits)), dst, dst_bit + i_bit, dst_bits);
+                const s     = this.get__( src, src_bit + i_bit, src_bits );
+                const d     = this.get__( dst, dst_bit + i_bit, dst_bits );
+                this.set( d ^ ( ( s ^ d ) & this.mask( last_bits ) ), dst, dst_bit + i_bit, dst_bits );
             }
-            if ((dst_bits & this.MASK) !== 0) dst[this.len4bits(dst_bits) - 1] &= this.mask(dst_bits & this.MASK);
+            if( ( dst_bits & this.MASK ) !== 0 ) dst[this.len4bits( dst_bits ) - 1] &= this.mask( dst_bits & this.MASK );
         }
 
         /**
@@ -1837,11 +1847,11 @@ export namespace BitList {
          * @param clear      If true, the vacated bits at the high end (indices [hi_bit - shift_bits, hi_bit)) are set to 0.
          * @return The modified dst array
          */
-        static shiftRight(src: Uint32Array, dst: Uint32Array, lo_bit: number, hi_bit: number, shift_bits: number, clear: boolean): Uint32Array {
-            if (hi_bit <= lo_bit || shift_bits < 1) return dst;
-            if (src !== dst && lo_bit > 0) dst.set(src.subarray(0, this.len4bits(lo_bit)));
-            if (shift_bits < hi_bit - lo_bit) this.bitcpy(src, lo_bit + shift_bits, dst, lo_bit, hi_bit - lo_bit - shift_bits);
-            if (clear) this.fill(0, dst, Math.max(lo_bit, hi_bit - shift_bits), hi_bit);
+        static shiftRight( src: Uint32Array, dst: Uint32Array, lo_bit: number, hi_bit: number, shift_bits: number, clear: boolean ): Uint32Array{
+            if( hi_bit <= lo_bit || shift_bits < 1 ) return dst;
+            if( src !== dst && lo_bit > 0 ) dst.set( src.subarray( 0, this.len4bits( lo_bit ) ) );
+            if( shift_bits < hi_bit - lo_bit ) this.bitcpy( src, lo_bit + shift_bits, dst, lo_bit, hi_bit - lo_bit - shift_bits );
+            if( clear ) this.fill( 0, dst, Math.max( lo_bit, hi_bit - shift_bits ), hi_bit );
             return dst;
         }
 
@@ -1866,16 +1876,16 @@ export namespace BitList {
          * @param clear      If true, the vacated bits at the low end (indices [lo_bit, lo_bit + shift_bits)) are set to 0.
          * @return The modified src array, or a new, larger array if reallocation occurred.
          */
-        static shiftLeft(src: Uint32Array, lo_bit: number, hi_bit: number, shift_bits: number, clear: boolean): Uint32Array {
-            if (hi_bit <= lo_bit || shift_bits < 1) return src;
-            const max = this.len4bits(hi_bit + shift_bits);
-            let dst = src;
-            if (src.length < max) {
-                dst = new Uint32Array(Math.ceil(max * 1.5));
-                if (lo_bit > 0) dst.set(src.subarray(0, this.len4bits(lo_bit)));
+        static shiftLeft( src: Uint32Array, lo_bit: number, hi_bit: number, shift_bits: number, clear: boolean ): Uint32Array{
+            if( hi_bit <= lo_bit || shift_bits < 1 ) return src;
+            const max = this.len4bits( hi_bit + shift_bits );
+            let dst   = src;
+            if( src.length < max ){
+                dst = new Uint32Array( Math.ceil( max * 1.5 ) );
+                if( lo_bit > 0 ) dst.set( src.subarray( 0, this.len4bits( lo_bit ) ) );
             }
-            this.bitcpy(src, lo_bit, dst, lo_bit + shift_bits, hi_bit - lo_bit);
-            if (clear) this.fill(0, dst, lo_bit, lo_bit + shift_bits);
+            this.bitcpy( src, lo_bit, dst, lo_bit + shift_bits, hi_bit - lo_bit );
+            if( clear ) this.fill( 0, dst, lo_bit, lo_bit + shift_bits );
             return dst;
         }
 
@@ -1888,16 +1898,16 @@ export namespace BitList {
          * @param lo_bit The starting bit index (inclusive, relative) of the range to fill.
          * @param hi_bit The ending bit index (exclusive, relative) of the range to fill.
          */
-        private static fill(src: number, dst: Uint32Array, lo_bit: number, hi_bit: number): void {
-            if (lo_bit >= hi_bit) return;
-            const lo_index = lo_bit >>> this.LEN;
-            const hi_index = (hi_bit - 1) >>> this.LEN;
+        private static fill( src: number, dst: Uint32Array, lo_bit: number, hi_bit: number ): void{
+            if( lo_bit >= hi_bit ) return;
+            const lo_index  = lo_bit >>> this.LEN;
+            const hi_index  = ( hi_bit - 1 ) >>> this.LEN;
             const lo_offset = lo_bit & this.MASK;
-            const hi_offset = (hi_bit - 1) & this.MASK;
+            const hi_offset = ( hi_bit - 1 ) & this.MASK;
 
-            if (lo_index === hi_index) {
-                const mask = this.mask(hi_bit - lo_bit) << lo_offset;
-                switch (src) {
+            if( lo_index === hi_index ){
+                const mask = this.mask( hi_bit - lo_bit ) << lo_offset;
+                switch( src ){
                     case 0:
                         dst[lo_index] &= ~mask;
                         return;
@@ -1911,21 +1921,21 @@ export namespace BitList {
             }
 
             const lo_mask = -1 << lo_offset;
-            const hi_mask = this.mask(hi_offset + 1);
-            switch (src) {
+            const hi_mask = this.mask( hi_offset + 1 );
+            switch( src ){
                 case 0:
                     dst[lo_index] &= ~lo_mask;
-                    for (let i = lo_index + 1; i < hi_index; i++) dst[i] = 0;
+                    for( let i = lo_index + 1; i < hi_index; i++ ) dst[i] = 0;
                     dst[hi_index] &= ~hi_mask;
                     return;
                 case 1:
                     dst[lo_index] |= lo_mask;
-                    for (let i = lo_index + 1; i < hi_index; i++) dst[i] = -1;
+                    for( let i = lo_index + 1; i < hi_index; i++ ) dst[i] = -1;
                     dst[hi_index] |= hi_mask;
                     return;
                 default:
                     dst[lo_index] ^= lo_mask;
-                    for (let i = lo_index + 1; i < hi_index; i++) dst[i] = ~dst[i];
+                    for( let i = lo_index + 1; i < hi_index; i++ ) dst[i] = ~dst[i];
                     dst[hi_index] ^= hi_mask;
             }
         }

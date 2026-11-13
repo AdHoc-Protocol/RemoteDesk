@@ -18,37 +18,23 @@ pub struct NullablePrimitiveSet<K, S = FxBuildHasher> {
 impl<K, S> NullablePrimitiveSet<K, S> {
     /// Keyed slots first, then `NULL_TOKEN`; see [`super::token`].
     #[inline(always)]
-    pub fn token(&self) -> Option<Token> {
-        or_null(self.set.token(), self.has_null)
-    }
+    pub fn token(&self) -> Option<Token> { or_null(self.set.token(), self.has_null) }
 
     #[inline(always)]
     pub fn next_token(&self, token: Token) -> Option<Token> {
-        if token == NULL_TOKEN || !self.set.contains_token(token) {
-            return None;
-        }
+        if token == NULL_TOKEN || !self.set.contains_token(token) { return None; }
         or_null(self.set.next_token(token), self.has_null)
     }
 
     #[inline(always)]
     pub fn contains_token(&self, token: Token) -> bool {
-        if token == NULL_TOKEN {
-            self.has_null
-        } else {
-            self.set.contains_token(token)
-        }
+        if token == NULL_TOKEN { self.has_null } else { self.set.contains_token(token) }
     }
 
     #[inline(always)]
-    pub fn key_by_token(&self, token: Token) -> Option<Option<K>>
-    where
-        K: Copy,
-    {
-        if token == NULL_TOKEN {
-            self.has_null.then_some(None)
-        } else {
-            self.set.key_by_token(token).map(Some)
-        }
+    pub fn key_by_token(&self, token: Token) -> Option<Option<K>> where K: Copy {
+        if token == NULL_TOKEN { self.has_null.then_some(None) }
+        else { self.set.key_by_token(token).map(Some) }
     }
 
     #[inline(always)]
@@ -99,10 +85,7 @@ impl<K, S> NullablePrimitiveSet<K, S> {
 
     #[inline]
     pub fn iter(&self) -> Iter<'_, K> {
-        Iter {
-            null: self.has_null,
-            inner: self.set.iter(),
-        }
+        Iter { null: self.has_null, inner: self.set.iter() }
     }
 }
 
@@ -135,26 +118,17 @@ impl<K: Copy + Eq + Hash, S: BuildHasher> NullablePrimitiveSet<K, S> {
 
     #[inline(always)]
     pub fn token_of(&self, key: Option<K>) -> Option<Token> {
-        match key {
-            Some(k) => self.set.token_of(k),
-            None => self.has_null.then_some(NULL_TOKEN),
-        }
+        match key { Some(k) => self.set.token_of(k), None => self.has_null.then_some(NULL_TOKEN) }
     }
 
     /// Does not allocate.
     #[inline]
     pub fn with_hasher(hasher: S) -> Self {
-        Self {
-            set: PrimitiveSet::with_hasher(hasher),
-            has_null: false,
-        }
+        Self { set: PrimitiveSet::with_hasher(hasher), has_null: false }
     }
 
     pub fn with_capacity_and_hasher(capacity: usize, hasher: S) -> Self {
-        Self {
-            set: PrimitiveSet::with_capacity_and_hasher(capacity, hasher),
-            has_null: false,
-        }
+        Self { set: PrimitiveSet::with_capacity_and_hasher(capacity, hasher), has_null: false }
     }
 
     #[inline(always)]
@@ -167,9 +141,7 @@ impl<K: Copy + Eq + Hash, S: BuildHasher> NullablePrimitiveSet<K, S> {
 
     /// Key without `Option`, the null key separately: the serializer and the parser neither wrap a key nor check it for null.
     #[inline(always)]
-    pub fn insert_key(&mut self, k: K) -> bool {
-        self.set.insert(k)
-    }
+    pub fn insert_key(&mut self, k: K) -> bool { self.set.insert(k) }
 
     /// `true` if the key was not present.
     #[inline]
@@ -244,10 +216,7 @@ impl<K: Copy + Eq + Hash, S: BuildHasher> NullablePrimitiveSet<K, S> {
 
 impl<K: Clone, S: Clone> Clone for NullablePrimitiveSet<K, S> {
     fn clone(&self) -> Self {
-        Self {
-            set: self.set.clone(),
-            has_null: self.has_null,
-        }
+        Self { set: self.set.clone(), has_null: self.has_null }
     }
 }
 
@@ -364,9 +333,6 @@ impl<K, S> IntoIterator for NullablePrimitiveSet<K, S> {
     type IntoIter = IntoIter<K>;
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            null: self.has_null,
-            inner: self.set.into_iter(),
-        }
+        IntoIter { null: self.has_null, inner: self.set.into_iter() }
     }
 }

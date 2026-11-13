@@ -9,10 +9,10 @@
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI64, AtomicU32, Ordering};
 use std::sync::{Arc, Weak};
 
+use crate::lib::adhoc::connection::transmitter::chunked::MAX;
 use crate::lib::adhoc::chain::Stage;
 use crate::lib::adhoc::connection::external::{Event, External};
 use crate::lib::adhoc::connection::receiver::Rx;
-use crate::lib::adhoc::connection::transmitter::chunked::MAX;
 use crate::lib::adhoc::connection::transmitter::{Tx, TxHost, TxState};
 use crate::lib::adhoc::BytesDst;
 use crate::lib::chain::Chain;
@@ -164,10 +164,7 @@ impl EndPoint {
     /// virtual connection ([`closed`](Self::closed)), which answers.
     pub fn answered(&self) -> bool {
         // none due: the tunnel stays on its id till its answer is out - a frame after the far end's end is of its next session
-        let was = self
-            .drain
-            .try_update(Ordering::AcqRel, Ordering::Acquire, |d| Some(if d & !ANSWERING == 0 { d | ANSWERING } else { d - 1 }))
-            .unwrap_or_default();
+        let was = self.drain.try_update(Ordering::AcqRel, Ordering::Acquire, |d| Some(if d & !ANSWERING == 0 { d | ANSWERING } else { d - 1 })).unwrap_or_default();
         was & !ANSWERING != 0
     }
 
@@ -360,10 +357,7 @@ impl EndPoint {
     /// [`Chain::on_peer`] refuses, ends the tunnel and goes to [`failure`](External::failure).
     /// Once: a second one is ignored.
     pub fn secure(self: &Arc<Self>, chain: &Chain, left: bool) {
-        assert!(
-            0 <= chain.pattern && !chain.has_tls_for(true) && !chain.has_tls_for(false),
-            "A tunnel is encrypted by a pattern of Noise alone: TLS belongs to the socket of its carrier."
-        );
+        assert!(0 <= chain.pattern && !chain.has_tls_for(true) && !chain.has_tls_for(false), "A tunnel is encrypted by a pattern of Noise alone: TLS belongs to the socket of its carrier.");
         let me = Arc::downgrade(self); // weak: the end holds its stream, the stream these hooks
         let mut chain = chain.clone();
         let (asks, end) = (chain.on_peer.take(), me.clone());
@@ -376,14 +370,7 @@ impl EndPoint {
             }
             accepted
         }));
-        let mut ns = chain.noise_stream(
-            left,
-            Some(Box::new(move || {
-                if let Some(e) = me.upgrade() {
-                    e.woken.store(true, Ordering::Release)
-                }
-            })),
-        );
+        let mut ns = chain.noise_stream(left, Some(Box::new(move || if let Some(e) = me.upgrade() { e.woken.store(true, Ordering::Release) })));
         ns.burst = true;
         if ns.pending() {
             self.woken.store(true, Ordering::Release); // the first message of the handshake waits: the start of the tunnel wakes it
@@ -423,10 +410,7 @@ impl EndPoint {
     /// The Noise stream broke: a record that does not open, a handshake that fails or is refused.
     #[cold]
     fn broke(&self) {
-        let e = std::io::Error::new(
-            std::io::ErrorKind::PermissionDenied,
-            format!("The tunnel {}: its handshake failed, or a record did not open. The tunnel ends.", self.tunnel_id()),
-        );
+        let e = std::io::Error::new(std::io::ErrorKind::PermissionDenied, format!("The tunnel {}: its handshake failed, or a record did not open. The tunnel ends.", self.tunnel_id()));
         External::failure(self, &e);
         External::close(self);
     }
@@ -499,11 +483,7 @@ impl EndPoint {
     #[inline]
     fn signed(&self, t: &AtomicI32) -> i32 {
         let ms = t.load(Ordering::Relaxed);
-        if self.closing.load(Ordering::Acquire) {
-            -ms
-        } else {
-            ms
-        }
+        if self.closing.load(Ordering::Acquire) { -ms } else { ms }
     }
 
     #[inline]
@@ -525,9 +505,9 @@ impl EndPoint {
             false
         };
         let first = self.open.swap(false, Ordering::AcqRel); // once: the far end's end and the last burst of this one may both come
-                                                             // A loss - the carrier gone, or the end of the far end, which a relay sends too when the far end's leg is lost - parks an
-                                                             // identified session for resumable_seconds, as a socket does: its close event waits for the end of the wait. Decided before
-                                                             // the answer can go out: the burst of the answer settles the parked session
+        // A loss - the carrier gone, or the end of the far end, which a relay sends too when the far end's leg is lost - parks an
+        // identified session for resumable_seconds, as a socket does: its close event waits for the end of the wait. Decided before
+        // the answer can go out: the burst of the answer settles the parked session
         if first && self.ident.load(Ordering::Acquire) != 0 && matches!(e, Event::REMOTE_CLOSE_GRACEFUL | Event::REMOTE_CLOSE_ABRUPTLY | Event::THIS_CLOSE_ABRUPTLY) {
             let seconds = self.seconds.get().map_or(0, |f| f(e));
             if 0 < seconds {
@@ -601,11 +581,7 @@ impl External for EndPoint {
     /// The seconds the parked session of this tunnel still waits, -1 - none.
     fn parked(&self) -> i32 {
         let r = self.resumable.load(Ordering::Acquire);
-        if r == 0 {
-            -1
-        } else {
-            (r - super::parked::now()).max(0) as i32
-        }
+        if r == 0 { -1 } else { (r - super::parked::now()).max(0) as i32 }
     }
 
     #[inline]
