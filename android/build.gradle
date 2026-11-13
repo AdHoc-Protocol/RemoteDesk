@@ -32,13 +32,27 @@ android {
         versionName = '0.1.0'
     }
 
+    // the key of the releases: its file and password from the environment ( the workflow takes them from the secrets of the
+    // repository ). An APK signed by another key does not install over one of these: without them - a build of a fork, a build here -
+    // it is signed by the key of debugging
+    def keystore = System.getenv('ANDROID_KEYSTORE_FILE')
+    signingConfigs {
+        if (keystore) {
+            release {
+                storeFile = file(keystore)
+                storePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias = System.getenv('ANDROID_KEY_ALIAS') ?: 'remotedesk'
+                keyPassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled = true
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // TODO: a key of its own, kept in the secrets of the repository: an APK signed by another key does not install over this one
-            signingConfig = signingConfigs.debug
+            signingConfig = keystore ? signingConfigs.release : signingConfigs.debug
         }
     }
 
