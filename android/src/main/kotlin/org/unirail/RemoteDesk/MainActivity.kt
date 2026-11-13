@@ -45,11 +45,13 @@ class MainActivity : Activity(), Host.Watcher {
     private lateinit var log: TextView
     private lateinit var logScroll: ScrollView
     private lateinit var overApps: Button
+    private lateinit var overAppsHow: Button
     private lateinit var control: LinearLayout
     private var way = 0
 
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)
+        actionBar?.hide() // the title is on the screen itself
         val prefs = getPreferences(MODE_PRIVATE)
         way = prefs.getInt("way", 0)
         val pad = (16 * resources.displayMetrics.density).toInt()
@@ -104,16 +106,32 @@ class MainActivity : Activity(), Host.Watcher {
             setOnClickListener { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + packageName))) }
         }
         root.addView(overApps)
+        overAppsHow = how("How on this phone: display over other apps", "over")
+        root.addView(overAppsHow)
         // the control from the page: Android asks once to turn the service of accessibility of the app on
         control = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         control.addView(Button(this).apply {
             text = "Let the viewer control this phone"
-            setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+            setOnClickListener {
+                // Android scrolls to the service and lights it up where it can ( the key of the fragment of the settings )
+                val service = android.content.ComponentName(this@MainActivity, ControlService::class.java).flattenToString()
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    .putExtra(":settings:fragment_args_key", service)
+                    .putExtra(":settings:show_fragment_args", Bundle().apply { putString(":settings:fragment_args_key", service) }))
+            }
         })
         control.addView(TextView(this).apply {
-            text = "Turn on \"RemoteDesk: control from the page\". If Android shows the switch grey, open the info of the app, ⋮, Allow restricted settings, and come back."
-            textSize = 13f
+            text = "1. In Accessibility, scroll to the end: Downloaded apps ( on other phones: Installed apps, or Installed services ).
+" +
+                "2. Tap RemoteDesk: control from the page.
+" +
+                "3. Turn it on, and allow.
+" +
+                "The switch is grey: Settings, Apps, RemoteDesk, ⋮ at the top right, Allow restricted settings - then again from 1."
+            textSize = 14f
         })
+        control.addView(how("How on this phone: the control", "control"))
+        control.addView(how("How on this phone: the switch is grey", "restricted"))
         root.addView(control)
 
         log = TextView(this).apply { setTextIsSelectable(true); setPadding(0, pad / 2, 0, 0) }
@@ -125,13 +143,16 @@ class MainActivity : Activity(), Host.Watcher {
     override fun onResume() {
         super.onResume()
         Host.watcher = this
-        choose.visibility = if (Host.running) View.GONE else View.VISIBLE
-        running.visibility = if (Host.running) View.VISIBLE else View.GONE
+        // the service may not have started the host yet when this window comes back from the consent
+        val on = Host.running || Host.starting
+        choose.visibility = if (on) View.GONE else View.VISIBLE
+        running.visibility = if (on) View.VISIBLE else View.GONE
         log.text = ""
         Host.news.forEach { news(it) }
         Host.line?.let { line(it) }
         waits()
         overApps.visibility = if (Settings.canDrawOverlays(this)) View.GONE else View.VISIBLE
+        overAppsHow.visibility = overApps.visibility
         control.visibility = if (ControlService.running != null) View.GONE else View.VISIBLE
     }
 
@@ -153,6 +174,31 @@ class MainActivity : Activity(), Host.Watcher {
         waitBox.visibility = if (shown) View.VISIBLE else View.GONE
         answerField.visibility = if (way == 3) View.VISIBLE else View.GONE
         done.text = if (way == 3) "Connect" else "The line has reached them"
+    }
+
+    /**
+     * A button that searches the web for how to do `what` on this phone: its maker and its Android in the words, in the language of
+     * the phone - every maker names and places its settings its own way.
+     */
+    private fun how(label: String, what: String): Button = Button(this).apply {
+        text = label
+        isAllCaps = false
+        textSize = 13f
+        setOnClickListener {
+            val ru = resources.configuration.locales[0].language == "ru"
+            val phone = "${Build.MANUFACTURER} Android ${Build.VERSION.RELEASE}"
+            val words = when (what) {
+                "control" -> if (ru) "как включить специальные возможности для скачанного приложения" else "how to turn on accessibility for a downloaded app"
+                "restricted" -> if (ru) "как разрешить ограниченные настройки приложению" else "how to allow restricted settings for an app"
+                else -> if (ru) "как разрешить приложению показ поверх других приложений" else "how to allow an app to display over other apps"
+            }
+            val query = "$phone $words"
+            try {
+                startActivity(Intent(Intent.ACTION_WEB_SEARCH).putExtra(android.app.SearchManager.QUERY, query))
+            } catch (e: android.content.ActivityNotFoundException) {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + Uri.encode(query))))
+            }
+        }
     }
 
     // ── the start: the permissions, the consent of Android to show the screen, the service ──
@@ -195,6 +241,7 @@ class MainActivity : Activity(), Host.Watcher {
             3 -> arrayOf("--direct")
             else -> emptyArray()
         }
+        Host.starting = true
         startForegroundService(
             Intent(this, HostService::class.java)
                 .putExtra(HostService.CONSENT_CODE, resultCode)

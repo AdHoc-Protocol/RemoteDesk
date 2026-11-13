@@ -543,6 +543,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     function welcome(host: string | undefined, administrator: boolean, isPhone: boolean): void {
         phone = isPhone;
         for (const b of [backButton, homeButton, recentsButton]) b.hidden = !phone;
+        adminButton.hidden = phone; // a phone has no administrator to become
         who.textContent = (host ?? t.machine) + " · " + address.replace(/^ws:\/\//, ""); // the scheme is the page's, not the user's
         stopSession();
         stage("live");

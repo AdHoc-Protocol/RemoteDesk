@@ -81,6 +81,7 @@ class HostService : Service() {
         val data: Intent? = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(CONSENT_DATA, Intent::class.java) else intent.getParcelableExtra(CONSENT_DATA)
         val p = data?.let { manager.getMediaProjection(intent.getIntExtra(CONSENT_CODE, 0), it) }
         if (p == null) {
+            Host.starting = false
             stop()
             return START_NOT_STICKY
         }
@@ -88,14 +89,16 @@ class HostService : Service() {
         p.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
                 Host.ended()
-                main.post { stop() }
+                // Android stops it when the phone locks, or when its user stops it: the notification says it ended
+                main.post { stop(ended = true) }
             }
         }, main)
         measure()
         display = p.createVirtualDisplay("RemoteDesk", width, height, dpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, null, null, null)
         Host.service = this
-        Host.screen(width, height)
+        Host.screen(width, height, dpi)
         registerComponentCallbacks(turns)
+        awake()
         val arguments = (intent.getStringArrayExtra(ARGUMENTS) ?: emptyArray()) + arrayOf("--key", File(filesDir, "host.key").path)
         val downloads = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: File(filesDir, "Download")
         Host.running = true
@@ -131,24 +134,78 @@ class HostService : Service() {
         override fun onConfigurationChanged(newConfig: Configuration) {
             val (w, h) = width to height
             measure()
-            if (w != width || h != height) Host.screen(width, height)
+            if (w != width || h != height) Host.screen(width, height, dpi)
         }
 
         @Deprecated("Deprecated in Java")
         override fun onLowMemory() {}
     }
 
-    private fun stop() {
+    private fun stop(ended: Boolean = false) {
         Host.service = null
+        runCatching { asleep() }
         runCatching { overlayGone() }
         runCatching { soundStop() }
         runCatching { videoStop() }
         runCatching { display?.release() }
         runCatching { projection?.stop() }
         stopForeground(STOP_FOREGROUND_REMOVE)
+        if (ended && Host.running) runCatching { told() }
         stopSelf()
         // the host has no end of its own: its process ends with the app
         if (Host.running) Process.killProcess(Process.myPid())
+    }
+
+    // ── the screen stays on while it is shown: Android stops showing it when the phone locks ──
+
+    /** A window of nothing that keeps the screen on: over the other apps, or of the service of the control. */
+    private var keeper: android.view.View? = null
+    private var keeperBy: WindowManager? = null
+    private var wake: android.os.PowerManager.WakeLock? = null
+
+    private fun awake() {
+        val type = when {
+            Settings.canDrawOverlays(this) -> WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            ControlService.running != null -> WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+            else -> 0
+        }
+        if (type != 0) {
+            val context: android.content.Context = if (type == WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY) ControlService.running!! else this
+            val wm = context.getSystemService(WindowManager::class.java)
+            val v = android.view.View(context)
+            val p = WindowManager.LayoutParams(1, 1, type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                PixelFormat.TRANSLUCENT)
+            p.gravity = Gravity.TOP or Gravity.START
+            if (runCatching { wm.addView(v, p) }.isSuccess) {
+                keeper = v
+                keeperBy = wm
+                return
+            }
+        }
+        // neither: the screen dims, but stays on
+        @Suppress("DEPRECATION")
+        wake = getSystemService(android.os.PowerManager::class.java).newWakeLock(android.os.PowerManager.SCREEN_DIM_WAKE_LOCK, "RemoteDesk:shown").apply { acquire() }
+    }
+
+    private fun asleep() {
+        keeper?.let { v -> runCatching { keeperBy?.removeView(v) } }
+        keeper = null
+        keeperBy = null
+        wake?.let { if (it.isHeld) it.release() }
+        wake = null
+    }
+
+    /** The notification that the screen is no longer shown. */
+    private fun told() {
+        val open = PendingIntent.getActivity(this, 3, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        getSystemService(NotificationManager::class.java).notify(2, Notification.Builder(this, CHANNEL)
+            .setSmallIcon(R.drawable.icon)
+            .setContentTitle("RemoteDesk no longer shows this screen")
+            .setContentText("The phone locked, or showing was stopped: open RemoteDesk to show it again")
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build())
     }
 
     // ── the notification ──

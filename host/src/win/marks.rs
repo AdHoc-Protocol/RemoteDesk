@@ -19,6 +19,9 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 use super::video::Display;
 
+/// How large the marks are on a display of `size`: one of 1080 lines is 1.
+pub fn scale(size: (u32, u32)) -> f32 { (size.0.min(size.1) as f32 / 1080.0).max(1.0) }
+
 /// The order of the bytes of an image: B, G, R, A.
 pub const RGBA: bool = false;
 

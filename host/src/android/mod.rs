@@ -259,9 +259,10 @@ pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_start(env: *mut J
     });
 }
 
-/// `Host.screen( width, height )`: the size of the screen of the phone, in pixels - at the start, and when it turns.
+/// `Host.screen( width, height, dpi )`: the size of the screen of the phone, in pixels, and its density - at the start, and when it turns.
 #[no_mangle]
-pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_screen(_env: *mut JNIEnv, _class: jclass, width: jint, height: jint) {
+pub unsafe extern "system" fn Java_org_unirail_RemoteDesk_Host_screen(_env: *mut JNIEnv, _class: jclass, width: jint, height: jint, dpi: jint) {
+    marks::DPI.store(dpi.max(0) as u32, std::sync::atomic::Ordering::Relaxed);
     guarded("the size of the screen", || video::screen_is(width.max(0) as u32, height.max(0) as u32));
 }
 

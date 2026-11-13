@@ -336,8 +336,8 @@ impl Image {
     }
 }
 
-/// How large the marks are on a display of `size`: one of 1080 lines is 1.
-fn scale(size: (u32, u32)) -> f32 { (size.0.min(size.1) as f32 / 1080.0).max(1.0) }
+/// How large the marks are on a display of `size`: as the system sees it ( a phone by the density of its screen ).
+fn scale(size: (u32, u32)) -> f32 { crate::os::marks::scale(size) }
 
 /// The lines a stroke is made of.
 fn shape(d: &Drawn) -> Vec<Line> {

@@ -498,13 +498,63 @@ What the phone does in this version:
 
 Android lets an app read the clipboard only while the app is in front, so the phone sends text when you send it, not by itself.
 
-To control the phone from the page, its user allows it once: **Let the viewer control this phone** in the app opens the settings
-of accessibility, where **RemoteDesk: control from the page** is turned on. Android lets an app control the others only so.
-Android 13 and later show the switch grey for an app installed from a file: then open the info of the app, ⋮, **Allow
-restricted settings**, and turn it on. Until then the phone only shows its screen, and the page says so.
+To be controlled from the page and to show the marks, the phone asks its user once for two permissions: see
+[What to allow on the phone](#what-to-allow-on-the-phone). Until then it only shows its screen. The microphone of the page and
+sending files from the phone come later.
 
-To show the user where to tap, draw over the screen: **Let the viewer draw over the screen** in the app allows it once, see
-[Drawing over the screen](#drawing-over-the-screen). The microphone of the page and sending files from the phone come later.
+While RemoteDesk shows the screen, the screen of the phone stays on: Android stops showing it when the phone locks. Locked
+anyway, or stopped from the bar of the system, the phone says so in a notification: open RemoteDesk and show the screen again.
+
+### What to allow on the phone
+
+| What | What for | When |
+| --- | --- | --- |
+| Showing the screen | The picture. In the window of Android pick **the entire screen** (not a single app), then **Start** | At each start: Android asks every time |
+| Microphone, notifications | The sound the apps play (Android grants it as the microphone); the notification that the screen is shown | Once, at the first start |
+| Display over other apps | The marks the viewer draws | Once: **Let the viewer draw over the screen** in the app opens the page, turn RemoteDesk on there |
+| Accessibility: **RemoteDesk: control from the page** | Taps, swipes, the buttons of the phone, typing | Once: below |
+
+**Let the viewer control this phone** in the app opens **Accessibility**. Android lets an app control the others only as a
+service of accessibility, and every maker puts the list of such services in another place:
+
+1. Scroll **Accessibility** to the end, to the list of the services of the apps installed. On a Xiaomi it is **Downloaded apps**
+   under **Permissions**:
+
+   ![Accessibility of a Xiaomi: Downloaded apps, at the end](docs/android/accessibility.png)
+
+2. Tap **RemoteDesk: control from the page**, turn **Use RemoteDesk: control from the page** on, and allow it in the window
+   that comes:
+
+   ![The service turned on](docs/android/control-on.png)
+
+   The switch of the shortcut below it is not needed: it only puts a button of accessibility on the screen.
+
+3. The switch is grey, and Android says the setting is restricted: an app installed from a file must be let first. Open
+   **Settings → Apps → RemoteDesk**, tap **⋮** at the top right, **Allow restricted settings**, and go back to step 1.
+
+Where the list is, by the maker:
+
+| Phone | The list of services in Accessibility |
+| --- | --- |
+| Xiaomi, Redmi, POCO (HyperOS, MIUI) | Tab **General**, at the end: **Permissions → Downloaded apps** |
+| Google Pixel, Motorola, Nokia: Android as Google makes it | **Downloaded apps** (Android 12 and before: **Installed services**) |
+| Samsung (One UI) | **Installed apps** |
+| OnePlus, OPPO, realme (OxygenOS, ColorOS) | **Downloaded apps** |
+| vivo (OriginOS, Funtouch OS) | **Installed services** |
+| Honor, Huawei (MagicOS, EMUI) | **Installed services** |
+
+The path of Xiaomi is the one of HyperOS on Android 16; the others are named as their systems name them, and a version of a
+system may move them. Not found: the search of **Settings** (the magnifier at the top) finds them by these words:
+
+| To find | In English | По-русски |
+| --- | --- | --- |
+| The service itself | RemoteDesk | RemoteDesk |
+| The list of services | Downloaded apps, Installed services, Installed apps | Скачанные приложения, Загруженные приложения, Установленные службы |
+| The grey switch | Allow restricted settings | Ограниченные настройки |
+| The marks | Display over other apps | Поверх других приложений |
+
+Or press **How on this phone** under the button in the app: the browser of the phone searches the web for how to do it on that
+phone, its maker and its Android in the words of the search, in the language of the phone.
 
 ## The first start
 

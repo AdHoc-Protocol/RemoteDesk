@@ -18,8 +18,8 @@ object Host {
     /** Starts the host: `way` 0 - this network, 1 - the internet, 2 - a meeting point, 3 - directly; `arguments` as a computer takes them. */
     @JvmStatic external fun start(way: Int, arguments: Array<ByteArray>, name: ByteArray, crypto: ByteArray, downloads: ByteArray)
 
-    /** The size of the screen in pixels: at the start, and when it turns. */
-    @JvmStatic external fun screen(width: Int, height: Int)
+    /** The size of the screen in pixels and its density, dots an inch: at the start, and when it turns. */
+    @JvmStatic external fun screen(width: Int, height: Int, dpi: Int)
 
     /** What the encoder gave: a direct buffer of MediaCodec, its flags. */
     @JvmStatic external fun unit(buffer: ByteBuffer, offset: Int, size: Int, flags: Int)
@@ -49,6 +49,9 @@ object Host {
 
     /** The host runs in this process. */
     @Volatile var running = false
+
+    /** The service is asked to start the host: the screen of the app shows it running. */
+    @Volatile var starting = false
 
     /** The news so far, the newest last: the screen of the app opened again shows them. */
     val news = ArrayList<News>()
