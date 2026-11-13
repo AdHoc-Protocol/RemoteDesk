@@ -22,7 +22,7 @@
   <text x="745" y="152" text-anchor="middle" font-size="12" fill="#8b949e">192.168.1.35</text>
   <line x1="658" y1="136" x2="517" y2="136" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
   <line x1="343" y1="136" x2="202" y2="136" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
-  <text x="430" y="200" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">ws://192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE</text>
+  <text x="430" y="200" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE</text>
   <text x="430" y="220" text-anchor="middle" font-size="12" fill="#8b949e">the line rdp-host prints for this network: its address there, and after # the token · nothing to set up</text>
 
   <!-- ② reachable from the internet -->
@@ -42,7 +42,7 @@
   <line x1="658" y1="314" x2="622" y2="314" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
   <line x1="448" y1="314" x2="412" y2="314" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
   <line x1="238" y1="314" x2="202" y2="314" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
-  <text x="430" y="378" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">ws://203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE</text>
+  <text x="430" y="378" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE</text>
   <text x="430" y="398" text-anchor="middle" font-size="12" fill="#8b949e">the line rdp-host prints for the internet, with the public address of its router, and after # the token</text>
 
   <!-- ③ both behind NAT -->
@@ -65,7 +65,7 @@
   <line x1="307" y1="492" x2="328" y2="492" stroke="#58a6ff" stroke-width="2" marker-end="url(#blue)"/>
   <line x1="688" y1="492" x2="667" y2="492" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
   <line x1="553" y1="492" x2="532" y2="492" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
-  <text x="430" y="556" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">ws://router.example.org:41933#K7QM2XHP9RTA4WZD8CNE</text>
+  <text x="430" y="556" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">router.example.org:41933#K7QM2XHP9RTA4WZD8CNE</text>
   <text x="430" y="576" text-anchor="middle" font-size="12" fill="#8b949e">the line rdp-host prints: the meeting point, the port it gave, and after # the token · nothing to forward at either home</text>
   <!-- ④ direct -->
   <rect x="10" y="600" width="840" height="166" rx="10" fill="#10151c" stroke="#30363d"/>
@@ -86,6 +86,6 @@
   <text x="430" y="684" text-anchor="middle" font-size="12" fill="#56d364">straight, no one between</text>
   <path d="M95,660 C120,650 740,650 765,660" fill="none" stroke="#c9d1d9" stroke-width="1.5" stroke-dasharray="5 4"/>
   <text x="430" y="644" text-anchor="middle" font-size="12" fill="#c9d1d9">a line or two by hand: chat, mail</text>
-  <text x="430" y="744" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">one ws://…#… line, or rd1o.… there and rd1a.… back onto the page</text>
+  <text x="430" y="744" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">one line address:port#token, or rd1o.… there and rd1a.… back</text>
   <text x="430" y="762" text-anchor="middle" font-size="12" fill="#8b949e">one line when its router opens a port ( UPnP, NAT-PMP, PCP ) · else two · both NATs symmetric: ③</text>
 </svg>

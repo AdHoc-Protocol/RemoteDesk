@@ -44,16 +44,14 @@ RemoteDesk: how will the viewer reach this computer?
 Press 1, 2, 3 or 4:
 ```
 
-It prints the token and the line to give whoever connects: the address, then `#` and the token. The line is in the clipboard
-already: paste it into a message.
+It prints one line to give whoever connects: all the page needs is in it, the address, the port and, after `#`, the token. The
+line is in the clipboard already: paste it into a message.
 
 ```text
-RemoteDesk machine listening on ws://0.0.0.0:8765
-  key   8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077
-  token K7QM2XHP9RTA4WZD8CNE
-Send one of these lines to whoever connects:
-  ws://192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE          in this network
-  ws://203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE          from the internet: port 8765 of the router forwarded to this computer
+RemoteDesk waits for the page, on port 8765
+  key 8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077   ( the page shows the same the first time )
+Send this line to whoever connects:
+  192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE
   It is in the clipboard: paste it into a message to whoever connects.
 ```
 
@@ -62,8 +60,7 @@ again after that. What it remembers is in `rdp-host.settings` beside the program
 closing it stops the program.
 
 **2. On your device**, open `RemoteDesk.html` in Chrome or Edge. Press the number the remote computer pressed, paste the line
-into the field on the arrow that comes from it, and press **Connect**. The page splits the line by itself: the address, and the
-token after `#`.
+into the field on the arrow that comes from it, as it came, and press **Connect**.
 
 ![The page, way 1: the line pasted, Connect to press](docs/page-1-ready.svg)
 
@@ -132,21 +129,20 @@ The four ways side by side, with the line you paste on the page for each:
 
 | Way | When | Set up | The line you paste on the page |
 |:--|:--|:--|:--|
-| [① The same network](#way-1) | One home, one office, one Wi-Fi | Nothing | `ws://192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE` |
-| [② From the internet](#way-2) | The remote computer has a public address, or its router forwards a port to it | A forwarded port | `ws://203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE` |
-| [③ Through SYN Mirror](#way-3) | Both behind NAT, nothing can be forwarded | A meeting point, once | `ws://router.example.org:41933#K7QM2XHP9RTA4WZD8CNE` |
-| [④ Direct](#way-4) | Both behind NAT, no meeting point | Nothing | `ws://203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE` when the router of the remote computer opens a port; else `rd1a.…`, the answer of the program to the line of your page |
+| [① The same network](#way-1) | One home, one office, one Wi-Fi | Nothing | `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE` |
+| [② From the internet](#way-2) | The remote computer has a public address, or its router forwards a port to it | A forwarded port | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE` |
+| [③ Through SYN Mirror](#way-3) | Both behind NAT, nothing can be forwarded | A meeting point, once | `router.example.org:41933#K7QM2XHP9RTA4WZD8CNE` |
+| [④ Direct](#way-4) | Both behind NAT, no meeting point | Nothing | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE` when the router of the remote computer opens a port; else `rd1a.…`, the answer of the program to the line of your page |
 
-On every way the token is needed. On ways ①-③, and on ④ with one line, the line carries it after `#`; instead of the line,
-the address can go into the field of the line and the token into the field under it. On way ④ with two lines the answer of the
-program carries it.
+On every way the token is needed. On ways ①-③, and on ④ with one line, the line carries it after `#`: the whole line goes to the
+page, as the program printed it. On way ④ with two lines the answer of the program carries it.
 
 <a id="way-1"></a>
 
 ### ① The same network
 
 1. **The user of the remote computer** starts `rdp-host` and presses **1**. It prints the line for this network, and puts it in the
-   clipboard: `ws://192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE`.
+   clipboard: `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE`.
 2. **They send you the line**, the token in it.
 3. **You** press **1** on the page, paste the line on its arrow and press **Connect**.
 
@@ -172,7 +168,7 @@ The remote computer is reached at a public address: its own, as a rented server 
 2. **The public address**: the router shows it on its status page, or any "what is my IP" site opened on the remote computer.
 3. **The user of the remote computer** starts `rdp-host`, presses **2**, and allows it in the firewall, for public networks too. It
    asks a STUN server the public address, prints the line with it and puts the line in the clipboard. Without an answer it prints the line for the
-   internet with `<public address>` in it: they put the address from step 2 there, `ws://203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE`,
+   internet with `<public address>` in it: they put the address from step 2 there, `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE`,
    and send you the line.
 4. **You** press **2** on the page, paste the line on its arrow and press **Connect**.
 
@@ -210,7 +206,7 @@ It prints a line to send to you, and waits for a key press:
 
 ```text
 Send this line to whoever connects:
-  ws://router.example.org:41933#K7QM2XHP9RTA4WZD8CNE
+  router.example.org:41933#K7QM2XHP9RTA4WZD8CNE
   It is in the clipboard: paste it into a message to whoever connects.
 Enter: grant access to this computer
 ```
@@ -225,7 +221,7 @@ Enter: grant access to this computer
 | ③ | The user of the remote computer | Sends you the line, the token in it, by chat or mail: the program has put it in the clipboard |
 | ④ | The user of the remote computer | Presses **Enter** |
 | ⑤ | The program | Knocks at the port, the password once more, and dials it, every second. It dials out, so its own NAT lets the answer in |
-| ⑥ | You | Press **3** on the page and paste the whole line on its arrow: it splits into the address and the token by itself. Press **Connect** |
+| ⑥ | You | Press **3** on the page and paste the whole line on its arrow, as it came. Press **Connect** |
 | ⑦ | The meeting point | Joins the two attempts into one connection, in its kernel. From then on it passes the data like a forwarded port |
 | ⑧ | The page and the program | The key, the token, then the screen: see [When you press Connect](#when-you-press-connect). The meeting point reads nothing: the data is encrypted between the two |
 
@@ -256,7 +252,7 @@ How many lines it takes depends on the router of the remote computer:
 
 | The router of the remote computer | Lines | |
 |:--|:--|:--|
-| Opens a port to the program when it asks, and has a public address | One: `ws://…#…`, as on way ② | [One line](#way-4-one) |
+| Opens a port to the program when it asks, and has a public address | One: `address:port#token`, as on way ② | [One line](#way-4-one) |
 | Opens none, or has no public address of its own | Two: `rd1o.…` there, `rd1a.…` back | [Two lines](#way-4-two) |
 
 The program finds out by itself in a few seconds after its start, and says which it is.
@@ -267,17 +263,15 @@ The program finds out by itself in a few seconds after its start, and says which
 
 The program asks its router to forward port 8765 to it: the forwarding of way ② that a person sets up by hand, done by the
 program. It speaks the three protocols routers take such requests in: UPnP, which most home routers speak, NAT-PMP and PCP. Then
-it checks the address the router has: a public one, not a NAT of the provider before it. When both hold, it prints the lines of
-ways ① and ②:
+it checks the address the router has: a public one, not a NAT of the provider before it. When both hold, it prints the line of
+way ②:
 
 ```text
-RemoteDesk machine listening on ws://0.0.0.0:8765
-  key   8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077
-  token K7QM2XHP9RTA4WZD8CNE
+RemoteDesk waits for the page, on port 8765
+  key 8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077   ( the page shows the same the first time )
 Direct: 10 of 11 public STUN servers answer, the nearest stun.miwifi.com:3478 in 6 ms
-Direct: the router opened port 8765 to this computer ( UPnP ) - send one of these lines to whoever connects:
-  ws://192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE          in this network
-  ws://203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE          from the internet
+Direct: the router opened port 8765 to this computer ( UPnP ) - send this line to whoever connects:
+  203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE
   It is in the clipboard: paste it into a message to whoever connects.
 Direct: where that line does not connect: paste here the line the page sends ( rd1o.… ), then Enter - Make the line on the page makes it
 ```
@@ -346,9 +340,8 @@ abroad or gone. Both sides ask several, and go on with the ones that answer:
 The program, when its router opened no port:
 
 ```text
-RemoteDesk machine listening on ws://0.0.0.0:8765
-  key   8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077
-  token K7QM2XHP9RTA4WZD8CNE
+RemoteDesk waits for the page, on port 8765
+  key 8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077   ( the page shows the same the first time )
 Direct: 10 of 11 public STUN servers answer, the nearest stun.miwifi.com:3478 in 6 ms
 Direct: the router opens no port to this computer ( UPnP, NAT-PMP, PCP ): two lines then
 Direct: paste here the line the page sends ( rd1o.… ), then Enter - Make the line on the page makes it
@@ -501,8 +494,8 @@ What the page says, under the picture, beside its parts, or in its bar:
 | `Refused: too many wrong tokens` | 5 wrong tokens in a row | Wait a minute |
 | `Refused: the machine has as many viewers as it takes.` | 8 viewers are in | Wait until one leaves |
 | `The machine answers with another key` | The remote computer got a new key file, or another computer answers at that address | If the key changed on purpose, press **Forget the key of this machine** |
-| `The address of the machine starts with ws:// or wss://.` | Something else was pasted on the arrow | Paste the whole line `ws://…#…` the program printed |
-| `The page keeps no token: …` | Only the address is there, without `#` and the token: the page forgets the token when it closes | Paste the whole line again, or type the token in the field under the address |
+| `That is not a line of the remote computer: …` | Something else was pasted on the arrow | Paste the whole line the program printed, such as `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE` |
+| `The token is missing: …` | Only the address is there, without `#` and the token | Paste the whole line the program printed |
 | Way ③: the page does not get in, the program waits | Enter is not pressed yet, or the line is of an earlier start | The user of the remote computer presses Enter, or sends the new line |
 | Way ③: the program prints `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Check the password and the port after `:` in `--meet`; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
 | `Direct connection: no direct path between the two.` | Both NATs are symmetric: mobile networks, CGNAT | Use way ③ |

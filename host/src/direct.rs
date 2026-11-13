@@ -2,7 +2,7 @@
 // exchange go by hand, through any messenger.
 //
 // First the program asks its router to open a port to it ( src/portmap.rs ): when it does, and its address is public, one line
-// `ws://…#…` is all, as on way ②, and the two lines below stay for where it does not connect.
+// `address:port#token` is all, as on way ②, and the two lines below stay for where it does not connect.
 //
 // The page makes the offer: its line `rd1o.…` - the ICE name and password of the page, the fingerprint of its DTLS
 // certificate, the addresses it can be reached at, the one a public STUN server saw among them. The user of the machine pastes it
@@ -209,7 +209,7 @@ pub fn start(bridge: SocketAddr, token: String, listen: SocketAddr) {
             let stun: Arc<[SocketAddr]> = probe().into();
             let opened = match opening.map(thread::JoinHandle::join) {
                 Some(Ok(Ok(opened))) => {
-                    one_line(opened, &token, listen.port());
+                    one_line(opened, &token);
                     true
                 }
                 Some(Ok(Err(crate::portmap::Refused::NotPublic(ip)))) => {
@@ -247,20 +247,16 @@ pub fn start(bridge: SocketAddr, token: String, listen: SocketAddr) {
         .expect("a thread of the direct way");
 }
 
-/// The router opened a port to the program: the lines of ways ① and ②, the one of the internet with the address the router
-/// has, kept while the program runs.
-fn one_line(opened: crate::portmap::Opened, token: &str, port: u16) {
-    println!("Direct: the router opened port {} to this computer ( {} ) - send one of these lines to whoever connects:", opened.external.port(), opened.how.name());
-    if let Some(ip) = crate::session::here_ip() {
-        println!("  ws://{ip}:{port}#{token}          in this network");
-    }
-    let line = format!("ws://{}#{token}", opened.external);
-    println!("  {line}          from the internet");
+/// The router opened a port to the program: the line of way ②, with the address the router has, kept while the program runs.
+fn one_line(opened: crate::portmap::Opened, token: &str) {
+    println!("Direct: the router opened port {} to this computer ( {} ) - send this line to whoever connects:", opened.external.port(), opened.how.name());
+    let line = format!("{}#{token}", opened.external);
+    println!("  {line}");
     crate::clipboard::tell_put(&line);
     let token = token.to_owned();
     opened.keep(move |now| {
-        let line = format!("ws://{now}#{token}");
-        println!("Direct: the router gave another port - this line instead:\n  {line}          from the internet");
+        let line = format!("{now}#{token}");
+        println!("Direct: the router gave another port - this line instead:\n  {line}");
         crate::clipboard::tell_put(&line);
     });
 }

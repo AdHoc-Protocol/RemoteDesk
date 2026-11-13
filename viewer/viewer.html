@@ -127,7 +127,6 @@
         #map[data-out=wait] .tag-out { --pen: var(--warn); } #map[data-out=try] .tag-out { --pen: var(--accent); } #map[data-out=ok] .tag-out { --pen: var(--ok); }
         #map[data-back=wait] .tag-back { --pen: var(--warn); } #map[data-back=ok] .tag-back { --pen: var(--ok); } #map[data-back=bad] .tag-back { --pen: var(--bad); }
         #map:not([data-way="4"]) .tag-out { display: none; }
-        #map[data-way="4"] #token { display: none; }
         .tag .head { margin: 0 0 6px; font-size: 21px; font-weight: 700; display: flex; align-items: center; gap: 8px; line-height: 1.1; }
         .tag .head label { margin: 0; color: inherit; font-size: inherit; }
         .tag input + input { margin-top: 6px; }
@@ -193,7 +192,7 @@
 
         <div class="spot me-spot">
             <label for="name">Your name</label>
-            <input id="name" type="text" spellcheck="false" placeholder="the remote computer shows it">
+            <input id="name" type="text" spellcheck="false" placeholder="optional" title="The remote computer shows it">
             <button id="connect" type="submit" disabled>Connect</button>
         </div>
         <p id="mid-say" class="spot say mid-say"></p>
@@ -208,7 +207,6 @@
         <div id="a-back" class="spot tag tag-back">
             <p class="head"><span id="back-n" class="n">1</span> <label id="back-label" for="address"></label></p>
             <input id="address" type="text" spellcheck="false" autocomplete="off">
-            <input id="token" type="password" spellcheck="false" autocomplete="off" placeholder="Token: it comes with the line" aria-label="Token">
         </div>
     </section>
 

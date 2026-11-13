@@ -188,8 +188,8 @@ pub fn run() {
         }
     };
 
-    println!("RemoteDesk machine listening on ws://{listen}{}", if crate::elevate::elevated_now() { ", as administrator" } else { "" });
-    println!("  key   {}", fingerprint(&public));
+    println!("RemoteDesk waits for the page, on port {}{}", listen.port(), if crate::elevate::elevated_now() { ", as administrator" } else { "" });
+    println!("  key {}   ( the page shows the same the first time )", fingerprint(&public));
     // way 4: the data channels of the pages come to a server of their own on 127.0.0.1 - the bytes of the session as they are,
     // no WebSocket - and its sessions are the ones of the other ways
     let bridge = direct.then(|| {
@@ -202,37 +202,42 @@ pub fn run() {
     match meet {
         Some(meet) => crate::meet::start(meet, server.clone(), meet_given, token), // the token goes in its line for the viewer
         None if direct => {
-            println!("  token {token}");
             let bridge = bridge.as_ref().and_then(|b| b.local_addr().ok()).expect("the address of the direct way");
             crate::direct::start(bridge, token, listen);
         }
         None => {
-            println!("  token {token}");
-            // the lines for the viewer, the token in them after # as in the line of a meeting: the page splits it
+            // the line for the viewer: all it needs, the address, the port and the token after #, in one piece
             let port = listen.port();
-            println!("Send one of these lines to whoever connects:");
-            let in_network = here(listen).map(|ip| format!("ws://{ip}:{port}#{token}"));
-            match &in_network {
-                Some(line) => println!("  {line}          in this network"),
-                None => println!("  ws://<address of this computer>:{port}#{token}          in this network"),
-            }
-            // chosen in the menu: from the internet, the address it sees this computer at is asked of STUN, and that line goes
-            // into the clipboard; in this network, the line of this network does
-            let from_internet = (listen.ip().is_unspecified() && crate::menu::chosen() == Some(crate::menu::Way::Internet))
-                .then(crate::direct::public_ip)
-                .flatten()
-                .map(|ip| format!("ws://{ip}:{port}#{token}"));
-            if listen.ip().is_unspecified() {
-                match &from_internet {
-                    Some(line) => println!("  {line}          from the internet: port {port} of the router forwarded to this computer"),
-                    None => println!("  ws://<public address>:{port}#{token}          from the internet: port {port} forwarded to this computer"),
+            let in_network = here(listen).map(|ip| format!("{ip}:{port}#{token}"));
+            let unknown_here = format!("<address of this computer>:{port}#{token}");
+            let unknown_public = format!("<public address>:{port}#{token}");
+            /// The one line of the way chosen; in the clipboard when its address is known.
+            fn one(line: Option<&str>, unknown: &str) {
+                println!("Send this line to whoever connects:");
+                match line {
+                    Some(line) => {
+                        println!("  {line}");
+                        crate::clipboard::tell_put(line);
+                    }
+                    None => println!("  {unknown}\n  Put the address of this computer in place of <…>."),
                 }
             }
             match crate::menu::chosen() {
-                Some(crate::menu::Way::Here) => in_network.as_deref().map(crate::clipboard::tell_put),
-                Some(crate::menu::Way::Internet) => from_internet.as_deref().map(crate::clipboard::tell_put),
-                _ => None,
-            };
+                Some(crate::menu::Way::Here) => one(in_network.as_deref(), &unknown_here),
+                // from the internet: the address it sees this computer at is asked of STUN
+                Some(crate::menu::Way::Internet) => {
+                    let from_internet = crate::direct::public_ip().map(|ip| format!("{ip}:{port}#{token}"));
+                    one(from_internet.as_deref(), &unknown_public);
+                }
+                // started from a console or a script: both lines, each for where it goes
+                _ => {
+                    println!("Send one of these lines to whoever connects:");
+                    println!("  {}          in this network", in_network.as_deref().unwrap_or(&unknown_here));
+                    if listen.ip().is_unspecified() {
+                        println!("  {unknown_public}          from the internet: port {port} forwarded to this computer");
+                    }
+                }
+            }
         }
     }
 

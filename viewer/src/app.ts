@@ -16,7 +16,6 @@ document.head.append(hand);
 
 const form = $<HTMLFormElement>("login");
 const address = $<HTMLInputElement>("address");
-const token = $<HTMLInputElement>("token");
 const yourName = $<HTMLInputElement>("name");
 const connectButton = $<HTMLButtonElement>("connect");
 const statusLine = $<HTMLDivElement>("status");
@@ -71,7 +70,7 @@ function note(text: string, kind: Kind = ""): void {
 // ── the diagram: the way the remote computer chose in rdp-host, and where the connection is now ──
 //
 // One way at a time, its fields only, on the arrows of what goes from person to person: ways 1, 2 and 3 - the line of the machine
-// ws://…#token comes here; way 4 - the line of this page goes there, its answer comes back ( or a line ws://…, when the router of the
+// address:port#token comes here; way 4 - the line of this page goes there, its answer comes back ( or a line address:port#token, when the router of the
 // machine opened a port ). Each part of the diagram shows its state: waited for, on its way, done, or where it broke. Connect is
 // pressable only when the way has all it needs, and nothing is on its way already.
 
@@ -103,14 +102,38 @@ let where: Where = "";
 let whereText = "";
 const stun = new Map<string, "ask" | "ok" | "no">();
 
+/** The port the program listens on when its line names none. */
+const PORT = 8765;
+
+/**
+ * Where to dial, of what the user has: `192.168.1.20:8765`, `router.example.org`, `[fd00::1]:8765` - the address and the port, all
+ * the line of the program says; `ws://` is the page's to add, `wss://` stays when typed, for a machine behind a proxy of TLS.
+ * `undefined` - not an address.
+ */
+function machine(text: string): string | undefined {
+    const typed = text.trim(), given = /^wss?:\/\//i.exec(typed)?.[0];
+    const scheme = given?.toLowerCase() ?? "ws://", rest = typed.slice(given?.length ?? 0);
+    const m = /^(\[[0-9a-f:.]+\]|[^\s:/#[\]]+)(?::(\d{1,5}))?\/?$/i.exec(rest);
+    return m === null ? undefined : `${scheme}${m[1]}:${m[2] ?? PORT}`;
+}
+
+/**
+ * The line of the program, as it printed it and the user pasted it - `<address>:<port>#<token>` -: where to dial and the token. The
+ * field keeps it whole, untouched: the page takes it apart only here. `undefined` - not such a line.
+ */
+function theLine(): { at: string; token: string } | undefined {
+    const line = split(address.value), at = line === undefined ? undefined : machine(line.address);
+    return at === undefined || line === undefined || line.token.trim() === "" ? undefined : { at, token: line.token.trim() };
+}
+
 /** What the field on the arrow back holds. */
 function back(): "empty" | "line" | "noToken" | "answer" | "ours" | "other" {
     const text = address.value.trim();
     if (text === "") return "empty";
     if (card(text, true) !== undefined) return "answer";
     if (card(text, false) !== undefined) return "ours";
-    if (!/^wss?:\/\/./.test(text)) return "other";
-    return token.value === "" ? "noToken" : "line";
+    if (theLine() !== undefined) return "line";
+    return machine(text.split("#")[0]!) !== undefined ? "noToken" : "other";
 }
 
 /** Has the way chosen all it needs to connect. */
@@ -148,8 +171,8 @@ function draw(): void {
     if (drawn !== way) { drawScene(scene, way); drawn = way; }
     backNumber.textContent = way === 4 ? "2" : "1";
     backLabel.textContent = way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here";
-    address.placeholder = way === 4 ? "rd1a.…  ( or a line ws://…#… it sent )" : "ws://…#…";
-    for (const e of [address, token, yourName, directStart, ...wayButtons]) e.disabled = busy || (e === directStart && making);
+    address.placeholder = way === 4 ? "rd1a.…, or the line it sent" : "the line it sent, such as 192.168.1.20:8765#K7QM…";
+    for (const e of [address, yourName, directStart, ...wayButtons]) e.disabled = busy || (e === directStart && making);
     connectButton.disabled = busy || !ready();
     directStart.textContent = making ? "Asking the STUN servers…" : pending !== undefined ? "Make a new line" : "Make the line";
     directStart.classList.toggle("second", pending !== undefined); // made: what is pressed now is on the other arrow
@@ -241,15 +264,15 @@ function draw(): void {
 /** What is waited for now, before connecting: the line under the diagram. */
 function hint(b: ReturnType<typeof back>): [string, Kind] {
     if (b === "ours") return ["That is the line of this page: it goes to the remote computer. Paste here what comes back.", "bad"];
-    if (b === "other") return [way === 4 ? "That is not an answer: it starts with rd1a., or ws:// for a line." : english.badAddress, "bad"];
-    if (b === "noToken") return ["The page keeps no token: paste the whole line, ws://…#…, the token comes after #.", "wait"];
+    if (b === "other") return [way === 4 ? "That is not an answer: it starts with rd1a., or is a line address:port#token." : english.badAddress, "bad"];
+    if (b === "noToken") return ["The token is missing: paste the whole line as the program printed it, with # and what follows.", "bad"];
     if (b === "answer" && way !== 4) return ["That is the answer of a direct connection: choose 4 above.", "bad"];
     if (b === "answer" && pending === undefined)
         return ["This answer is to a line made before: make a new line in 1, send it, and paste the answer that comes back.", "bad"];
     if (ready()) return ["All is here: press Connect.", "ok"];
     if (way !== 4) return ["Waiting for the line of the remote computer: when it comes by chat or mail, paste it on the arrow.", "wait"];
     if (making) return ["Asking the STUN servers the address of this computer…", ""];
-    if (pending === undefined) return ["Start with 1: make the line of this page. A line ws://… came from the remote computer already? Paste it in 2.", "wait"];
+    if (pending === undefined) return ["Start with 1: make the line of this page. A line address:port#token came from the remote computer already? Paste it in 2.", "wait"];
     return ["Your line is in the clipboard: send it. Now waiting for its answer, rd1a.…", "wait"];
 }
 
@@ -265,10 +288,8 @@ form.addEventListener("submit", e => {
     if (busy || !ready()) return;
     const answer = card(address.value, true);
     if (answer !== undefined) return void meet(answer);
-    splitLine();
-    const at = address.value.trim();
-    store.set("address", at);
-    openDesk(at, token.value);
+    const line = theLine()!;
+    openDesk(line.at, line.token);
 });
 
 /** What the desk tells of each stage, in the log. */
@@ -443,31 +464,20 @@ async function meet(answer: Card): Promise<void> {
 }
 
 forget.addEventListener("click", () => {
-    forgetKey(store, address.value);
+    const line = theLine();
+    if (line !== undefined) forgetKey(store, line.at);
     forget.hidden = true;
     keyLine.textContent = english.keyForgotten;
 });
 
-/** The line the machine prints for its viewer - `ws://<router>:<port>#<token>` - goes into its two fields: true, it was one. */
-function splitLine(): boolean {
-    const line = split(address.value);
-    if (line === undefined) return false;
-    address.value = line.address;
-    token.value = line.token;
-    return true;
-}
-
 address.addEventListener("input", () => {
     where = ""; // something new typed: what broke before is not this attempt's
-    if (card(address.value, true) !== undefined) {
-        if (way !== 4) choose(4); // the answer of way 4: only way 4 takes it
-    } else splitLine();
+    if (card(address.value, true) !== undefined && way !== 4) choose(4); // the answer of way 4: only way 4 takes it
     draw();
 });
-token.addEventListener("input", () => { where = ""; draw(); });
 
-// what the page knew last time
-address.value = store.get("address") ?? "";
+// what the page knew last time: the name and the way; not the line - its token is new at each start of the program
+store.set("address", undefined);
 yourName.value = store.get("name") ?? "";
 const kept = Number(store.get("way"));
 choose(kept >= 1 && kept <= 4 ? kept as Way : 1);

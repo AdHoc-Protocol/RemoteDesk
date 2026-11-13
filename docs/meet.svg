@@ -35,7 +35,7 @@
   <!-- ② the line -->
   <line x1="288" y1="150" x2="94" y2="150" stroke="#58a6ff" stroke-width="2" marker-end="url(#blue)"/>
   <text x="190" y="142" text-anchor="middle" font-size="13" fill="#79c0ff">② prints the line</text>
-  <text x="190" y="170" text-anchor="middle" font-family="Consolas, monospace" font-size="12" fill="#e6edf3">ws://…:41933#K7QM…</text>
+  <text x="190" y="170" text-anchor="middle" font-family="Consolas, monospace" font-size="12" fill="#e6edf3">router…:41933#K7QM…</text>
   <line x1="292" y1="182" x2="526" y2="182" stroke="#58a6ff" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#blue)"/>
   <text x="410" y="176" text-anchor="middle" font-size="12" fill="#8b949e">holds the port, closed, every second</text>
 

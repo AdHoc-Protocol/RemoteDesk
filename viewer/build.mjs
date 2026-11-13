@@ -32,29 +32,28 @@ const HAND = "data:font/woff2;base64," + readFileSync("node_modules/@fontsource/
 // of CSS and of SVG, no script: GitHub shows them so.
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const LINE_TOKEN = "••••••••••••••••••••";
 
 /** The moments: the way, the state of each part as the page sets it, and what is typed, said and pressed then. */
 const PICTURES = [
     {
         file: "page-1-ready", way: 1, parts: { me: "ok", back: "ok" }, connect: true,
-        back: ["ws://192.168.1.20:8765", LINE_TOKEN],
+        back: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE",
     },
     {
         file: "page-3-connecting", way: 3, parts: { me: "try", back: "ok", wa: "try", wb: "try", rem: "try" },
-        back: ["ws://router.example.org:41933", LINE_TOKEN], mid: ["a router of yours brings the two together", ""], rem: ["reaching it…", ""],
+        back: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE", mid: ["a router of yours brings the two together", ""], rem: ["reaching it…", ""],
     },
     {
         file: "page-4-waiting", way: 4, parts: { out: "ok", back: "wait", rem: "wait" }, stun: ["ok", "ok", "no", "ok"], made: true,
-        back: [""], mid: ["straight through both routers, no one in between", ""], rem: ["pastes your line, sends its answer", "wait"],
+        back: "", mid: ["straight through both routers, no one in between", ""], rem: ["pastes your line, sends its answer", "wait"],
     },
     {
         file: "page-4-alive", way: 4, parts: { me: "ok", out: "ok", back: "ok", wa: "up", wb: "up", mid: "ok", rem: "ok" }, stun: ["ok", "ok", "no", "ok"], made: true,
-        back: ["rd1a.EQh6cTJmY1M2dFZ4…"], mid: ["the way through both routers is found", "ok"], rem: ["let you in", "ok"],
+        back: "rd1a.EQh6cTJmY1M2dFZ4…", mid: ["the way through both routers is found", "ok"], rem: ["let you in", "ok"],
     },
     {
         file: "page-2-broken", way: 2, parts: { me: "ok", back: "ok", wa: "up", wb: "cut", rem: "bad" }, connect: true,
-        back: ["ws://203.0.113.7:8765", LINE_TOKEN], mid: ["straight to the address of its router: the router lets you in", ""],
+        back: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE", mid: ["straight to the address of its router: the router lets you in", ""],
         rem: ["not reached: is the port forwarded on its router, and its address public?", "bad"],
     },
 ];
@@ -143,10 +142,9 @@ async function pictures() {
             button(out, 254, 424, 150, p.made ? "Make a new line" : "Make the line", p.made, false);
             if (p.made) text(out, 418, 446, "✓ It is in your clipboard: send it.", { style: "font: 13px system-ui, sans-serif; fill: var(--ok)" });
         }
-        const y = p.way === 4 ? 554 : 503, h = p.way === 4 ? 86 : 118;
-        const back = tag(240, y, 520, h, p.parts.back, p.way === 4 ? "2" : "1", p.way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here");
-        field(back, 254, y + 44, 492, p.back[0], "rd1a.…  ( or a line ws://…#… it sent )");
-        if (p.way !== 4) field(back, 254, y + 82, 492, p.back[1], "Token: it comes with the line");
+        const y = p.way === 4 ? 554 : 503;
+        const back = tag(240, y, 520, 86, p.parts.back, p.way === 4 ? "2" : "1", p.way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here");
+        field(back, 254, y + 44, 492, p.back, "rd1a.…, or the line it sent");
 
         writeFileSync(`../docs/${p.file}.svg`, svg.outerHTML + "\n");
         svg.remove();

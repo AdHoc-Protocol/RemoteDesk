@@ -78,8 +78,8 @@ fn run(meet: Meet, server: Server, port: Option<u16>, token: String) {
             Err(e) => return eprintln!("the meeting point {}: {e}", meet.point),
         },
     };
-    // one line for the viewer: the address of the meeting and, after #, the token - the page splits it
-    let line = format!("ws://{}:{port}#{token}", meet.point);
+    // one line for the viewer: the address of the meeting and, after #, the token - the page takes it whole
+    let line = format!("{}:{port}#{token}", meet.point);
     println!("Send this line to whoever connects:\n  {line}");
     crate::clipboard::tell_put(&line);
     if asked {
@@ -93,7 +93,7 @@ fn run(meet: Meet, server: Server, port: Option<u16>, token: String) {
         }
     }
     GRANTED.store(port, Ordering::Relaxed);
-    println!("access granted: the viewer connects with the line above, ws://{}:{port}#…", meet.point);
+    println!("access granted: the viewer connects with the line above");
     loop {
         // a meeting point of a dynamic address: its name is looked up for each meeting
         let at = match ipv4(&meet.point) {

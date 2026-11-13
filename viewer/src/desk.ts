@@ -38,7 +38,7 @@ export const english = {
     dialFailed: "Cannot connect: {error}",
     linkFailed: "The connection failed: {error}",
     sessionFailed: "The session failed: {error}",
-    badAddress: "The address of the machine starts with ws:// or wss://.",
+    badAddress: "That is not a line of the remote computer: it is address:port#token, as the program printed it.",
     noToken: "The token of the machine is needed.",
     lost: "The connection is lost: connecting again in {seconds} s ( attempt {attempt} of {of} )…",
     directLost: "The direct connection is lost: make a new one.",
@@ -129,6 +129,9 @@ export type Texts = Record<keyof typeof english, string>;
 export const fill = (template: string, vars: Record<string, string | number>): string =>
     template.replace(/\{(\w+)\}/g, (all, name: string) => name in vars ? String(vars[name]) : all);
 
+/** The words of an error of the network, as the user knows the address: the `ws://` of the page, and its closing slash, out. */
+const bare = (error: string): string => error.replace(/\bws:\/\/([^\s/]+)\/?/g, "$1");
+
 export interface Options {
     /** `ws://…` or `wss://…`: where the machine listens; with `channel` - only what the bar names. */
     address: string;
@@ -174,7 +177,7 @@ export interface Desk {
     show(on: boolean): void;
 }
 
-/** The line a machine prints for its viewer - `ws://<router>:<port>#<token>` -: its address and token; `undefined` - not such a line. */
+/** The line a machine prints for its viewer - `<address>:<port>#<token>` -: its address and token; `undefined` - not such a line. */
 export function splitLine(line: string): { address: string; token: string } | undefined {
     const text = line.trim(), at = text.indexOf("#");
     return at < 0 ? undefined : { address: text.slice(0, at), token: text.slice(at + 1) };
@@ -484,7 +487,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     }
 
     function welcome(host: string | undefined, administrator: boolean): void {
-        who.textContent = (host ?? t.machine) + " · " + address;
+        who.textContent = (host ?? t.machine) + " · " + address.replace(/^ws:\/\//, ""); // the scheme is the page's, not the user's
         stopSession();
         stage("live");
         setLive(true, host ?? ""); // seen before the screen measures itself
@@ -622,11 +625,11 @@ export function open(container: HTMLElement, options: Options): Desk {
         take(m: ToMain) {
             switch (m.t) {
                 case M.PROVED: return proved(m.key, m.accepted);
-                case M.STATUS: stage("failed"); return status(fill(t.linkFailed, { error: m.error }), true);
+                case M.STATUS: stage("failed"); return status(fill(t.linkFailed, { error: bare(m.error) }), true);
                 case M.DIALED:
                     if (m.ok) { stage("reached"); return status(t.loggingIn, false); }
                     stage("unreachable");
-                    if (m.error) status(fill(t.dialFailed, { error: m.error }), true);
+                    if (m.error) status(fill(t.dialFailed, { error: bare(m.error) }), true);
                     if (!bad) status(fill(t.cannotConnect, { address }), true);
                     if (retry > 0) return retryLater();
                     return end(stateLine.textContent ?? "", true, false);
