@@ -1,0 +1,4 @@
+# the files are written with LF, and stay so in every checkout, on Windows too
+* text=auto eol=lf
+*.png binary
+*.wasm binary

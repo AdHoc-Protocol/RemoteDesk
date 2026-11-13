@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 660" width="860" height="660" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <rect x="0" y="0" width="860" height="660" rx="12" fill="#0d1117"/>
+  <defs>
+    <marker id="green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/></marker>
+    <marker id="gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/></marker>
+  </defs>
+
+  <text x="430" y="30" text-anchor="middle" font-size="17" font-weight="600" fill="#e6edf3">Which way is yours</text>
+
+  <!-- questions -->
+  <rect x="20" y="56" width="520" height="82" rx="10" fill="#161b22" stroke="#8b949e" stroke-width="2"/>
+  <text x="40" y="88" fill="#e6edf3">Is your device in the same network as the remote computer:</text>
+  <text x="40" y="110" fill="#e6edf3">the same home or office, the same Wi-Fi?</text>
+
+  <rect x="20" y="176" width="520" height="82" rx="10" fill="#161b22" stroke="#8b949e" stroke-width="2"/>
+  <text x="40" y="208" fill="#e6edf3">Does the remote computer have a public address, or can you</text>
+  <text x="40" y="230" fill="#e6edf3">forward port 8765 to it on its router?</text>
+
+  <rect x="20" y="296" width="520" height="82" rx="10" fill="#161b22" stroke="#8b949e" stroke-width="2"/>
+  <text x="40" y="328" fill="#e6edf3">Try the direct connection, it needs nothing set up.</text>
+  <text x="40" y="350" fill="#e6edf3">Did the two meet?</text>
+
+  <rect x="20" y="416" width="520" height="82" rx="10" fill="#161b22" stroke="#8b949e" stroke-width="2"/>
+  <text x="40" y="448" fill="#e6edf3">Is there an OpenWrt router or a Linux server with SYN Mirror</text>
+  <text x="40" y="470" fill="#e6edf3">that both can reach?</text>
+
+  <rect x="20" y="536" width="520" height="104" rx="10" fill="#2b1d06" stroke="#f0a020" stroke-width="2"/>
+  <text x="40" y="566" font-weight="600" fill="#ffb340">Set one up</text>
+  <text x="40" y="590" fill="#e6edf3">A rented Linux server, or an OpenWrt router with a public</text>
+  <text x="40" y="612" fill="#e6edf3">address: install SYN Mirror on it in a few minutes, then way ③</text>
+
+  <!-- no -->
+  <line x1="280" y1="138" x2="280" y2="174" stroke="#8b949e" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="292" y="162" font-size="13" fill="#8b949e">no</text>
+  <line x1="280" y1="258" x2="280" y2="294" stroke="#8b949e" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="292" y="282" font-size="13" fill="#8b949e">no</text>
+  <line x1="280" y1="378" x2="280" y2="414" stroke="#8b949e" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="292" y="402" font-size="13" fill="#8b949e">no: both NATs are symmetric</text>
+  <line x1="280" y1="498" x2="280" y2="534" stroke="#8b949e" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="292" y="522" font-size="13" fill="#8b949e">no</text>
+
+  <!-- answers -->
+  <line x1="540" y1="97" x2="608" y2="97" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
+  <text x="574" y="88" text-anchor="middle" font-size="13" fill="#56d364">yes</text>
+  <rect x="610" y="62" width="230" height="70" rx="10" fill="#0f2a17" stroke="#3fb950" stroke-width="2"/>
+  <text x="725" y="92" text-anchor="middle" font-weight="600" fill="#56d364">① The same network</text>
+  <text x="725" y="114" text-anchor="middle" font-size="12" fill="#8b949e">the line for this network, with the token</text>
+
+  <line x1="540" y1="217" x2="608" y2="217" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
+  <text x="574" y="208" text-anchor="middle" font-size="13" fill="#56d364">yes</text>
+  <rect x="610" y="182" width="230" height="70" rx="10" fill="#0f2a17" stroke="#3fb950" stroke-width="2"/>
+  <text x="725" y="212" text-anchor="middle" font-weight="600" fill="#56d364">② From the internet</text>
+  <text x="725" y="234" text-anchor="middle" font-size="12" fill="#8b949e">the line for the internet, with the token</text>
+
+  <line x1="540" y1="337" x2="608" y2="337" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
+  <text x="574" y="328" text-anchor="middle" font-size="13" fill="#56d364">yes</text>
+  <rect x="610" y="302" width="230" height="70" rx="10" fill="#0f2a17" stroke="#3fb950" stroke-width="2"/>
+  <text x="725" y="332" text-anchor="middle" font-weight="600" fill="#56d364">④ Direct</text>
+  <text x="725" y="354" text-anchor="middle" font-size="12" fill="#8b949e">one line, or a line there and back</text>
+
+  <line x1="540" y1="457" x2="608" y2="457" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
+  <text x="574" y="448" text-anchor="middle" font-size="13" fill="#56d364">yes</text>
+  <rect x="610" y="422" width="230" height="70" rx="10" fill="#0f2a17" stroke="#3fb950" stroke-width="2"/>
+  <text x="725" y="452" text-anchor="middle" font-weight="600" fill="#56d364">③ Through SYN Mirror</text>
+  <text x="725" y="474" text-anchor="middle" font-size="12" fill="#8b949e">the line of the meeting, with the token</text>
+
+  <path d="M540,588 C590,588 640,560 690,498" fill="none" stroke="#f0a020" stroke-width="2" stroke-dasharray="6 5"/>
+</svg>

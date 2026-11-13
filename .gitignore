@@ -1,0 +1,39 @@
+# what is built or installed - in any folder
+node_modules/
+target/
+viewer/viewer.js
+viewer/RemoteDesk.html
+*.pdb
+*.tsbuildinfo
+
+# the versions are not fixed: every build takes the latest libraries
+Cargo.lock
+package-lock.json
+
+# what AdHocAgent makes of RemoteDesk.cs: the build takes host/protocol and viewer/protocol, where it is deployed
+generated/
+
+# the keys and the allowances of a machine: its own, never shared
+host.key
+rdp-host.settings
+portal.token
+.env
+.env.*
+
+# logs and leftovers
+*.log
+npm-debug.log*
+*.tmp
+*.bak
+*.swp
+*~
+
+# the editors and the systems
+.idea/
+.vscode/
+.vs/
+.fleet/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini

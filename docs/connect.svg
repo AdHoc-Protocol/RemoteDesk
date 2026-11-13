@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 330" width="860" height="330" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <rect x="0" y="0" width="860" height="330" rx="12" fill="#0d1117"/>
+  <defs>
+    <marker id="gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c9d1d9"/></marker>
+  </defs>
+
+  <text x="430" y="30" text-anchor="middle" font-size="17" font-weight="600" fill="#e6edf3">What happens when you press Connect</text>
+  <text x="430" y="50" text-anchor="middle" font-size="12" fill="#8b949e">The same on every way: ①, ② or ③</text>
+
+  <!-- the steps -->
+  <rect x="20" y="70" width="190" height="130" rx="10" fill="#161b22" stroke="#8b949e" stroke-width="2"/>
+  <text x="115" y="98" text-anchor="middle" font-weight="600" fill="#e6edf3">① Encryption</text>
+  <text x="115" y="124" text-anchor="middle" font-size="12" fill="#c9d1d9">Noise: from here on</text>
+  <text x="115" y="142" text-anchor="middle" font-size="12" fill="#c9d1d9">nobody between reads</text>
+  <text x="115" y="160" text-anchor="middle" font-size="12" fill="#c9d1d9">or changes anything</text>
+
+  <rect x="232" y="70" width="190" height="130" rx="10" fill="#0c2340" stroke="#58a6ff" stroke-width="2"/>
+  <text x="327" y="98" text-anchor="middle" font-weight="600" fill="#79c0ff">② The key</text>
+  <text x="327" y="124" text-anchor="middle" font-size="12" fill="#c9d1d9">The computer proves its key.</text>
+  <text x="327" y="142" text-anchor="middle" font-size="12" fill="#c9d1d9">The first time the page keeps</text>
+  <text x="327" y="160" text-anchor="middle" font-size="12" fill="#c9d1d9">it; later it must be the same</text>
+
+  <rect x="444" y="70" width="190" height="130" rx="10" fill="#0f2a17" stroke="#3fb950" stroke-width="2"/>
+  <text x="539" y="98" text-anchor="middle" font-weight="600" fill="#56d364">③ The token</text>
+  <text x="539" y="124" text-anchor="middle" font-size="12" fill="#c9d1d9">The page gives the token</text>
+  <text x="539" y="142" text-anchor="middle" font-size="12" fill="#c9d1d9">and your name. 5 wrong in a row:</text>
+  <text x="539" y="160" text-anchor="middle" font-size="12" fill="#c9d1d9">nobody gets in for a minute</text>
+
+  <rect x="656" y="70" width="184" height="130" rx="10" fill="#0f2a17" stroke="#3fb950" stroke-width="3"/>
+  <text x="748" y="98" text-anchor="middle" font-weight="600" fill="#56d364">④ In</text>
+  <text x="748" y="124" text-anchor="middle" font-size="12" fill="#c9d1d9">The screen comes. The</text>
+  <text x="748" y="142" text-anchor="middle" font-size="12" fill="#c9d1d9">remote computer prints</text>
+  <text x="748" y="160" text-anchor="middle" font-size="12" fill="#c9d1d9">who came in, from where</text>
+
+  <line x1="210" y1="135" x2="230" y2="135" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <line x1="422" y1="135" x2="442" y2="135" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <line x1="634" y1="135" x2="654" y2="135" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+
+  <!-- the key -->
+  <text x="430" y="236" text-anchor="middle" fill="#e6edf3">The first time, compare what the page shows under the form with the line <tspan font-family="Consolas, monospace" fill="#79c0ff">key</tspan> rdp-host printed:</text>
+  <text x="430" y="262" text-anchor="middle" font-family="Consolas, monospace" font-size="13" fill="#79c0ff">8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077</text>
+  <text x="430" y="292" text-anchor="middle" fill="#56d364">✓ The same: it is your computer</text>
+  <text x="430" y="314" text-anchor="middle" fill="#f85149">✗ Another key at a known address later: the page refuses, someone else may answer there</text>
+</svg>

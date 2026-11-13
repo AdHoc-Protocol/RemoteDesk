@@ -1,0 +1,183 @@
+# Builds the program of the machine for Windows, Linux and macOS, and the viewer page. Each build is an artifact of the run; a
+# push to main publishes them as the release of its version.
+
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  host:
+    name: host ( ${{ matrix.name }} )
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            program: rdp-host.exe
+            library: libadhoc-crypto-0.1.dll
+          # Windows of 32 bits: Windows 10 on old computers
+          - name: windows-x86
+            os: windows-latest
+            target: i686-pc-windows-msvc
+            program: rdp-host.exe
+            library: libadhoc-crypto-0.1.dll
+          # Windows on ARM: Surface, the laptops on Snapdragon - built on a runner of its own kind
+          - name: windows-arm64
+            os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            program: rdp-host.exe
+            library: libadhoc-crypto-0.1.dll
+          - name: linux-x64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            program: rdp-host
+            library: libadhoc-crypto-0.1.so
+          - name: macos-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            program: rdp-host
+            library: libadhoc-crypto-0.1.dylib
+          - name: macos-x64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            program: rdp-host
+            library: libadhoc-crypto-0.1.dylib
+    defaults:
+      run:
+        working-directory: host
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: host
+          key: ${{ matrix.target }}
+
+      # PipeWire ( Wayland ), PulseAudio, and clang for the bindings of PipeWire; openh264 is built from its sources by the C++ compiler
+      - name: libraries of Linux
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config clang libclang-dev libpipewire-0.3-dev libspa-0.2-dev libpulse-dev nasm
+
+      # the assembly of the encryption of WebRTC ( aws-lc ) on Windows
+      - name: NASM
+        if: runner.os == 'Windows'
+        uses: ilammy/setup-nasm@v1
+
+      - name: build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: collect
+        shell: bash
+        run: |
+          mkdir -p ../out
+          cp target/${{ matrix.target }}/release/${{ matrix.program }} ../out/
+          # without the library of encryption the program connects to nobody: no release goes out without it
+          if ! cp target/${{ matrix.target }}/release/${{ matrix.library }} ../out/; then
+            echo "::error::the native library of encryption did not come beside the program; found:"
+            find target -name '${{ matrix.library }}' || true
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rdp-host-${{ matrix.name }}
+          path: out/
+
+  viewer:
+    name: viewer
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: viewer
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: build
+        run: |
+          npm install
+          npm run build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rdp-viewer
+          path: |
+            viewer/RemoteDesk.html
+            viewer/viewer.html
+            viewer/viewer.js
+
+  # A push to main that every build passed is published as the release of the version in host/Cargo.toml: v0.1.0. The files of
+  # the release are the builds, packed, under names that stay: a link to releases/latest/download/<name> always gives the newest.
+  # The same version built again replaces the files of its release, and its tag moves to the commit they were built from.
+  release:
+    name: release
+    needs: [host, viewer]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+
+      # the program of Windows in a zip; of Linux and macOS in a tar.gz, which keeps it executable ( an artifact loses that ); the page
+      # as it is: RemoteDesk.html, one file, opened where it is downloaded
+      - name: pack
+        run: |
+          echo "VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' host/Cargo.toml | head -1)" >> "$GITHUB_ENV"
+          mkdir release
+          for d in dist/rdp-host-*; do
+            name=$(basename "$d")
+            case "$name" in
+              *windows*) (cd "$d" && zip -q "../../release/$name.zip" ./*) ;;
+              *) chmod +x "$d/rdp-host"; tar -czf "release/$name.tar.gz" -C "$d" . ;;
+            esac
+          done
+          cp dist/rdp-viewer/RemoteDesk.html release/
+          ls -l release
+
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$VERSION"
+          notes="Built from ${GITHUB_SHA::7}.
+
+          | File | For |
+          |:--|:--|
+          | \`rdp-host-windows-x64.zip\` | the remote computer with Windows |
+          | \`rdp-host-windows-x86.zip\` | the remote computer with Windows of 32 bits |
+          | \`rdp-host-windows-arm64.zip\` | the remote computer with Windows on ARM |
+          | \`rdp-host-linux-x64.tar.gz\` | the remote computer with Linux |
+          | \`rdp-host-macos-arm64.tar.gz\` | the remote computer with macOS on Apple silicon |
+          | \`rdp-host-macos-x64.tar.gz\` | the remote computer with macOS on Intel |
+          | \`RemoteDesk.html\` | your device: the page, one file - open it in Chrome or Edge |
+
+          Unpack the program with the library of encryption beside it: it needs it. How to start: [Quick start](https://github.com/${GITHUB_REPOSITORY}#quick-start)."
+          git tag -f "$tag"
+          git push -f origin "refs/tags/$tag"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release edit "$tag" --title "RemoteDesk $VERSION" --notes "$notes" --latest
+            gh release upload "$tag" release/* --clobber
+          else
+            gh release create "$tag" release/* --title "RemoteDesk $VERSION" --notes "$notes" --latest
+          fi

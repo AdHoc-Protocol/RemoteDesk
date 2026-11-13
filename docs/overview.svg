@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 330" width="860" height="330" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <rect x="0" y="0" width="860" height="330" rx="12" fill="#0d1117"/>
+  <defs>
+    <marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#58a6ff"/></marker>
+    <marker id="green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/></marker>
+  </defs>
+
+  <text x="430" y="30" text-anchor="middle" font-size="17" font-weight="600" fill="#e6edf3">You see and control the remote computer from a browser</text>
+
+  <!-- the remote computer -->
+  <rect x="20" y="70" width="210" height="170" rx="12" fill="#0c2340" stroke="#58a6ff" stroke-width="2"/>
+  <text x="125" y="102" text-anchor="middle" font-weight="600" fill="#79c0ff">Remote computer</text>
+  <text x="125" y="126" text-anchor="middle" fill="#e6edf3">Windows, Linux or Mac</text>
+  <rect x="45" y="146" width="160" height="34" rx="6" fill="#0d1117" stroke="#58a6ff"/>
+  <text x="125" y="168" text-anchor="middle" font-family="Consolas, monospace" fill="#79c0ff">rdp-host</text>
+  <text x="125" y="204" text-anchor="middle" font-size="12" fill="#8b949e">captures the screen and the sound,</text>
+  <text x="125" y="220" text-anchor="middle" font-size="12" fill="#8b949e">takes your keys and mouse</text>
+
+  <!-- your device -->
+  <rect x="630" y="70" width="210" height="170" rx="12" fill="#0f2a17" stroke="#3fb950" stroke-width="2"/>
+  <text x="735" y="102" text-anchor="middle" font-weight="600" fill="#56d364">Your device</text>
+  <text x="735" y="126" text-anchor="middle" fill="#e6edf3">a PC, tablet or phone</text>
+  <rect x="655" y="146" width="160" height="34" rx="6" fill="#0d1117" stroke="#3fb950"/>
+  <text x="735" y="168" text-anchor="middle" font-family="Consolas, monospace" fill="#56d364">viewer.html</text>
+  <text x="735" y="204" text-anchor="middle" font-size="12" fill="#8b949e">the page in Chrome or Edge:</text>
+  <text x="735" y="220" text-anchor="middle" font-size="12" fill="#8b949e">nothing to install</text>
+
+  <!-- what flows -->
+  <line x1="232" y1="120" x2="626" y2="120" stroke="#58a6ff" stroke-width="2.5" marker-end="url(#blue)"/>
+  <text x="430" y="110" text-anchor="middle" fill="#79c0ff">the screen (video), the sound, the clipboard, a file</text>
+  <line x1="626" y1="190" x2="232" y2="190" stroke="#3fb950" stroke-width="2.5" marker-end="url(#green)"/>
+  <text x="430" y="212" text-anchor="middle" fill="#56d364">keys, mouse, touch, the clipboard, files, the microphone</text>
+
+  <rect x="300" y="138" width="260" height="34" rx="17" fill="#161b22" stroke="#8b949e"/>
+  <text x="430" y="160" text-anchor="middle" fill="#e6edf3">one connection, encrypted</text>
+
+  <!-- notes -->
+  <text x="430" y="272" text-anchor="middle" fill="#e6edf3">You need two things from the remote computer: <tspan font-weight="600">where to connect</tspan> and <tspan font-weight="600">the token</tspan></text>
+  <text x="430" y="296" text-anchor="middle" font-size="12" fill="#8b949e">rdp-host prints both when it starts. The token lets you in; the key of the computer proves it is the right one</text>
+</svg>

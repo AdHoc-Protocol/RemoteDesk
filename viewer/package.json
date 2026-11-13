@@ -1,0 +1,15 @@
+{
+  "name": "rdp-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The viewer page of RemoteDesk: shows the desktop of a machine and controls it.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "build": "tsc --noEmit -p . && node build.mjs",
+    "watch": "node build.mjs --watch"
+  },
+  "devDependencies": {
+    "esbuild": "latest",
+    "typescript": "latest"
+  }
+}

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 536" width="860" height="536" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <rect x="0" y="0" width="860" height="536" rx="12" fill="#0d1117"/>
+  <defs>
+    <marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#58a6ff"/></marker>
+    <marker id="green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/></marker>
+    <marker id="orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f0a020"/></marker>
+    <marker id="gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c9d1d9"/></marker>
+  </defs>
+
+  <text x="430" y="28" text-anchor="middle" font-size="17" font-weight="600" fill="#e6edf3">Way ③ step by step</text>
+
+  <!-- the four -->
+  <rect x="8" y="39" width="164" height="27" rx="13" fill="#0c2340" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="90" y="58" text-anchor="middle" font-weight="600" fill="#e6edf3">Remote computer user</text>
+  <text x="290" y="58" text-anchor="middle" font-weight="600" fill="#79c0ff">rdp-host</text>
+  <text x="530" y="58" text-anchor="middle" font-weight="600" fill="#ffb340">Meeting point</text>
+  <rect x="705" y="39" width="130" height="27" rx="13" fill="#0f2a17" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="770" y="58" text-anchor="middle" font-weight="600" fill="#e6edf3">You, the page</text>
+  <line x1="90" y1="72" x2="90" y2="456" stroke="#30363d" stroke-width="2" stroke-dasharray="3 5"/>
+  <line x1="290" y1="68" x2="290" y2="456" stroke="#58a6ff" stroke-width="2" stroke-dasharray="3 5" opacity="0.6"/>
+  <line x1="530" y1="68" x2="530" y2="456" stroke="#f0a020" stroke-width="2" stroke-dasharray="3 5" opacity="0.6"/>
+  <line x1="770" y1="68" x2="770" y2="456" stroke="#3fb950" stroke-width="2" stroke-dasharray="3 5" opacity="0.6"/>
+
+  <!-- the start -->
+  <line x1="92" y1="100" x2="286" y2="100" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="190" y="92" text-anchor="middle" font-size="13" fill="#e6edf3">starts rdp-host --meet …</text>
+
+  <g transform="translate(0,36)">
+  <!-- ① a port -->
+  <line x1="292" y1="94" x2="526" y2="94" stroke="#58a6ff" stroke-width="2" marker-end="url(#blue)"/>
+  <text x="408" y="86" text-anchor="middle" font-size="13" fill="#79c0ff">① the password to port 40000</text>
+  <line x1="528" y1="118" x2="294" y2="118" stroke="#f0a020" stroke-width="2" marker-end="url(#orange)"/>
+  <text x="410" y="112" text-anchor="middle" font-size="13" fill="#ffb340">port 41933, given to this address</text>
+
+  <!-- ② the line -->
+  <line x1="288" y1="150" x2="94" y2="150" stroke="#58a6ff" stroke-width="2" marker-end="url(#blue)"/>
+  <text x="190" y="142" text-anchor="middle" font-size="13" fill="#79c0ff">② prints the line</text>
+  <text x="190" y="170" text-anchor="middle" font-family="Consolas, monospace" font-size="12" fill="#e6edf3">ws://…:41933#K7QM…</text>
+  <line x1="292" y1="182" x2="526" y2="182" stroke="#58a6ff" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#blue)"/>
+  <text x="410" y="176" text-anchor="middle" font-size="12" fill="#8b949e">holds the port, closed, every second</text>
+
+  <!-- ③ sent -->
+  <line x1="92" y1="214" x2="766" y2="214" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="640" y="206" text-anchor="middle" font-size="13" fill="#e6edf3">③ sends you the line: chat, mail</text>
+
+  <!-- ④ Enter -->
+  <line x1="92" y1="246" x2="286" y2="246" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="190" y="240" text-anchor="middle" font-size="13" fill="#e6edf3">④ presses Enter</text>
+
+  <!-- ⑤ knocks and dials -->
+  <line x1="292" y1="276" x2="526" y2="276" stroke="#58a6ff" stroke-width="2" marker-end="url(#blue)"/>
+  <text x="410" y="270" text-anchor="middle" font-size="13" fill="#79c0ff">⑤ knocks and dials port 41933</text>
+  <text x="410" y="292" text-anchor="middle" font-size="12" fill="#8b949e">every second, till you come</text>
+
+  <!-- ⑥ you connect -->
+  <line x1="768" y1="308" x2="534" y2="308" stroke="#3fb950" stroke-width="2" marker-end="url(#green)"/>
+  <text x="650" y="300" text-anchor="middle" font-size="13" fill="#56d364">⑥ paste, Connect: dials port 41933</text>
+
+  <!-- ⑦ the meeting -->
+  <rect x="430" y="322" width="200" height="30" rx="6" fill="#2b1d06" stroke="#f0a020"/>
+  <text x="530" y="342" text-anchor="middle" font-size="13" fill="#ffb340">⑦ the two meet here</text>
+
+  <!-- ⑧ the session -->
+  <line x1="294" y1="378" x2="766" y2="378" stroke="#3fb950" stroke-width="3" marker-start="url(#blue)" marker-end="url(#green)"/>
+  <text x="530" y="400" text-anchor="middle" font-size="13" fill="#e6edf3">⑧ one connection: the token, the key, then the screen and the input</text>
+
+  <!-- notes -->
+  <text x="430" y="446" text-anchor="middle" fill="#56d364" font-weight="600">The connection breaks: the page dials the same line again, rdp-host still waits there</text>
+  <text x="430" y="470" text-anchor="middle" font-size="12" fill="#8b949e">Before Enter nobody gets in: the port is closed. After a meeting, rdp-host knocks again and waits for the next one</text>
+  </g>
+</svg>

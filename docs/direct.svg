@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 600" width="860" height="600" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <rect x="0" y="0" width="860" height="600" rx="12" fill="#0d1117"/>
+  <defs>
+    <marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#58a6ff"/></marker>
+    <marker id="green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/></marker>
+    <marker id="gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c9d1d9"/></marker>
+  </defs>
+
+  <text x="430" y="28" text-anchor="middle" font-size="17" font-weight="600" fill="#e6edf3">Way ④ with two lines, step by step</text>
+
+  <!-- the four -->
+  <rect x="8" y="39" width="164" height="27" rx="13" fill="#0c2340" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="90" y="58" text-anchor="middle" font-weight="600" fill="#e6edf3">Remote computer user</text>
+  <text x="290" y="58" text-anchor="middle" font-weight="600" fill="#79c0ff">rdp-host</text>
+  <text x="530" y="52" text-anchor="middle" font-weight="600" fill="#8b949e">Public STUN</text>
+  <text x="530" y="66" text-anchor="middle" font-size="11" fill="#8b949e">worldwide, China, Hong Kong</text>
+  <rect x="705" y="39" width="130" height="27" rx="13" fill="#0f2a17" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="770" y="58" text-anchor="middle" font-weight="600" fill="#e6edf3">You, the page</text>
+  <line x1="90" y1="72" x2="90" y2="516" stroke="#30363d" stroke-width="2" stroke-dasharray="3 5"/>
+  <line x1="290" y1="68" x2="290" y2="516" stroke="#58a6ff" stroke-width="2" stroke-dasharray="3 5" opacity="0.6"/>
+  <line x1="530" y1="72" x2="530" y2="516" stroke="#8b949e" stroke-width="2" stroke-dasharray="3 5" opacity="0.5"/>
+  <line x1="770" y1="72" x2="770" y2="516" stroke="#3fb950" stroke-width="2" stroke-dasharray="3 5" opacity="0.6"/>
+
+  <!-- the start -->
+  <line x1="92" y1="98" x2="286" y2="98" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="190" y="90" text-anchor="middle" font-size="13" fill="#e6edf3">starts rdp-host --direct</text>
+  <line x1="292" y1="128" x2="526" y2="128" stroke="#58a6ff" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#blue)"/>
+  <text x="410" y="122" text-anchor="middle" font-size="13" fill="#79c0ff">its 11: which answer?</text>
+  <text x="410" y="146" text-anchor="middle" font-size="11" fill="#8b949e">keeps those, the nearest first</text>
+
+  <!-- ① the page -->
+  <line x1="768" y1="168" x2="534" y2="168" stroke="#3fb950" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#green)"/>
+  <text x="650" y="160" text-anchor="middle" font-size="13" fill="#56d364">① Direct connection</text>
+  <text x="650" y="184" text-anchor="middle" font-size="11" fill="#8b949e">its 4 at once: my address?</text>
+
+  <!-- ② the line of the page -->
+  <line x1="766" y1="204" x2="94" y2="204" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="430" y="196" text-anchor="middle" font-size="13" fill="#e6edf3">② you send the line of the page: chat, mail</text>
+  <text x="640" y="224" text-anchor="middle" font-family="Consolas, monospace" font-size="12" fill="#56d364">rd1o.EARyQVc1GDVI…</text>
+
+  <!-- ③ the answer -->
+  <line x1="92" y1="250" x2="286" y2="250" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="190" y="242" text-anchor="middle" font-size="13" fill="#e6edf3">③ pastes it, Enter</text>
+  <line x1="292" y1="276" x2="526" y2="276" stroke="#58a6ff" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#blue)"/>
+  <text x="410" y="270" text-anchor="middle" font-size="13" fill="#79c0ff">those that answered: my address?</text>
+  <line x1="288" y1="304" x2="94" y2="304" stroke="#58a6ff" stroke-width="2" marker-end="url(#blue)"/>
+  <text x="190" y="298" text-anchor="middle" font-size="13" fill="#79c0ff">prints the answer</text>
+  <text x="190" y="322" text-anchor="middle" font-family="Consolas, monospace" font-size="12" fill="#79c0ff">rd1a.ERBmeVBk… ( token in it )</text>
+
+  <!-- ④ keeps its NAT open -->
+  <line x1="292" y1="346" x2="766" y2="346" stroke="#58a6ff" stroke-width="2" stroke-dasharray="2 5" marker-end="url(#blue)"/>
+  <text x="530" y="340" text-anchor="middle" font-size="12" fill="#8b949e">④ knocks at the addresses of the page every second: its NAT opens for them</text>
+
+  <!-- ⑤ the answer back -->
+  <line x1="92" y1="380" x2="766" y2="380" stroke="#c9d1d9" stroke-width="2" marker-end="url(#gray)"/>
+  <text x="430" y="374" text-anchor="middle" font-size="13" fill="#e6edf3">⑤ sends you the answer: within 15 minutes</text>
+
+  <!-- ⑥ paste -->
+  <text x="770" y="408" text-anchor="end" font-size="13" fill="#56d364">⑥ into Remote machine, same page, Connect</text>
+
+  <!-- ⑦ the meeting -->
+  <line x1="294" y1="442" x2="766" y2="442" stroke="#3fb950" stroke-width="3" marker-start="url(#blue)" marker-end="url(#green)"/>
+  <text x="530" y="434" text-anchor="middle" font-size="13" fill="#e6edf3">⑦ they meet: ICE, DTLS, a data channel - straight, no one between</text>
+  <text x="530" y="464" text-anchor="middle" font-size="13" fill="#e6edf3">⑧ the key, the token, then the screen and the input</text>
+
+  <!-- notes -->
+  <text x="430" y="542" text-anchor="middle" fill="#56d364" font-weight="600">Nothing to install or forward: the STUN servers only tell each side its address</text>
+  <text x="430" y="566" text-anchor="middle" font-size="12" fill="#8b949e">Two NATs that are both symmetric ( mobile networks, CGNAT ) find no straight path: then way ③</text>
+</svg>

@@ -1,0 +1,4 @@
+# x86-64-v2 ( POPCNT, SSE4.2 ): a count of bits is one instruction, CRC-32C and the text kernels run with no choice at start.
+[target.'cfg(target_arch = "x86_64")']
+rustflags = ["-C", "target-cpu=x86-64-v2"]
+                        

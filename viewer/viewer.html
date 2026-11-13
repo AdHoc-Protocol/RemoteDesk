@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RemoteDesk</title>
+    <style>
+        :root { color-scheme: light dark; --bg: #f6f7f9; --fg: #1d2330; --muted: #5b6475; --line: #d5d9e0; --accent: #2f6fde; --bad: #c4352b; --ok: #2b8a4b; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #15181e; --fg: #e4e7ec; --muted: #98a0ae; --line: #2c323c; --accent: #6b9bf2; --bad: #ef6a5f; --ok: #5cc27e; } }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
+        #login { max-width: 420px; margin: 10vh auto; padding: 24px; border: 1px solid var(--line); border-radius: 8px; }
+        #login h1 { margin: 0 0 16px; font-size: 20px; font-weight: 600; }
+        label { display: block; margin: 12px 0 4px; color: var(--muted); }
+        input[type=text], input[type=password] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; font: inherit; }
+        button { margin-top: 16px; padding: 8px 16px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; cursor: pointer; }
+        button.plain { background: transparent; color: var(--accent); padding: 0; margin: 0; }
+        #status { margin-top: 16px; min-height: 1.4em; }
+        #status.bad { color: var(--bad); }
+        #status.ok { color: var(--ok); }
+        #direct-start { display: block; margin-top: 10px; }
+        #offer p { margin: 12px 0 6px; color: var(--muted); font-size: 13px; }
+        #offer-line { position: fixed; left: -9999px; width: 1px; height: 1px; }
+        #key { margin-top: 8px; color: var(--muted); font: 12px/1.4 ui-monospace, monospace; word-break: break-all; }
+        /* the desk ( src/desk.ts ) brings its own style: its colours are the page's */
+        #desk { display: none; height: 100%; }
+        #desk.on { display: block; }
+        #desk .rd-desk { --rd-bg: var(--bg); --rd-fg: var(--fg); --rd-muted: var(--muted); --rd-line: var(--line); --rd-accent: var(--accent); --rd-bad: var(--bad); }
+    </style>
+</head>
+<body>
+<form id="login" autocomplete="on">
+    <h1>RemoteDesk</h1>
+    <label for="address">Remote machine</label>
+    <input id="address" type="text" value="ws://127.0.0.1:8765" spellcheck="false" title="The address, or the whole line the machine printed for its viewer: the token comes with it">
+    <label for="token">Token</label>
+    <input id="token" type="password" spellcheck="false" autocomplete="off">
+    <label for="name">Your name</label>
+    <input id="name" type="text" spellcheck="false">
+    <button id="connect" type="submit">Connect</button>
+    <button id="direct-start" class="plain" type="button" title="Way 4: straight to the remote computer, no address needed - a line goes there and its answer comes back">Direct connection</button>
+    <div id="offer" hidden>
+        <p>Send the line of this page to the user of the remote computer, by chat or mail. Paste the answer it sends back ( rd1a.… ) into Remote machine and press Connect.</p>
+        <button id="offer-copy" class="plain" type="button">Put the line in the clipboard</button>
+        <textarea id="offer-line" readonly tabindex="-1" aria-hidden="true"></textarea>
+    </div>
+    <div id="status"></div>
+    <div id="key"></div>
+    <button id="forget" class="plain" type="button" hidden>Forget the key of this machine</button>
+</form>
+<div id="desk"></div>
+<script defer src="viewer.js"></script>
+</body>
+</html>

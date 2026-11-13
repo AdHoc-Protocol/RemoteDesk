@@ -1,0 +1,109 @@
+[package]
+name = "rdp-host"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[[bin]]
+name = "rdp-host"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+# A panic in the sink or source of a connection goes to its failure handler and the connection goes on ( the AdHoc runtime ).
+panic = "unwind"
+
+[dependencies]
+# way 4, direct: WebRTC - ICE, DTLS, SCTP - of a data channel to the page, sans I/O: the program reads and writes the socket.
+# Its crypto is aws-lc, the default: its DTLS takes aws-lc for the certificate anyway
+str0m = "*"
+# way 4, one line: a port of the router opened to this computer - UPnP IGD; PCP and NAT-PMP are our own ( src/portmap.rs ),
+# to the gateway `netdev` finds
+igd-next = "*"
+netdev = { version = "*", default-features = false, features = ["gateway"] }
+# the port the router opened is closed again when the program is: Ctrl+C, its window closed
+ctrlc = { version = "*", features = ["termination"] }
+# the AdHoc runtime ( protocol/lib )
+mio = { version = "*", features = ["os-poll", "net"] }
+parking_lot = "*"
+crossbeam-utils = "*"
+arc-swap = "*"
+socket2 = { version = "*", features = ["all"] }
+sha2 = "*"
+hmac = "*"
+getrandom = "*"
+rustc-hash = "*"
+
+[target.'cfg(windows)'.dependencies]
+ipconfig = "*"
+windows = { version = "*", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Graphics_Gdi",
+    "Win32_Media_MediaFoundation",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Ole",
+    "Win32_System_Variant",
+    "Win32_UI_HiDpi",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Input_Pointer",
+    "Win32_UI_Controls",
+    "Win32_System_Threading",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_Common",
+    "Win32_Media_Audio",
+    "Win32_Security",
+    "Win32_System_Registry",
+] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "*"
+# the clipboard, the Downloads folder, the dialog to pick a file
+arboard = { version = "*", features = ["wayland-data-control"] }
+dirs = "*"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# X11: the displays ( RandR ), the capture ( MIT-SHM, DAMAGE ), the pointer ( XFIXES ), the input ( XTEST ) - pure Rust. The
+# unsafe parts of x11rb come with `dl-libxcb`: libxcb would be loaded only for an XCB connection, and the program opens none -
+# it is neither linked nor needed to build or to run
+x11rb = { version = "*", features = ["dl-libxcb", "shm", "damage", "xfixes", "xtest", "randr"] }
+xkeysym = "*"
+# Wayland: the portals ScreenCast and RemoteDesktop - pure Rust over D-Bus
+ashpd = { version = "*", default-features = false, features = ["async-io", "screencast", "remote_desktop", "file_chooser"] }
+pollster = "*"
+rfd = { version = "*", default-features = false, features = ["xdg-portal", "async-std"] }
+# the libraries of C, built in the workflow ( feature `native` ): the frames of Wayland, H.264, the sound
+pipewire = { version = "*", optional = true }
+openh264 = { version = "*", optional = true }
+libpulse-binding = { version = "*", optional = true }
+libpulse-simple-binding = { version = "*", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+rfd = "*"
+objc2 = "*"
+block2 = "*"
+dispatch2 = "*"
+objc2-foundation = "*"
+objc2-core-foundation = "*"
+objc2-core-graphics = "*"
+objc2-core-media = "*"
+objc2-core-video = "*"
+objc2-video-toolbox = "*"
+objc2-screen-capture-kit = "*"
+objc2-avf-audio = "*"
+objc2-core-audio-types = "*"
+objc2-app-kit = "*"
+
+[features]
+default = ["native"]
+# what links libraries of C on Linux: PipeWire ( Wayland ), openh264, PulseAudio. A `cargo check` of another system goes without it.
+native = ["dep:pipewire", "dep:openh264", "dep:libpulse-binding", "dep:libpulse-simple-binding"]
