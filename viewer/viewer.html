@@ -5,23 +5,162 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>RemoteDesk</title>
     <style>
-        :root { color-scheme: light dark; --bg: #f6f7f9; --fg: #1d2330; --muted: #5b6475; --line: #d5d9e0; --accent: #2f6fde; --bad: #c4352b; --ok: #2b8a4b; }
-        @media (prefers-color-scheme: dark) { :root { --bg: #15181e; --fg: #e4e7ec; --muted: #98a0ae; --line: #2c323c; --accent: #6b9bf2; --bad: #ef6a5f; --ok: #5cc27e; } }
+        :root { color-scheme: light dark; --bg: #f3f5f8; --card: #ffffff; --soft: #eceff4; --fg: #1d2330; --muted: #5b6475; --line: #cfd5de;
+                --accent: #2f6fde; --bad: #c4352b; --ok: #2b8a4b; --warn: #b26b00; }
+        @media (prefers-color-scheme: dark) { :root { --bg: #12151b; --card: #1a1e26; --soft: #222833; --fg: #e4e7ec; --muted: #98a0ae; --line: #343b47;
+                --accent: #6b9bf2; --bad: #ef6a5f; --ok: #5cc27e; --warn: #e0a84a; } }
         * { box-sizing: border-box; }
         html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
-        #login { max-width: 420px; margin: 10vh auto; padding: 24px; border: 1px solid var(--line); border-radius: 8px; }
-        #login h1 { margin: 0 0 16px; font-size: 20px; font-weight: 600; }
-        label { display: block; margin: 12px 0 4px; color: var(--muted); }
-        input[type=text], input[type=password] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; font: inherit; }
-        button { margin-top: 16px; padding: 8px 16px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; cursor: pointer; }
-        button.plain { background: transparent; color: var(--accent); padding: 0; margin: 0; }
-        #status { margin-top: 16px; min-height: 1.4em; }
-        #status.bad { color: var(--bad); }
-        #status.ok { color: var(--ok); }
-        #direct-start { display: block; margin-top: 10px; }
-        #offer p { margin: 12px 0 6px; color: var(--muted); font-size: 13px; }
+        #login { max-width: 880px; margin: 5vh auto; padding: 24px 28px; }
+        header h1 { margin: 0; font-size: 22px; font-weight: 650; }
+        header p { margin: 2px 0 18px; color: var(--muted); }
+        label { display: block; margin: 10px 0 4px; color: var(--muted); font-size: 13px; }
+        input[type=text], input[type=password] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: inherit; font: inherit; }
+        input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+        button { padding: 8px 16px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font: inherit; cursor: pointer; }
+        button:disabled { opacity: .4; cursor: default; }
+        button.plain { background: transparent; color: var(--accent); padding: 0; }
+        button.second { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 5px 12px; font-size: 13px; }
+        @keyframes pulse { 50% { opacity: .35; } }
+        @keyframes flow { to { background-position: 14px 0; } }
+        @keyframes flow-down { to { background-position: 0 14px; } }
+        @keyframes run { from { left: 0; } to { left: calc(100% - 8px); } }
+        @keyframes run-down { from { top: 0; } to { top: calc(100% - 8px); } }
+        @keyframes in { from { opacity: 0; transform: translateY(-3px); } }
+
+        /* the four ways, as the menu of rdp-host numbers them */
+        .ask { margin: 0 0 8px; font-weight: 600; }
+        #ways { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        #ways button { position: relative; padding: 10px 10px 10px 46px; text-align: left; background: var(--card); color: var(--fg); border: 1px solid var(--line); line-height: 1.25; }
+        #ways .num { position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 26px; height: 26px; border-radius: 50%; background: var(--soft); text-align: center; line-height: 26px; font-weight: 700; }
+        #ways b { display: block; font-weight: 600; }
+        #ways small { display: block; color: var(--muted); font-size: 12px; }
+        #ways button[aria-checked=true] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+        #ways button[aria-checked=true] .num { background: var(--accent); color: #fff; }
+
+        /* the diagram: a scene drawn by hand ( src/scene.ts ); what it shows of the moment comes from the attributes of #map */
+        #map { --ink: #3a3f4a; --paper: #fffdf8; --hatch: #b9cbe3; --dot: #e3e1da; position: relative; margin-top: 22px; border-radius: 14px;
+               background: var(--paper) radial-gradient(var(--dot) 1px, transparent 1.3px) 0 0 / 20px 20px; border: 1px solid var(--line); }
+        @media (prefers-color-scheme: dark) { #map { --ink: #c9d0dc; --paper: #171b22; --hatch: #3c5576; --dot: #262c36; } }
+        #scene { display: block; width: 100%; height: auto; overflow: visible; }
+        .hand, .say, .tag .head, #ways b, header h1, .me-spot label { font-family: "RD Hand", "Segoe Print", "Bradley Hand", cursive; }
+        header h1 { font-size: 36px; font-weight: 700; line-height: 1.1; }
+        #ways b { font-size: 20px; line-height: 1.05; }
+        #scene text.hand { fill: var(--ink); }
+        #scene text.small { fill: var(--muted); }
+        #scene text.screen-text { fill: var(--accent); font-weight: 700; }
+        #scene .console-text { font: 13px ui-monospace, Consolas, monospace; fill: #9fe3a8; }
+        #scene .console-text.strong { fill: #fff; font-weight: 700; }
+        #scene .cursor { fill: #9fe3a8; animation: blink 1s steps(1) infinite; }
+        #scene .pip { fill: var(--ink); opacity: .5; }
+        /* the outlines: the colour of the pen, by the state of the part they are in */
+        #scene .o path { stroke: var(--pen, var(--ink)); transition: stroke .3s; }
+        #scene .card path[fill]:not([fill=none]) { fill: var(--paper); }
+        #scene .screen path:not(:last-child) { stroke: var(--hatch); }
+        #scene .cloud path:not(:last-child) { stroke: var(--hatch); }
+        #scene .box path[fill]:not([fill=none]), #scene .deck path[fill]:not([fill=none]) { fill: var(--soft); }
+        #scene .deck path:not(:last-child) { stroke: var(--line); }
+        #scene .console path[fill]:not([fill=none]) { fill: #20242c; }
+        #scene .plane path[fill]:not([fill=none]) { fill: var(--paper); }
+        #scene .head path[fill]:not([fill=none]) { fill: var(--pen, var(--ink)); }
+        #map[data-me=ok] #n-me, #map[data-mid=ok] #n-mid, #map[data-rem=ok] #n-rem { --pen: var(--ok); }
+        #map[data-me=try] #n-me, #map[data-mid=try] #n-mid, #map[data-rem=try] #n-rem { --pen: var(--accent); }
+        #map[data-rem=wait] #n-rem, #map[data-mid=wait] #n-mid { --pen: var(--warn); }
+        #map[data-mid=bad] #n-mid, #map[data-rem=bad] #n-rem { --pen: var(--bad); }
+        #map[data-rem=wait] #n-rem .o.card, #map[data-rem=try] #n-rem .o.card { animation: breathe 1.6s ease-in-out infinite; }
+        #map[data-mid=try] #n-mid .o.cloud { animation: breathe 1.2s ease-in-out infinite; }
+
+        /* the connection: faint before; marching dashes and a light running while it is made; alive - green, pulses both ways; broken - pale, still */
+        #scene .seg .o path { opacity: .35; transition: opacity .4s, stroke .3s; }
+        #scene .glow { fill: none; stroke: transparent; stroke-width: 4; stroke-linecap: round; }
+        #scene .dot { fill: var(--accent); opacity: 0; transition: opacity .3s; filter: url(#glow); }
+        #map[data-wa=try] #w-a .glow, #map[data-wb=try] #w-b .glow { stroke: var(--accent); stroke-dasharray: 10 10; animation: march .7s linear infinite; }
+        #map[data-wa=try] #w-a .dot.fwd, #map[data-wb=try] #w-b .dot.fwd { opacity: 1; }
+        #map[data-wa=up] #w-a .o path, #map[data-wb=up] #w-b .o path { opacity: 1; stroke: var(--ok); }
+        #map[data-wa=up] #w-a .glow, #map[data-wb=up] #w-b .glow { stroke: var(--ok); stroke-width: 5; opacity: .35; }
+        #map[data-wa=up] #w-a .dot, #map[data-wb=up] #w-b .dot { opacity: 1; fill: var(--ok); }
+        #map[data-wa=cut] #w-a .o path, #map[data-wb=cut] #w-b .o path { opacity: .15; stroke: var(--muted); stroke-dasharray: 3 9; }
+        /* the routers: their lights blink as the bytes go through */
+        #scene .led { fill: var(--ok); opacity: .5; }
+        #map:is([data-wa=try], [data-wa=up]) #r-me .led, #map:is([data-wb=try], [data-wb=up]) #r-rem .led,
+        #map:is([data-wa=try], [data-wa=up]) #r-mid .led, #map:is([data-wa=try], [data-wa=up]) #r-meet .led { animation: blink .5s steps(1) infinite; opacity: 1; }
+        #scene .led-1 { animation-delay: .17s !important; } #scene .led-2 { animation-delay: .33s !important; }
+        #scene .wifi path { stroke: var(--accent); }
+        #map:is([data-wa=try], [data-wa=up]) #r-mid .wifi { animation: breathe 1s ease-in-out infinite; }
+
+        /* the STUN servers of way 4: asked - a ping runs to each and back; answered - a tick; silent - pale, a cross */
+        #scene .ping { fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-dasharray: 4 6; opacity: .25; }
+        #scene .rack .mark { display: none; font-weight: 700; }
+        #scene .rack[data-s=ask] .ping { opacity: .7; stroke: var(--accent); animation: march .6s linear infinite; }
+        #scene .rack[data-s=ask] .dot { opacity: 1; }
+        #scene .rack[data-s=ok] { --pen: var(--ok); } #scene .rack[data-s=ok] .mark.ok { display: block; fill: var(--ok); }
+        #scene .rack[data-s=no] { opacity: .45; } #scene .rack[data-s=no] .mark.no { display: block; fill: var(--bad); }
+        #scene .rack:not([data-s=ask]):not([data-s=ok]) .led { opacity: .3; }
+
+        /* by chat or mail: the paper plane carries the line there, the envelope brings the answer back */
+        #scene .lane .o path { opacity: .5; }
+        #scene .flyer { opacity: 0; transition: opacity .4s; }
+        #map[data-out=wait] #lane-out, #map[data-back=wait] #lane-back { --pen: var(--warn); }
+        #map[data-out=try] #lane-out { --pen: var(--accent); }
+        #map[data-out=ok] #lane-out, #map[data-back=ok] #lane-back { --pen: var(--ok); }
+        #map[data-back=bad] #lane-back { --pen: var(--bad); }
+        #map:is([data-out=wait], [data-out=try], [data-out=ok]) #lane-out .o path, #map:is([data-back=wait], [data-back=ok], [data-back=bad]) #lane-back .o path { opacity: 1; }
+        #map[data-out=ok] #lane-out .flyer, #map[data-back=wait] #lane-back .flyer, #map[data-back=ok] #lane-back .flyer { opacity: 1; }
+        #map:not([data-way="4"]) #lane-out { display: none; }
+
+        /* what is typed and pressed, on the scene where it happens: placed in the units of the scene, 1000 × 680 */
+        .spot { position: absolute; margin: 0; }
+        .me-spot { left: 7.5%; top: 47%; width: 15.5%; }
+        .me-spot label { margin: 0 0 2px; font-size: 19px; color: var(--ink); }
+        .me-spot button { width: 100%; margin-top: 8px; }
+        .say { font-size: 20px; line-height: 1.1; color: var(--ink); }
+        .say:empty { display: none; }
+        .mid-say { left: 34%; top: 49%; width: 32%; text-align: center; }
+        .rem-say { left: 72%; top: 49.5%; width: 21.5%; text-align: center; }
+        #map[data-way="1"] .mid-say { top: 53%; }
+        .say.ok { color: var(--ok); } .say.bad { color: var(--bad); } .say.wait { color: var(--warn); }
+        .tag { left: 24%; width: 52%; padding: 10px 14px; background: var(--paper); border: 2px solid var(--pen, var(--ink)); border-radius: 16px 10px 18px 12px / 12px 18px 10px 16px; transition: border-color .3s; }
+        .tag-out { top: 57%; rotate: -.5deg; }
+        .tag-back { top: 81.5%; rotate: .4deg; }
+        .tag-out .said { display: inline; margin-left: 8px; }
+        #map:not([data-way="4"]) .tag-back { top: 74%; }
+        #map[data-out=wait] .tag-out { --pen: var(--warn); } #map[data-out=try] .tag-out { --pen: var(--accent); } #map[data-out=ok] .tag-out { --pen: var(--ok); }
+        #map[data-back=wait] .tag-back { --pen: var(--warn); } #map[data-back=ok] .tag-back { --pen: var(--ok); } #map[data-back=bad] .tag-back { --pen: var(--bad); }
+        #map:not([data-way="4"]) .tag-out { display: none; }
+        #map[data-way="4"] #token { display: none; }
+        .tag .head { margin: 0 0 6px; font-size: 21px; font-weight: 700; display: flex; align-items: center; gap: 8px; line-height: 1.1; }
+        .tag .head label { margin: 0; color: inherit; font-size: inherit; }
+        .tag input + input { margin-top: 6px; }
+        .tag .n { width: 24px; height: 24px; border-radius: 50%; background: var(--pen, var(--ink)); color: var(--paper); text-align: center; line-height: 24px; font: 700 14px system-ui, sans-serif; flex: none; }
+        .said { margin: 6px 0 0; color: var(--ok); font-size: 13px; }
+        .said.bad { color: var(--bad); }
+        .said button.plain { display: inline; font-size: 13px; }
         #offer-line { position: fixed; left: -9999px; width: 1px; height: 1px; }
+        @keyframes march { to { stroke-dashoffset: -20; } }
+        @keyframes blink { 50% { opacity: .15; } }
+        @keyframes breathe { 50% { opacity: .55; } }
+
+        /* what happens now; and in detail, for whoever wants it */
+        #status { margin-top: 14px; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; min-height: 1.4em; }
+        #status:empty { display: none; }
+        #status.bad { border-left-color: var(--bad); color: var(--bad); }
+        #status.ok { border-left-color: var(--ok); }
+        #status.wait { border-left-color: var(--warn); }
+        #log { margin-top: 10px; }
+        #log summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+        #feed { margin: 6px 0 0; padding: 10px 12px 10px 34px; background: var(--soft); border-radius: 8px; font: 12px/1.7 ui-monospace, monospace; max-height: 14em; overflow: auto; }
+        #feed li { animation: in .25s; } #feed li.bad { color: var(--bad); } #feed li.ok { color: var(--ok); }
+        #feed .t { color: var(--muted); margin-right: 8px; }
         #key { margin-top: 8px; color: var(--muted); font: 12px/1.4 ui-monospace, monospace; word-break: break-all; }
+
+        /* a narrow screen: the scene above, smaller; what is typed and pressed under it, in the order it is done */
+        @media (max-width: 760px) {
+            #login { padding: 16px; margin: 0 auto; }
+            #ways { grid-template-columns: repeat(2, 1fr); }
+            #map { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+            .spot { position: static; width: auto !important; margin: 0 12px; rotate: none !important; }
+            .tag-out { order: 1; } .tag-back { order: 2; } .me-spot { order: 3; } .say { order: 4; text-align: left !important; }
+        }
         /* the desk ( src/desk.ts ) brings its own style: its colours are the page's */
         #desk { display: none; height: 100%; }
         #desk.on { display: block; }
@@ -29,22 +168,55 @@
     </style>
 </head>
 <body>
+<!-- the hand of the diagram: what is drawn by Rough.js wobbles by itself; this filter is for the few lines drawn plainly -->
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <filter id="rough" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="3"/></filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</svg>
 <form id="login" autocomplete="on">
-    <h1>RemoteDesk</h1>
-    <label for="address">Remote machine</label>
-    <input id="address" type="text" value="ws://127.0.0.1:8765" spellcheck="false" title="The address, or the whole line the machine printed for its viewer: the token comes with it">
-    <label for="token">Token</label>
-    <input id="token" type="password" spellcheck="false" autocomplete="off">
-    <label for="name">Your name</label>
-    <input id="name" type="text" spellcheck="false">
-    <button id="connect" type="submit">Connect</button>
-    <button id="direct-start" class="plain" type="button" title="Way 4: straight to the remote computer, no address needed - a line goes there and its answer comes back">Direct connection</button>
-    <div id="offer" hidden>
-        <p>Send the line of this page to the user of the remote computer, by chat or mail. Paste the answer it sends back ( rd1a.… ) into Remote machine and press Connect.</p>
-        <button id="offer-copy" class="plain" type="button">Put the line in the clipboard</button>
-        <textarea id="offer-line" readonly tabindex="-1" aria-hidden="true"></textarea>
+    <header>
+        <h1>RemoteDesk</h1>
+        <p>See and control a computer of yours, straight from this page.</p>
+    </header>
+
+    <p class="ask">What did the remote computer press in rdp-host?</p>
+    <div id="ways" role="radiogroup" aria-label="The way to connect">
+        <button type="button" role="radio" data-way="1" aria-checked="true"><span class="num">1</span><b>Same network</b><small>home or office</small></button>
+        <button type="button" role="radio" data-way="2" aria-checked="false"><span class="num">2</span><b>From the internet</b><small>a public address</small></button>
+        <button type="button" role="radio" data-way="3" aria-checked="false"><span class="num">3</span><b>Meeting point</b><small>SYN Mirror</small></button>
+        <button type="button" role="radio" data-way="4" aria-checked="false"><span class="num">4</span><b>Direct</b><small>nothing to set up</small></button>
     </div>
-    <div id="status"></div>
+
+    <!-- the scene ( src/scene.ts ), and on it what is typed and pressed: each part where it happens -->
+    <section id="map" data-way="1" aria-live="polite">
+        <svg id="scene" role="img" aria-label="This computer, the way to the remote computer, and the lines that go by chat or mail"></svg>
+
+        <div class="spot me-spot">
+            <label for="name">Your name</label>
+            <input id="name" type="text" spellcheck="false" placeholder="the remote computer shows it">
+            <button id="connect" type="submit" disabled>Connect</button>
+        </div>
+        <p id="mid-say" class="spot say mid-say"></p>
+        <p id="rem-say" class="spot say rem-say"></p>
+
+        <div id="a-out" class="spot tag tag-out">
+            <p class="head"><span class="n">1</span> Your line flies there, by chat or mail</p>
+            <button id="direct-start" type="button">Make the line</button>
+            <p id="offer-said" class="said" hidden><span id="offer-told"></span> <button id="offer-copy" class="plain" type="button">Put it in the clipboard again</button></p>
+            <textarea id="offer-line" readonly tabindex="-1" aria-hidden="true"></textarea>
+        </div>
+        <div id="a-back" class="spot tag tag-back">
+            <p class="head"><span id="back-n" class="n">1</span> <label id="back-label" for="address"></label></p>
+            <input id="address" type="text" spellcheck="false" autocomplete="off">
+            <input id="token" type="password" spellcheck="false" autocomplete="off" placeholder="Token: it comes with the line" aria-label="Token">
+        </div>
+    </section>
+
+    <div id="status" role="status"></div>
+    <details id="log" hidden>
+        <summary>What happens, in detail</summary>
+        <ol id="feed"></ol>
+    </details>
     <div id="key"></div>
     <button id="forget" class="plain" type="button" hidden>Forget the key of this machine</button>
 </form>

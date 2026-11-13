@@ -151,7 +151,19 @@ export interface Options {
     onLive?: ((on: boolean, host: string) => void) | undefined;
     /** The desk is closed, its element gone: `bad` - not left by the user; `wrongToken` - the machine took the token for a wrong one. */
     onEnded?: ((text: string, bad: boolean, wrongToken: boolean) => void) | undefined;
+    /** Where the connection is: what a page draws of it. */
+    onStage?: ((stage: Stage) => void) | undefined;
 }
+
+/**
+ * Where the connection is, step by step: `dialing` - the page reaches for the machine; `reached` - the machine answered, the
+ * handshake goes; `proved` - its key is proved, the token goes; `otherKey` - the machine answers with a key not kept for it;
+ * `live` - the machine let the page in; `unreachable` - nobody answered at the address; `refused` - the machine did not take
+ * the token, or has no room; `closed` - it closed while the page logged in; `failed` - the connection failed under way; `lost` - a
+ * live session broke, dialed again; `lostDirect` - the direct one broke; `noAnswer` - dialed again, in vain; `left` - the user left.
+ */
+export type Stage = "dialing" | "reached" | "proved" | "otherKey" | "live" | "unreachable" | "refused" | "closed" | "failed" | "lost"
+    | "lostDirect" | "noAnswer" | "left";
 
 export interface Desk {
     /** The element of the desk, in the container. */
@@ -292,6 +304,8 @@ export function open(container: HTMLElement, options: Options): Desk {
         options.onStatus?.(text, isBad);
     };
 
+    const stage = (s: Stage) => options.onStage?.(s);
+
     const showKey = (text: string, other: boolean) => {
         keyLine.textContent = text;
         options.onKey?.(text, other);
@@ -312,6 +326,7 @@ export function open(container: HTMLElement, options: Options): Desk {
      */
     const proved = (key: Uint8Array, accepted: boolean) => {
         // direct: the machine is the one whose line came by hand - no address to keep its key for
+        stage(accepted ? "proved" : "otherKey");
         if (options.channel !== undefined) return showKey(fill(t.keyIs, { key: fingerprint(key) }), false);
         const kept = store.get("host." + address);
         if (kept === undefined && accepted) {
@@ -435,10 +450,11 @@ export function open(container: HTMLElement, options: Options): Desk {
     }
 
     const retryLater = () => {
-        if (options.channel !== undefined) return end(t.directLost, true, false);
-        if (retry >= RETRIES) return end(t.noAnswer, true, false);
+        if (options.channel !== undefined) { stage("lostDirect"); return end(t.directLost, true, false); }
+        if (retry >= RETRIES) { stage("noAnswer"); return end(t.noAnswer, true, false); }
         retry++;
         const seconds = Math.min(30, 2 ** (retry - 1));
+        stage("lost");
         status(fill(t.lost, { seconds, attempt: retry, of: RETRIES }), true);
         retryTimer = setTimeout(() => { retryTimer = undefined; connect(); }, seconds * 1000);
     };
@@ -449,6 +465,7 @@ export function open(container: HTMLElement, options: Options): Desk {
         if (channel === undefined && !/^wss?:\/\//.test(address)) return end(t.badAddress, true, false);
         if (token === "") return end(t.noToken, true, false);
         showKey("", false);
+        stage("dialing");
         status(t.connecting, false);
         const kept = channel === undefined ? store.get("host." + address) : undefined;
         const next = screen.canvasFor();
@@ -469,6 +486,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     function welcome(host: string | undefined, administrator: boolean): void {
         who.textContent = (host ?? t.machine) + " · " + address;
         stopSession();
+        stage("live");
         setLive(true, host ?? ""); // seen before the screen measures itself
         const canvas = nextCanvas ?? document.createElement("canvas"); // the worker draws on the one it was given
         nextCanvas = undefined;
@@ -594,7 +612,7 @@ export function open(container: HTMLElement, options: Options): Desk {
         await (navigator as Navigator & { keyboard?: { lock?: () => Promise<void> } }).keyboard?.lock?.().catch(() => undefined);
     });
 
-    const leave = () => end(t.left, false, false);
+    const leave = () => { stage("left"); end(t.left, false, false); };
     leaveButton.addEventListener("click", leave);
 
     // ── what the worker tells ──
@@ -604,21 +622,22 @@ export function open(container: HTMLElement, options: Options): Desk {
         take(m: ToMain) {
             switch (m.t) {
                 case M.PROVED: return proved(m.key, m.accepted);
-                case M.STATUS: return status(fill(t.linkFailed, { error: m.error }), true);
+                case M.STATUS: stage("failed"); return status(fill(t.linkFailed, { error: m.error }), true);
                 case M.DIALED:
-                    if (m.ok) return status(t.loggingIn, false);
+                    if (m.ok) { stage("reached"); return status(t.loggingIn, false); }
+                    stage("unreachable");
                     if (m.error) status(fill(t.dialFailed, { error: m.error }), true);
                     if (!bad) status(fill(t.cannotConnect, { address }), true);
                     if (retry > 0) return retryLater();
                     return end(stateLine.textContent ?? "", true, false);
                 case M.WELCOME: return welcome(m.host, m.administrator);
-                case M.DENIED: return end(refusal(m), true, m.forget);
+                case M.DENIED: stage("refused"); return end(refusal(m), true, m.forget);
                 case M.AUDIENCE: return audience(m.watchers, m.yours, m.controller);
                 case M.CLOSED:
                     if (live) {
                         stopSession();
                         setLive(false);
-                    } else if (retry === 0) return end(t.closed, true, false); // closed while logging in
+                    } else if (retry === 0) { stage("closed"); return end(t.closed, true, false); } // closed while logging in
                     status(t.closed, true);
                     return retryLater();
                 case M.NOTICE: notice.textContent = elevations[m.elevation]; return;

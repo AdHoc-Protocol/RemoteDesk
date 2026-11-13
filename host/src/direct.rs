@@ -223,7 +223,7 @@ pub fn start(bridge: SocketAddr, token: String, listen: SocketAddr) {
                 None => false, // the program listens on this computer alone: no port of the router leads to it
             };
             println!(
-                "Direct: {}paste here the line the page sends ( rd1o.… ), then Enter - Direct connection on the page makes it",
+                "Direct: {}paste here the line the page sends ( rd1o.… ), then Enter - Make the line on the page makes it",
                 if opened { "where that line does not connect: " } else { "" }
             );
             for line in io::stdin().lock().lines() {

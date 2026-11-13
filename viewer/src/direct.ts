@@ -181,11 +181,54 @@ export interface Offer {
     close(): void;
 }
 
-/** The offer of the page: its addresses gathered, its line made. */
-export async function offer(): Promise<Offer> {
+/** The STUN servers the page asks: their names, as `heard` names them. */
+export const STUN_NAMES: readonly string[] = STUN.map(s => nameOf(String(s.urls)));
+
+function nameOf(url: string): string {
+    return url.replace(/^stuns?:/, "").replace(/:\d+$/, "");
+}
+
+/**
+ * What the page learns on its way, told as it learns it, for a page that draws it: `ask` - the STUN servers are asked; `local` - an
+ * address of this device itself; `seen` - a STUN server answered, the address the internet sees this device at, in `ms` from the
+ * start; `silent` - a STUN server did not answer; `gathered` - the line is made; `state` - how the meeting goes, as ICE says;
+ * `met` - the way found: the address of this side and of the machine, `how` - through the internet or in one network.
+ */
+export type Heard =
+    | { k: "ask"; servers: readonly string[] }
+    | { k: "local"; address: string }
+    | { k: "seen"; server: string; address: string; ms: number }
+    | { k: "silent"; server: string; why: string }
+    | { k: "gathered"; ms: number; seen: number }
+    | { k: "state"; state: RTCIceConnectionState }
+    | { k: "met"; mine: string; theirs: string; how: "internet" | "network"; ms: number };
+
+/** The offer of the page: its addresses gathered, its line made; `heard` is told each step of the way. */
+export async function offer(heard: (h: Heard) => void = () => undefined): Promise<Offer> {
     const pc = new RTCPeerConnection({ iceServers: STUN });
     const channel = pc.createDataChannel("rdp", { negotiated: true, id: CHANNEL, ordered: true });
     channel.binaryType = "arraybuffer";
+    const start = performance.now(), answered = new Set<string>(), silent = new Set<string>();
+    heard({ k: "ask", servers: STUN_NAMES });
+    pc.addEventListener("icecandidate", e => {
+        const c = e.candidate;
+        if (c === null || c.address == null || c.port == null || c.protocol !== "udp") return;
+        const address = (c.address.includes(":") ? `[${c.address}]` : c.address) + ":" + c.port;
+        if (c.type === "host") heard({ k: "local", address: c.address.endsWith(".local") ? "a hidden name ( mDNS )" : address });
+        else if (c.type === "srflx") {
+            // the server that answered: the event tells it in Chromium and Firefox, the candidate in the newer browsers
+            const url = (e as { url?: string | null }).url ?? (c as { url?: string | null }).url;
+            const server = url ? nameOf(url) : "a STUN server";
+            answered.add(server);
+            heard({ k: "seen", server, address, ms: Math.round(performance.now() - start) });
+        }
+    });
+    pc.addEventListener("icecandidateerror", e => {
+        const server = nameOf(e.url);
+        if (answered.has(server) || silent.has(server) || !STUN_NAMES.includes(server)) return;
+        silent.add(server);
+        heard({ k: "silent", server, why: e.errorText || "no answer" });
+    });
     await pc.setLocalDescription(await pc.createOffer());
     await new Promise<void>(done => {
         if (pc.iceGatheringState === "complete") return done();
@@ -194,6 +237,8 @@ export async function offer(): Promise<Offer> {
             if (pc.iceGatheringState === "complete") { clearTimeout(timer); done(); }
         });
     });
+    for (const server of STUN_NAMES) if (!answered.has(server) && !silent.has(server)) heard({ k: "silent", server, why: "no answer in time" });
+    heard({ k: "gathered", ms: Math.round(performance.now() - start), seen: answered.size });
     const sdp = pc.localDescription?.sdp ?? "";
     const mine = ofSdp(sdp);
     if (mine === undefined) {
@@ -204,6 +249,13 @@ export async function offer(): Promise<Offer> {
     return {
         line: line(mine, false),
         async finish(c: Card): Promise<RTCDataChannel> {
+            const meeting = performance.now();
+            pc.addEventListener("iceconnectionstatechange", () => {
+                heard({ k: "state", state: pc.iceConnectionState });
+                if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") void way(pc).then(w => {
+                    if (w !== undefined) heard({ k: "met", ...w, ms: Math.round(performance.now() - meeting) });
+                });
+            });
             await pc.setRemoteDescription({ type: "answer", sdp: answerSdp(c, mid) });
             if (channel.readyState === "open") return channel;
             return new Promise<RTCDataChannel>((resolve, reject) => {
@@ -216,4 +268,18 @@ export async function offer(): Promise<Offer> {
         },
         close() { pc.close(); },
     };
+}
+
+/** The pair of addresses ICE took: this side's and the machine's, and whether it goes through the internet or stays in one network. */
+async function way(pc: RTCPeerConnection): Promise<{ mine: string; theirs: string; how: "internet" | "network" } | undefined> {
+    const stats = await pc.getStats();
+    let pairId: string | undefined;
+    stats.forEach(s => { if (s.type === "transport" && s.selectedCandidatePairId) pairId = s.selectedCandidatePairId as string; });
+    const pair = pairId === undefined ? undefined : stats.get(pairId);
+    const local = pair && stats.get(pair.localCandidateId), remote = pair && stats.get(pair.remoteCandidateId);
+    if (local === undefined || remote === undefined) return undefined;
+    const ip = (c: { address?: string; ip?: string }) => c.address ?? c.ip ?? "?";
+    const at = (c: { address?: string; ip?: string; port: number }) => ip(c) + ":" + c.port;
+    const inside = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|f[cd]|fe80:)/i.test(ip(remote));
+    return { mine: at(local), theirs: at(remote), how: local.candidateType === "host" && inside ? "network" : "internet" };
 }

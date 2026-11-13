@@ -30,7 +30,7 @@
 
   <!-- ① the page -->
   <line x1="768" y1="168" x2="534" y2="168" stroke="#3fb950" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#green)"/>
-  <text x="650" y="160" text-anchor="middle" font-size="13" fill="#56d364">① Direct connection</text>
+  <text x="650" y="160" text-anchor="middle" font-size="13" fill="#56d364">① 4, Make the line</text>
   <text x="650" y="184" text-anchor="middle" font-size="11" fill="#8b949e">its 4 at once: my address?</text>
 
   <!-- ② the line of the page -->
@@ -56,7 +56,7 @@
   <text x="430" y="374" text-anchor="middle" font-size="13" fill="#e6edf3">⑤ sends you the answer: within 15 minutes</text>
 
   <!-- ⑥ paste -->
-  <text x="770" y="408" text-anchor="end" font-size="13" fill="#56d364">⑥ into Remote machine, same page, Connect</text>
+  <text x="770" y="408" text-anchor="end" font-size="13" fill="#56d364">⑥ on the arrow ②, same page, Connect</text>
 
   <!-- ⑦ the meeting -->
   <line x1="294" y1="442" x2="766" y2="442" stroke="#3fb950" stroke-width="3" marker-start="url(#blue)" marker-end="url(#green)"/>

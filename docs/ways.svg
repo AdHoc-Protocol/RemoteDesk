@@ -6,7 +6,7 @@
   </defs>
 
   <text x="430" y="30" text-anchor="middle" font-size="17" font-weight="600" fill="#e6edf3">Four ways to reach the remote computer</text>
-  <text x="430" y="50" text-anchor="middle" font-size="12" fill="#8b949e">Your device always dials; the line you paste into Remote machine, the token in it after #, is at the bottom of each way</text>
+  <text x="430" y="50" text-anchor="middle" font-size="12" fill="#8b949e">Your device always dials; the line you paste on the page, the token in it after #, is at the bottom of each way</text>
 
   <!-- ① the same network -->
   <rect x="10" y="66" width="840" height="166" rx="10" fill="#10151c" stroke="#30363d"/>
@@ -79,13 +79,13 @@
   <text x="610" y="697" text-anchor="middle" font-weight="600" fill="#c9d1d9">NAT</text>
   <rect x="690" y="660" width="150" height="64" rx="10" fill="#0f2a17" stroke="#3fb950" stroke-width="2"/>
   <text x="765" y="686" text-anchor="middle" font-weight="600" fill="#56d364">Your device</text>
-  <text x="765" y="708" text-anchor="middle" font-size="12" fill="#8b949e">Direct connection</text>
+  <text x="765" y="708" text-anchor="middle" font-size="12" fill="#8b949e">Make the line</text>
   <line x1="172" y1="692" x2="193" y2="692" stroke="#58a6ff" stroke-width="2"/>
   <line x1="688" y1="692" x2="667" y2="692" stroke="#3fb950" stroke-width="2"/>
   <line x1="307" y1="692" x2="553" y2="692" stroke="#3fb950" stroke-width="3" marker-start="url(#blue)" marker-end="url(#green)"/>
   <text x="430" y="684" text-anchor="middle" font-size="12" fill="#56d364">straight, no one between</text>
   <path d="M95,660 C120,650 740,650 765,660" fill="none" stroke="#c9d1d9" stroke-width="1.5" stroke-dasharray="5 4"/>
   <text x="430" y="644" text-anchor="middle" font-size="12" fill="#c9d1d9">a line or two by hand: chat, mail</text>
-  <text x="430" y="744" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">one ws://…#… line, or rd1o.… there and rd1a.… back into Remote machine</text>
+  <text x="430" y="744" text-anchor="middle" font-family="Consolas, monospace" fill="#e6edf3">one ws://…#… line, or rd1o.… there and rd1a.… back onto the page</text>
   <text x="430" y="762" text-anchor="middle" font-size="12" fill="#8b949e">one line when its router opens a port ( UPnP, NAT-PMP, PCP ) · else two · both NATs symmetric: ③</text>
 </svg>
