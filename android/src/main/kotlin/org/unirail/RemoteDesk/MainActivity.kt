@@ -121,12 +121,9 @@ class MainActivity : Activity(), Host.Watcher {
             }
         })
         control.addView(TextView(this).apply {
-            text = "1. In Accessibility, scroll to the end: Downloaded apps ( on other phones: Installed apps, or Installed services ).
-" +
-                "2. Tap RemoteDesk: control from the page.
-" +
-                "3. Turn it on, and allow.
-" +
+            text = "1. In Accessibility, scroll to the end: Downloaded apps ( on other phones: Installed apps, or Installed services ).\n" +
+                "2. Tap RemoteDesk: control from the page.\n" +
+                "3. Turn it on, and allow.\n" +
                 "The switch is grey: Settings, Apps, RemoteDesk, ⋮ at the top right, Allow restricted settings - then again from 1."
             textSize = 14f
         })
