@@ -1,23 +1,52 @@
 # RemoteDesk
 
-See and control a Windows, Linux or Mac computer from a browser. Nothing to install on your side: the page runs in Chrome or
-Edge. The connection is encrypted end to end.
+See and control a computer or a phone from a browser: Windows, Linux, macOS and Android. Nothing to install on your side: the
+page runs in Chrome or Edge, on a computer, a tablet or a phone. The connection is encrypted end to end.
 
-Your own TeamViewer or AnyDesk: the same help at a distance, with no company in the middle. The remote computer runs one
-program, you open one page, and the two meet by themselves: in one network, over the internet, through a meeting point of your
-own, or straight.
+Your own TeamViewer or AnyDesk: the same help at a distance, with no company in the middle. The remote computer runs one program,
+a phone one app; you open one page; and the two meet by themselves: in one network, over the internet, through a meeting point
+of your own, or straight.
 
 | | TeamViewer, AnyDesk and the like | RemoteDesk |
 |:--|:--|:--|
 | Who connects the two | the servers of the company, by the ID of the device | nobody: they meet straight, or through a meeting point you run |
 | What you get to connect | an ID and a password, from their service | a line the program prints, its token in it |
-| On your device | their application | a page in Chrome or Edge: one file, `RemoteDesk.html` |
+| On your device | their application | a page in Chrome or Edge, on a computer or a phone: one file, `RemoteDesk.html` |
 
 ![You see and control the remote computer from a browser](docs/overview.svg)
 
+## What it does
+
+- **See and control.** The screen, the keyboard, the mouse, touch with up to ten fingers. A large screen pixel for pixel, or
+  zoomed with two fingers.
+- **Sound both ways.** What the remote computer plays, on your device; your microphone, on its speakers.
+- **Clipboard both ways.** Text and pictures: copy on one side, paste on the other.
+- **Files both ways.** Send them, or have its user pick one for you.
+- **Draw over its screen.** Lines, rings, arrows that fade by themselves: show its user where to tap, instead of explaining.
+- **Several at once.** Up to 8 viewers on one computer, one of them controls. One page holds several computers: tabs, a
+  mosaic, floating, or windows of their own.
+- **Phones, both ways.** A phone with Android is a remote computer like any other: shown, controlled, with its buttons Back,
+  Home and Recent apps. And a phone is your device too: the page in its browser controls a computer.
+- **No company in the middle.** The two meet straight, or through a meeting point you run; what passes between them is encrypted
+  ([Noise](https://noiseprotocol.org/)), and only who has the token gets in.
+
+| Section | |
+|:--|:--|
+| [Quick start](#quick-start) | Download; control a computer, a phone, or from a phone |
+| [Words used here](#words-used-here) | Remote computer, your device, token, key, meeting point |
+| [How to connect](#how-to-connect) | Which way is yours; each way step by step, with pictures |
+| [When you connect](#when-you-connect) | Encryption, the key, the token |
+| [In a session](#in-a-session) | The bar, drawing, several viewers, several computers |
+| [Android](#android) | A phone as the remote computer, what to allow on it, a phone as your device |
+| [The first start](#the-first-start), [Options of the program](#options-of-the-program) | |
+| [Safety](#safety), [When something goes wrong](#when-something-goes-wrong), [Limits](#limits) | |
+| [Building](#building) | For developers |
+
 ## Quick start
 
-Download from the [latest release](../../releases/latest):
+### Download
+
+From the [latest release](../../releases/latest):
 
 | For | File |
 |:--|:--|
@@ -27,10 +56,13 @@ Download from the [latest release](../../releases/latest):
 | The remote computer with Linux | [`rdp-host-linux-x64.tar.gz`](../../releases/latest/download/rdp-host-linux-x64.tar.gz) |
 | The remote computer with macOS, Apple silicon | [`rdp-host-macos-arm64.tar.gz`](../../releases/latest/download/rdp-host-macos-arm64.tar.gz) |
 | The remote computer with macOS, Intel | [`rdp-host-macos-x64.tar.gz`](../../releases/latest/download/rdp-host-macos-x64.tar.gz) |
-| Your device | [`RemoteDesk.html`](../../releases/latest/download/RemoteDesk.html): the page, one file |
+| The remote phone or tablet with Android 10 or later | [`RemoteDesk.apk`](../../releases/latest/download/RemoteDesk.apk) |
+| Your device: a computer, a tablet, a phone | [`RemoteDesk.html`](../../releases/latest/download/RemoteDesk.html): the page, one file |
 
 Unpack the program into a folder of its own: the library of encryption beside it is part of it. Or build them yourself:
 [Building](#building).
+
+### Control a computer
 
 **1. On the remote computer**, double-click `rdp-host` (`rdp-host.exe` on Windows). Its window asks how you will connect: press
 the number, the key alone is the answer.
@@ -97,23 +129,29 @@ and the token both.
 That is all when both are in one home or office. From another network, see [How to connect](#how-to-connect): there are four
 ways, and a picture to choose.
 
-| Section | |
-|:--|:--|
-| [Words used here](#words-used-here) | Remote computer, your device, token, key, meeting point |
-| [How to connect](#how-to-connect) | Which way is yours; each way step by step, with pictures |
-| [When you connect](#when-you-connect) | Encryption, the key, the token |
-| [In a session](#in-a-session) | The buttons; several viewers |
-| [The first start](#the-first-start), [Options of the program](#options-of-the-program) | |
-| [Safety](#safety), [When something goes wrong](#when-something-goes-wrong), [Limits](#limits) | |
-| [Building](#building) | For developers |
+### Control a phone
+
+1. **On the phone**, install `RemoteDesk.apk` (Android asks once to allow apps from this source) and open it. Pick the way, as
+   on a computer, and press **Show this screen**; in the window of Android pick **the entire screen**, then **Start**.
+2. **The line** is in the clipboard of the phone at once; **Share** under it gives it to a messenger.
+3. **On your device**, open the page, press the number of the way and paste the line: you see the phone.
+4. **Once**, to control it and draw over it, its user allows two things in its settings: see
+   [What to allow on the phone](#what-to-allow-on-the-phone).
+
+### Control from a phone
+
+Open `RemoteDesk.html` in Chrome on your phone or tablet, and paste the line of the remote computer, as on a computer. The bar
+fits the narrow screen, your fingers are touch, two fingers zoom: see [A phone as your device](#a-phone-as-your-device).
 
 ## Words used here
 
+
 | Word | What it means | Example |
 |:--|:--|:--|
-| **Remote computer** | The computer you want to see and control. The program `rdp-host` runs on it | The laptop of a relative you help |
+| **Remote computer** | The computer or the phone you want to see and control. The program `rdp-host` runs on a computer, the app `RemoteDesk.apk` on a phone | The laptop or the phone of a relative you help |
+| **The app** | `RemoteDesk.apk`: the program of a phone with Android 10 or later | |
 | **The user of the remote computer** | Whoever sits at the remote computer and starts the program there: its owner, you, or someone you help | Your relative |
-| **Your device** | The computer, tablet or phone you control it from, in a browser | Your own PC |
+| **Your device** | The computer, tablet or phone you control it from, in a browser | Your own PC, or your phone |
 | **Token** | A word the program prints; only who gives it gets in. New at each start unless set | `K7QM2XHP9RTA4WZD8CNE` |
 | **Key** | What proves the remote computer is the one you mean. Kept in `host.key` beside the program; its check is in the line, after the token and `-` | `24NDRCK9`, the check |
 | **NAT** | The home router: it hides the computers of a home behind one address and lets in only answers to what they sent out | A Wi-Fi router |
@@ -121,6 +159,10 @@ ways, and a picture to choose.
 | **STUN server** | A public server that tells a computer the address the internet sees it at, and nothing more. Way ④ asks several, in the world, in China and in Hong Kong | `stun.miwifi.com` |
 
 ## How to connect
+
+The app on a phone offers the same four ways, as tiles: the steps are the same, with **Show this screen** in place of starting
+the program, and the line in the clipboard of the phone and behind **Share**.
+
 
 On ways ①-③, and on ④ with one line, your device dials the remote computer; with the two lines of ④ the two reach for each
 other. Which way works depends on where the two are:
@@ -376,6 +418,7 @@ With `--direct` the program waits at `--listen` for ways ① and ② all along: 
 
 ## When you connect
 
+
 The same on every way:
 
 ![What happens when you connect](docs/connect.svg)
@@ -390,6 +433,7 @@ If the remote computer got a new key on purpose (a new `host.key`), press **Forg
 check needs none of that, it tells the new key.
 
 ## In a session
+
 
 The bar of the page, on your device, lies over the top of the screen of the remote computer. Pull it up by its handle, the
 short tab with three lines under it, or press the handle: the bar hides, and the whole screen is yours; pull or press it again to
@@ -492,14 +536,18 @@ A tab shows the name of its computer, with ⟳ while the connection is lost and 
 Only the computers you see send their screens: one behind the tab of another, or under the form, neither captures nor
 encodes, and its connection carries no video. It stays connected and shows its screen at once when its tab is pressed.
 
-## A phone or a tablet as the remote computer
+## Android
+
+### A phone as the remote computer
+
 
 `RemoteDesk.apk` from the release shows the screen of a phone or a tablet with Android 10 or later to the same page. Install it
 (Android asks to allow apps from this source once), open it, pick one of the four ways, as on a computer, and press **Show this
 screen**. Android asks whether to show the screen: RemoteDesk asks for the whole screen. While it shows, a notification says so;
 **Stop** there, or in the app, ends it.
 
-The line to send is in the clipboard of the phone at once, and **Share the line** gives it to a messenger. Way ③ waits for
+The line to send is in the clipboard of the phone at once, and **Share** under it gives it to a messenger. **Details** unfolds
+what the app says of each step. Way ③ waits for
 **The line has reached them**, way ④ for the answer of the page, pasted into the app.
 
 What the phone does in this version:
@@ -528,14 +576,16 @@ anyway, or stopped from the bar of the system, the phone says so in a notificati
 
 ### What to allow on the phone
 
+
 | What | What for | When |
 | --- | --- | --- |
 | Showing the screen | The picture. In the window of Android pick **the entire screen** (not a single app), then **Start** | At each start: Android asks every time |
 | Microphone, notifications | The sound the apps play (Android grants it as the microphone); the notification that the screen is shown | Once, at the first start |
-| Display over other apps | The marks the viewer draws | Once: **Let the viewer draw over the screen** in the app opens the page, turn RemoteDesk on there |
+| Display over other apps | The marks the viewer draws | Once: **Allow** beside **Marks over the screen** in the app opens the page, turn RemoteDesk on there |
 | Accessibility: **RemoteDesk: control from the page** | Taps, swipes, the buttons of the phone, typing | Once: below |
 
-**Let the viewer control this phone** in the app opens **Accessibility**. Android lets an app control the others only as a
+The app shows what is not allowed yet under **Finish the setup, once**, and hides it when all is. **Turn on** beside **Control
+from the page** opens **Accessibility**. Android lets an app control the others only as a
 service of accessibility, and every maker puts the list of such services in another place:
 
 1. Scroll **Accessibility** to the end, to the list of the services of the apps installed. On a Xiaomi it is **Downloaded apps**
@@ -574,10 +624,29 @@ system may move them. Not found: the search of **Settings** (the magnifier at th
 | The grey switch | Allow restricted settings | Ограниченные настройки |
 | The marks | Display over other apps | Поверх других приложений |
 
-Or press **How on this phone** under the button in the app: the browser of the phone searches the web for how to do it on that
+Or press **How on this phone?** under the row in the app: the browser of the phone searches the web for how to do it on that
 phone, its maker and its Android in the words of the search, in the language of the phone.
 
+### A phone as your device
+
+The page works in Chrome on a phone or a tablet as on a computer: download `RemoteDesk.html` from the release on it and open it in
+Chrome, then paste the line of the remote computer.
+
+| On your phone | On the remote computer |
+|:--|:--|
+| Tap, drag, a long press | Touch on Windows and on Linux with Wayland; the mouse on macOS and on Linux with X11 |
+| Two fingers moving together | Scroll there |
+| Two fingers apart or together | Zoom the view on your phone, not the remote computer |
+| A finger at an edge, the view at 1:1 or zoomed | The view goes that way |
+| Tap the screen, then type | The keyboard of the phone types text there |
+| ✏️, then a finger | Draws over its screen |
+
+The bar fits the narrow screen: the files and the full screen are in its menu ⋯, and its handle hides it, so the whole screen of
+the phone is the remote one. Keys the keyboard of a phone has not (Ctrl, Alt, the Windows key, Esc, F1-F12) cannot be pressed
+from a phone yet.
+
 ## The first start
+
 
 On some systems the user of the remote computer allows screen sharing once:
 
@@ -590,6 +659,7 @@ On some systems the user of the remote computer allows screen sharing once:
 | Android | Allows showing the screen at each start: Android asks every time. Once: turns on the control in the settings of accessibility, and lets the app display over the others for the marks |
 
 ## Options of the program
+
 
 Started without options, by a double click, the program asks in its window what it needs, and remembers the answer in
 `rdp-host.settings` beside it. With options it asks nothing: for a console, a script or a service.
@@ -614,6 +684,7 @@ rdp-host --meet router.example.org:20000 --meet-password Tr7kQ2xZ     a meeting 
 
 ## Safety
 
+
 - Only someone with the token gets in. After 5 wrong tokens in a row the remote computer lets nobody in for a minute.
 - The lines with the token go through the clipboard. A clipboard history (Windows: Win+V) or a clipboard shared between devices
   keeps them; the token is new at each start of the program unless set with `--token`.
@@ -630,8 +701,12 @@ rdp-host --meet router.example.org:20000 --meet-password Tr7kQ2xZ     a meeting 
 - On way ④ with two lines the answer of the program carries the token: it goes only to the one who sent the line. The STUN
   servers learn the addresses of the two and nothing more: what passes between them goes straight, encrypted twice, by DTLS and
   by Noise inside it.
+- A phone: the app controls it only while it shows its screen, and only for the viewer with the token. Its service of
+  accessibility does nothing else, and its user turns it off in the settings any time.
+- A phone: the app keeps its own sound out of the sound it sends, so the microphone of the page does not come back to the page.
 
 ## When something goes wrong
+
 
 What the page says, under the picture, beside its parts, or in its bar:
 
@@ -658,28 +733,48 @@ What the page says, under the picture, beside its parts, or in its bar:
 | Way ④: the program says `The router of this computer is strict` | Its NAT gives each server another port | It meets only a page behind a NAT that is not symmetric. If they do not meet, use way ③ |
 | The page opened from an `https://` site does not connect | Such a page may dial only `wss://`, and the program speaks `ws://` (it encrypts by itself) | Open the page from the disk or an `http://` site |
 | A low frame rate on a large display | The graphics card of the remote computer has no video encoder | Turn on **Fit** and make your window smaller |
+| `✋ The phone does not let you control it yet` | The control of the phone is off in its settings of accessibility | The user of the phone turns it on: [What to allow on the phone](#what-to-allow-on-the-phone) |
+| A phone: the switch of the control is grey | Android restricts an app installed from a file | **Settings → Apps → RemoteDesk → ⋮ → Allow restricted settings**, then the switch |
+| A phone: the screen is no longer shown | The phone locked, or showing was stopped from the bar of the system: its notification says so | Open RemoteDesk on the phone and press **Show this screen** again |
+| A phone: the marks do not show | **Display over other apps** is off for RemoteDesk | **Allow** beside **Marks over the screen** in the app |
+| A phone: a picture pasted does not appear | The app in front takes no pictures in that field | Paste it in an app that takes them: a messenger, notes |
+| A phone: the screen of an app is black on the page | The app hides its screen from capture: banks, payments, passwords | Nothing: Android lets no program see it |
 
 ## Limits
+
+**Computers**
 
 - The login screen, Ctrl+Alt+Del and the confirmations of Windows (UAC) are out of reach: the program runs in the session of
   the user of the remote computer.
 - Linux encodes the video on the processor: a large display gets fewer frames a second. Without a video encoder on the graphics
   card Windows does too.
-- Remote computer with Linux and Wayland: **Fit** does nothing.
-- Remote computer with Linux and X11, or with macOS: touch works as the mouse.
-- The sound is not compressed: about 1.5 Mbit/s while something plays, fine in a local network. Silence is not sent.
+- Linux with Wayland: **Fit** does nothing, and the marks are not shown. Linux with X11, or macOS: touch works as the mouse.
 - The microphone is played through the speakers: programs of the remote computer do not hear it as a microphone.
-- The clipboard carries text and pictures (PNG, up to 16 MB); files go by **Send files** and **Get a file**.
-- Remote computer with Linux: a picture copied there reaches the page within a second, as the clipboard is looked at.
-- Remote phone: the lock screen and the screens of the system that hide from accessibility take no input. A phone
-  has no pointer that hovers: the mouse moves only with its button down. Way ② rarely works on mobile data: the operator gives
-  the phone no public address.
+- Linux: a picture copied there reaches the page within a second, as the clipboard is looked at.
+
+**Phones**
+
+- Android 10 or later. Android asks to show the screen at each start, and stops showing it when the phone locks.
+- The lock screen and the screens of the system that hide from accessibility take no input; apps that hide their screen are
+  black.
+- A phone has no pointer that hovers: the mouse moves only with its button down. Its keyboard types text, not keys.
+- From a phone as your device, the keys its keyboard has not (Ctrl, Alt, the Windows key, Esc, F1-F12) cannot be pressed yet.
+
+**Everywhere**
+
+- The sound is not compressed: about 1.5 Mbit/s while something plays, fine in a local network. Silence is not sent.
+- The clipboard carries text and pictures (PNG, up to 16 MB); files go by the buttons of files.
+
+**The ways**
+
+- Way ②: rarely on mobile data: the operator gives the phone no public address.
 - Way ③: IPv4 only, as SYN Mirror.
 - Way ④ with one line: IPv4 and TCP only, the port of `--listen`; a router asked by UPnP may give another port outside, the line
   shows it.
 - Way ④ with two lines: a new pair for each viewer and after each break. No relay (TURN): two symmetric NATs need way ③.
 
 ## Building
+
 
 GitHub builds everything: each run of [`build.yml`](.github/workflows/build.yml) gives the program for Windows, Linux and
 macOS, each with its encryption library beside it, the app for Android (`android/`: the program as its library, for the ABIs
@@ -698,6 +793,23 @@ npm run build                      the page: viewer/RemoteDesk.html, one file; v
 npm run pictures                   the pictures of this README: docs/*.svg
 ```
 
+The app of a phone, with the [Android NDK](https://developer.android.com/ndk) and [cargo-ndk](https://github.com/bbqsrc/cargo-ndk);
+the library of encryption of its release goes beside the program, under the name the app loads:
+
+```text
+cd host
+cargo ndk -t arm64-v8a --platform 29 rustc --lib --release --crate-type cdylib
+cp target/aarch64-linux-android/release/librdp_host.so ../android/src/main/jniLibs/arm64-v8a/
+curl -L -o ../android/src/main/jniLibs/arm64-v8a/libadhoc-crypto-0.1.so https://github.com/AdHoc-Protocol/adhoc-crypto/releases/latest/download/adhoc-crypto-android-arm64.so
+
+cd android
+gradle assembleRelease             the app: android/build/outputs/apk/release/
+```
+
+The workflow signs the APK of the releases with the key in the secrets of the repository (`ANDROID_KEYSTORE`,
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`), so that a new version installs over the one before. Without them the APK is
+signed by the key of debugging.
+
 On Linux the program needs these libraries first:
 
 ```text
@@ -709,6 +821,9 @@ sudo apt-get install pkg-config clang libclang-dev libpipewire-0.3-dev libspa-0.
   [igd-next](https://github.com/dariusc93/rust-igd); `src/direct.rs`: way ④, WebRTC by [str0m](https://github.com/algesten/str0m).
 - [`viewer/`](viewer): the page, in TypeScript. `src/direct.ts`: way ④; `src/scene.ts`: the picture of the page, drawn by hand
   with [Rough.js](https://roughjs.com), written in [Coming Soon](https://fonts.google.com/specimen/Coming+Soon).
+- [`android/`](android): the app of a phone, in Kotlin: the screen and the sound by MediaProjection, the control by its service of
+  accessibility (`ControlService.kt`), the marks over the other apps. The program is its library, `librdp_host.so`, built from
+  `host/` (`src/android/`).
 - [`keymap/`](keymap): the table of keyboard keys.
 - [`docs/`](docs): the pictures of this README, drawn by `npm run pictures` from the code of the page itself: they show it as it
   is, and move by themselves, as the page does.

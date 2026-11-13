@@ -1,140 +1,267 @@
-// The screen of the app: how the viewer will reach this phone - the four ways of a computer -, the start, and then what the host says,
-// the line to send with its button to share it, and where the host waits for its user: the line reached them, the answer of the page.
+// The screen of the app. Before the start: the four ways as tiles, the fields of a meeting point for its way, one button. While the
+// screen is shown: how it goes, the line to send with Copy and Share, what the host waits for, Stop; what the host says, folded under
+// Details. What is not allowed yet - the control, the marks - in one card, gone once all of it is allowed.
 
 package org.unirail.RemoteDesk
 
 import android.Manifest
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.ComponentName
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
-import android.os.Build
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.widget.Button
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 
 class MainActivity : Activity(), Host.Watcher {
+    /** The ways, as a computer has them: the sign, the name, when. */
     private val ways = arrayOf(
-        "🏠  From this network" to "the same home or office: Wi-Fi",
-        "🌍  From the internet" to "this phone or its router has a public address",
-        "🤝  Meeting point" to "SYN Mirror on a router of yours",
-        "⚡  Directly" to "nothing to set up",
+        Triple("🏠", "Same Wi-Fi", "home or office"),
+        Triple("🌍", "Internet", "a public address"),
+        Triple("🤝", "Meeting point", "SYN Mirror"),
+        Triple("⚡", "Direct", "nothing to set up"),
     )
 
+    // ── the colours: of the night or of the day, as the phone is ──
+
+    private val night get() = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+    private val paper get() = if (night) 0xFF0F1115.toInt() else 0xFFF4F5F8.toInt()
+    private val surface get() = if (night) 0xFF1A1D23.toInt() else 0xFFFFFFFF.toInt()
+    private val edge get() = if (night) 0xFF2A2F38.toInt() else 0xFFE1E4EA.toInt()
+    private val ink get() = if (night) 0xFFE9ECF1.toInt() else 0xFF15181E.toInt()
+    private val muted get() = if (night) 0xFF9AA3B2.toInt() else 0xFF5B6475.toInt()
+    private val accent = 0xFF3B82F6.toInt()
+    private val accentSoft get() = if (night) 0xFF1B2A44.toInt() else 0xFFE8F0FE.toInt()
+    private val good = 0xFF2EC25A.toInt()
+    private val warn = 0xFFF5A524.toInt()
+    private val bad = 0xFFEF4444.toInt()
+
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+
+    private fun shape(fill: Int, radius: Int, stroke: Int = 0, strokeWidth: Int = 1) = GradientDrawable().apply {
+        setColor(fill)
+        cornerRadius = dp(radius).toFloat()
+        if (stroke != 0) setStroke(dp(strokeWidth), stroke)
+    }
+
+    private fun text(value: String, size: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
+        text = value
+        textSize = size
+        setTextColor(color)
+        if (bold) typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+    }
+
+    private fun column(vararg children: View) = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        children.forEach { addView(it) }
+    }
+
+    /** A card: a rounded surface with a hairline. */
+    private fun card(vararg children: View) = column(*children).apply {
+        background = shape(surface, 18, edge)
+        setPadding(dp(16), dp(14), dp(16), dp(14))
+    }
+
+    private fun gap(height: Int) = View(this).apply { layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(height)) }
+
+    /** The button that does the thing: wide, round, of the colour of `fill`. */
+    private fun primary(label: String, fill: Int = accent, act: () -> Unit) = TextView(this).apply {
+        text = label
+        textSize = 17f
+        setTextColor(0xFFFFFFFF.toInt())
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        gravity = Gravity.CENTER
+        background = shape(fill, 28)
+        minHeight = dp(54)
+        isClickable = true
+        isFocusable = true
+        setOnClickListener { act() }
+    }
+
+    /** A quieter button: an outline. */
+    private fun secondary(label: String, color: Int = accent, act: () -> Unit) = TextView(this).apply {
+        text = label
+        textSize = 15f
+        setTextColor(color)
+        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        gravity = Gravity.CENTER
+        background = shape(0, 22, edge)
+        minHeight = dp(44)
+        setPadding(dp(18), 0, dp(18), 0)
+        isClickable = true
+        setOnClickListener { act() }
+    }
+
+    /** A link: a word that does something, no frame. */
+    private fun link(label: String, color: Int = accent, act: () -> Unit) = text(label, 14f, color, true).apply {
+        setPadding(0, dp(6), 0, dp(6))
+        isClickable = true
+        setOnClickListener { act() }
+    }
+
+    private fun field(hint: String, value: String, kind: Int) = EditText(this).apply {
+        this.hint = hint
+        setText(value)
+        inputType = kind
+        textSize = 15f
+        setTextColor(ink)
+        setHintTextColor(muted)
+        background = shape(paper, 12, edge)
+        setPadding(dp(14), dp(12), dp(14), dp(12))
+    }
+
+    // ── the views that change ──
+
     private lateinit var choose: LinearLayout
-    private lateinit var group: RadioGroup
+    private val tiles = ArrayList<LinearLayout>()
+    private lateinit var meet: LinearLayout
     private lateinit var point: EditText
     private lateinit var password: EditText
+    private lateinit var hint: TextView
     private lateinit var running: LinearLayout
-    private lateinit var lineBox: LinearLayout
+    private lateinit var dot: View
+    private lateinit var status: TextView
+    private lateinit var lineCard: LinearLayout
     private lateinit var lineText: TextView
-    private lateinit var waitBox: LinearLayout
+    private lateinit var wait: LinearLayout
     private lateinit var answerField: EditText
-    private lateinit var done: Button
+    private lateinit var done: TextView
+    private lateinit var details: TextView
     private lateinit var log: TextView
-    private lateinit var logScroll: ScrollView
-    private lateinit var overApps: Button
-    private lateinit var overAppsHow: Button
-    private lateinit var control: LinearLayout
+    private lateinit var setup: LinearLayout
+    private lateinit var controlRow: LinearLayout
+    private lateinit var marksRow: LinearLayout
     private var way = 0
 
     override fun onCreate(saved: Bundle?) {
         super.onCreate(saved)
-        actionBar?.hide() // the title is on the screen itself
+        actionBar?.hide()
+        window.decorView.setBackgroundColor(paper)
         val prefs = getPreferences(MODE_PRIVATE)
         way = prefs.getInt("way", 0)
-        val pad = (16 * resources.displayMetrics.density).toInt()
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad, pad, pad) }
+
+        val root = column().apply { setPadding(dp(20), dp(12), dp(20), dp(24)) }
+        val scroll = ScrollView(this).apply { addView(root); isFillViewport = true; setBackgroundColor(paper) }
         // the bars of the system over the screen of an app of Android 15: the content keeps clear of them
-        root.setOnApplyWindowInsetsListener { v, insets ->
+        scroll.setOnApplyWindowInsetsListener { v, insets ->
             @Suppress("DEPRECATION")
-            v.setPadding(pad + insets.systemWindowInsetLeft, pad + insets.systemWindowInsetTop, pad + insets.systemWindowInsetRight, pad + insets.systemWindowInsetBottom)
+            v.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop, insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
             insets
         }
-        root.addView(TextView(this).apply { text = "RemoteDesk"; textSize = 26f; typeface = Typeface.DEFAULT_BOLD })
-        root.addView(TextView(this).apply { text = "Show this phone to a computer: its browser sees the screen, right from a page."; setPadding(0, 0, 0, pad) })
+
+        // ── the head: the mark and the name ──
+        val head = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(0, dp(12), 0, dp(20)) }
+        head.addView(ImageView(this).apply { setImageResource(R.drawable.launcher) }, LinearLayout.LayoutParams(dp(48), dp(48)))
+        head.addView(column(text("RemoteDesk", 26f, ink, true), text("Show this phone to a computer", 14f, muted)).apply { setPadding(dp(14), 0, 0, 0) })
+        root.addView(head)
 
         // ── before the start ──
-        choose = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        choose.addView(TextView(this).apply { text = "How will the viewer reach this phone?"; typeface = Typeface.DEFAULT_BOLD })
-        group = RadioGroup(this)
-        ways.forEachIndexed { i, (name, whenTo) ->
-            group.addView(RadioButton(this).apply { id = 100 + i; text = "$name\n$whenTo"; setPadding(0, pad / 3, 0, pad / 3) })
+        choose = column()
+        choose.addView(text("How will they reach you?", 13f, muted, true).apply { setPadding(dp(4), 0, 0, dp(8)) })
+        for (row in 0..1) {
+            val line = LinearLayout(this)
+            for (col in 0..1) {
+                val i = row * 2 + col
+                val (sign, name, whenTo) = ways[i]
+                val tile = column(text(sign, 24f, ink), text(name, 16f, ink, true).apply { setPadding(0, dp(6), 0, 0) }, text(whenTo, 12f, muted)).apply {
+                    setPadding(dp(14), dp(12), dp(14), dp(12))
+                    isClickable = true
+                    setOnClickListener { pick(i) }
+                }
+                tiles += tile
+                line.addView(tile, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply {
+                    setMargins(if (col == 0) 0 else dp(6), if (row == 0) 0 else dp(6), if (col == 0) dp(6) else 0, 0)
+                })
+            }
+            choose.addView(line)
         }
-        group.check(100 + way)
-        choose.addView(group)
-        point = EditText(this).apply { hint = "The meeting point, as its owner gave it: router.example.org:40000"; setText(prefs.getString("point", "")); inputType = InputType.TYPE_TEXT_VARIATION_URI }
-        password = EditText(this).apply { hint = "Its password: 8 characters"; setText(prefs.getString("password", "")); inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD }
-        choose.addView(point)
-        choose.addView(password)
-        group.setOnCheckedChangeListener { _, id -> way = id - 100; fields() }
-        fields()
-        choose.addView(Button(this).apply { text = "Show this screen"; setOnClickListener { ask() } })
+        point = field("router.example.org:40000", prefs.getString("point", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
+        password = field("Its password: 8 characters", prefs.getString("password", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+        meet = column(gap(14), text("The meeting point, as its owner gave it", 13f, muted, true).apply { setPadding(dp(4), 0, 0, dp(6)) }, point, gap(8), password)
+        choose.addView(meet)
+        hint = text("", 13f, warn).apply { setPadding(dp(4), dp(10), 0, 0); visibility = View.GONE }
+        choose.addView(hint)
+        choose.addView(gap(20))
+        choose.addView(primary("▶   Show this screen") { ask() })
         root.addView(choose)
 
-        // ── after it ──
-        running = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-        lineBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-        lineBox.addView(TextView(this).apply { text = "📨 Send this line to whoever connects. It is in the clipboard already."; typeface = Typeface.DEFAULT_BOLD })
-        lineText = TextView(this).apply { textSize = 16f; typeface = Typeface.MONOSPACE; setTextIsSelectable(true); setPadding(0, pad / 2, 0, pad / 2) }
-        lineBox.addView(lineText)
-        lineBox.addView(Button(this).apply { text = "Share the line"; setOnClickListener { share() } })
-        running.addView(lineBox)
-        waitBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(0, pad / 2, 0, pad / 2) }
-        answerField = EditText(this).apply { hint = "Paste here the line from the page ( rd1o.… )"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS }
-        waitBox.addView(answerField)
-        done = Button(this).apply { setOnClickListener { answer() } }
-        waitBox.addView(done)
-        running.addView(waitBox)
-        running.addView(Button(this).apply { text = "Stop"; setOnClickListener { startService(Intent(this@MainActivity, HostService::class.java).setAction(HostService.STOP)) } })
+        // ── while it is shown ──
+        dot = View(this).apply { background = shape(good, 6) }
+        status = text("Starting…", 14f, muted)
+        val statusRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        statusRow.addView(dot, LinearLayout.LayoutParams(dp(12), dp(12)))
+        statusRow.addView(column(text("This screen is shown", 18f, ink, true), status).apply { setPadding(dp(14), 0, 0, 0) })
+        ObjectAnimator.ofFloat(dot, "alpha", 1f, 0.25f).apply {
+            duration = 900
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            start()
+        }
+
+        lineText = text("", 16f, ink).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(true); setPadding(0, dp(8), 0, dp(14)) }
+        val actions = LinearLayout(this)
+        actions.addView(secondary("Copy") { copy() }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply { setMargins(0, 0, dp(6), 0) })
+        actions.addView(primary("Share") { share() }.apply { textSize = 15f; minHeight = dp(44); background = shape(accent, 22) }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply { setMargins(dp(6), 0, 0, 0) })
+        answerField = field("Paste the answer of the page: rd1o.…", "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        done = secondary("") { answer() }
+        wait = column(gap(14), answerField, gap(8), done).apply { visibility = View.GONE }
+        lineCard = card(text("SEND THIS LINE TO WHOEVER CONNECTS", 11f, muted, true).apply { letterSpacing = 0.08f }, lineText, actions, wait).apply { visibility = View.GONE }
+
+        log = text("", 12f, muted).apply { typeface = Typeface.MONOSPACE; setTextIsSelectable(true); visibility = View.GONE; setPadding(dp(4), dp(4), 0, 0) }
+        details = link("Details  ▾", muted) {
+            log.visibility = if (log.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            details.text = if (log.visibility == View.VISIBLE) "Details  ▴" else "Details  ▾"
+        }
+
+        running = column(card(statusRow), gap(12), lineCard, gap(8), details, log, gap(12),
+            secondary("Stop", bad) { startService(Intent(this, HostService::class.java).setAction(HostService.STOP)) }).apply { visibility = View.GONE }
         root.addView(running)
 
-        // the marks the viewer draws: Android asks once to let the app display over the others
-        overApps = Button(this).apply {
-            text = "Let the viewer draw over the screen"
-            setOnClickListener { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + packageName))) }
-        }
-        root.addView(overApps)
-        overAppsHow = how("How on this phone: display over other apps", "over")
-        root.addView(overAppsHow)
-        // the control from the page: Android asks once to turn the service of accessibility of the app on
-        control = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        control.addView(Button(this).apply {
-            text = "Let the viewer control this phone"
-            setOnClickListener {
-                // Android scrolls to the service and lights it up where it can ( the key of the fragment of the settings )
-                val service = android.content.ComponentName(this@MainActivity, ControlService::class.java).flattenToString()
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                    .putExtra(":settings:fragment_args_key", service)
-                    .putExtra(":settings:show_fragment_args", Bundle().apply { putString(":settings:fragment_args_key", service) }))
-            }
-        })
-        control.addView(TextView(this).apply {
-            text = "1. In Accessibility, scroll to the end: Downloaded apps ( on other phones: Installed apps, or Installed services ).\n" +
-                "2. Tap RemoteDesk: control from the page.\n" +
-                "3. Turn it on, and allow.\n" +
-                "The switch is grey: Settings, Apps, RemoteDesk, ⋮ at the top right, Allow restricted settings - then again from 1."
-            textSize = 14f
-        })
-        control.addView(how("How on this phone: the control", "control"))
-        control.addView(how("How on this phone: the switch is grey", "restricted"))
-        root.addView(control)
+        // ── what is not allowed yet ──
+        controlRow = permission(
+            "Control from the page", "Taps, keys and the buttons of the phone.\nAccessibility › at the end: Downloaded apps › RemoteDesk › on",
+            "Turn on", { openControl() }, "control",
+            "Switch grey? Settings › Apps › RemoteDesk › ⋮ › Allow restricted settings", "restricted",
+        )
+        marksRow = permission(
+            "Marks over the screen", "Lines and rings the viewer draws to show where to tap",
+            "Allow", { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }, "over",
+        )
+        setup = column(gap(20), text("Finish the setup, once", 13f, muted, true).apply { setPadding(dp(4), 0, 0, dp(8)) }, controlRow, gap(8), marksRow)
+        root.addView(setup)
 
-        log = TextView(this).apply { setTextIsSelectable(true); setPadding(0, pad / 2, 0, 0) }
-        logScroll = ScrollView(this).apply { addView(log) }
-        root.addView(logScroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
-        setContentView(root)
+        setContentView(scroll)
+        pick(way)
+    }
+
+    /** A row of what is not allowed yet: what it is for, the button that opens its settings, how on this phone. */
+    private fun permission(title: String, about: String, button: String, act: () -> Unit, how: String, tip: String? = null, tipHow: String? = null): LinearLayout {
+        val head = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        head.addView(column(text(title, 16f, ink, true), text(about, 13f, muted).apply { setPadding(0, dp(2), 0, 0) }), LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        head.addView(secondary(button) { act() }.apply { minHeight = dp(38) }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { setMargins(dp(10), 0, 0, 0) })
+        val box = card(head, link("How on this phone?") { search(how) })
+        if (tip != null && tipHow != null) box.addView(link(tip, muted) { search(tipHow) })
+        return box
     }
 
     override fun onResume() {
@@ -148,9 +275,7 @@ class MainActivity : Activity(), Host.Watcher {
         Host.news.forEach { news(it) }
         Host.line?.let { line(it) }
         waits()
-        overApps.visibility = if (Settings.canDrawOverlays(this)) View.GONE else View.VISIBLE
-        overAppsHow.visibility = overApps.visibility
-        control.visibility = if (ControlService.running != null) View.GONE else View.VISIBLE
+        allowed()
     }
 
     override fun onPause() {
@@ -158,43 +283,58 @@ class MainActivity : Activity(), Host.Watcher {
         if (Host.watcher === this) Host.watcher = null
     }
 
-    /** The fields of the meeting point: for its way only. */
-    private fun fields() {
-        val meet = if (way == 2) View.VISIBLE else View.GONE
-        point.visibility = meet
-        password.visibility = meet
+    /** What is allowed, as the settings have it - not whether the service has come up yet: it comes a moment after the app. */
+    private fun allowed() {
+        val mine = ComponentName(this, ControlService::class.java)
+        val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+        val control = enabled.split(':').any { ComponentName.unflattenFromString(it) == mine }
+        val marks = Settings.canDrawOverlays(this)
+        controlRow.visibility = if (control) View.GONE else View.VISIBLE
+        marksRow.visibility = if (marks) View.GONE else View.VISIBLE
+        setup.visibility = if (control && marks) View.GONE else View.VISIBLE
+    }
+
+    /** The way `i`: its tile lit, the fields of a meeting point for its way only. */
+    private fun pick(i: Int) {
+        way = i
+        tiles.forEachIndexed { n, tile -> tile.background = if (n == i) shape(accentSoft, 16, accent, 2) else shape(surface, 16, edge) }
+        meet.visibility = if (i == 2) View.VISIBLE else View.GONE
+        hint.visibility = View.GONE
     }
 
     /** Where the host waits for its user: the meeting point, until the line reached them; directly, the answer of the page. */
     private fun waits() {
         val shown = Host.running && Host.line != null && (way == 2 || way == 3)
-        waitBox.visibility = if (shown) View.VISIBLE else View.GONE
+        wait.visibility = if (shown) View.VISIBLE else View.GONE
         answerField.visibility = if (way == 3) View.VISIBLE else View.GONE
         done.text = if (way == 3) "Connect" else "The line has reached them"
     }
 
+    /** Opens the settings of accessibility: Android scrolls to the service and lights it up where it can. */
+    private fun openControl() {
+        val service = ComponentName(this, ControlService::class.java).flattenToString()
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            .putExtra(":settings:fragment_args_key", service)
+            .putExtra(":settings:show_fragment_args", Bundle().apply { putString(":settings:fragment_args_key", service) }))
+    }
+
     /**
-     * A button that searches the web for how to do `what` on this phone: its maker and its Android in the words, in the language of
-     * the phone - every maker names and places its settings its own way.
+     * Searches the web for how to do `what` on this phone: its maker and its Android in the words, in the language of the phone -
+     * every maker names and places its settings its own way.
      */
-    private fun how(label: String, what: String): Button = Button(this).apply {
-        text = label
-        isAllCaps = false
-        textSize = 13f
-        setOnClickListener {
-            val ru = resources.configuration.locales[0].language == "ru"
-            val phone = "${Build.MANUFACTURER} Android ${Build.VERSION.RELEASE}"
-            val words = when (what) {
-                "control" -> if (ru) "как включить специальные возможности для скачанного приложения" else "how to turn on accessibility for a downloaded app"
-                "restricted" -> if (ru) "как разрешить ограниченные настройки приложению" else "how to allow restricted settings for an app"
-                else -> if (ru) "как разрешить приложению показ поверх других приложений" else "how to allow an app to display over other apps"
-            }
-            val query = "$phone $words"
-            try {
-                startActivity(Intent(Intent.ACTION_WEB_SEARCH).putExtra(android.app.SearchManager.QUERY, query))
-            } catch (e: android.content.ActivityNotFoundException) {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + Uri.encode(query))))
-            }
+    private fun search(what: String) {
+        val ru = resources.configuration.locales[0].language == "ru"
+        val phone = "${Build.MANUFACTURER} Android ${Build.VERSION.RELEASE}"
+        val words = when (what) {
+            "control" -> if (ru) "как включить специальные возможности для скачанного приложения" else "how to turn on accessibility for a downloaded app"
+            "restricted" -> if (ru) "как разрешить ограниченные настройки приложению" else "how to allow restricted settings for an app"
+            else -> if (ru) "как разрешить приложению показ поверх других приложений" else "how to allow an app to display over other apps"
+        }
+        val query = "$phone $words"
+        try {
+            startActivity(Intent(Intent.ACTION_WEB_SEARCH).putExtra(android.app.SearchManager.QUERY, query))
+        } catch (e: android.content.ActivityNotFoundException) {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/search?q=" + Uri.encode(query))))
         }
     }
 
@@ -202,7 +342,8 @@ class MainActivity : Activity(), Host.Watcher {
 
     private fun ask() {
         if (way == 2 && (point.text.isBlank() || password.text.length != 8)) {
-            news(Host.News("💡", 3, "The meeting point and its password of 8 characters, as its owner gave them"))
+            hint.text = "The meeting point and its password of 8 characters, as its owner gave them"
+            hint.visibility = View.VISIBLE
             return
         }
         getPreferences(MODE_PRIVATE).edit().putInt("way", way).putString("point", point.text.toString().trim()).putString("password", password.text.toString()).apply()
@@ -230,7 +371,8 @@ class MainActivity : Activity(), Host.Watcher {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode != RESULT_OK || data == null) {
-            news(Host.News("✋", 3, "Android did not let the screen be shown"))
+            hint.text = "Android did not let the screen be shown: press it again, and pick the entire screen"
+            hint.visibility = View.VISIBLE
             return
         }
         val arguments = when (way) {
@@ -255,13 +397,21 @@ class MainActivity : Activity(), Host.Watcher {
     override fun news(news: Host.News) {
         if (log.text.isNotEmpty()) log.append("\n")
         log.append("${news.sign} ${news.text}")
-        logScroll.post { logScroll.fullScroll(View.FOCUS_DOWN) }
+        // the status: what happened last, of the news that tell how it goes
+        if (news.tone != 5) status.text = news.text
+        if (news.tone == 4) dot.background = shape(bad, 6)
     }
 
     override fun line(line: String) {
         lineText.text = line
-        lineBox.visibility = View.VISIBLE
+        lineCard.visibility = View.VISIBLE
         waits()
+    }
+
+    private fun copy() {
+        val line = Host.line ?: return
+        getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("RemoteDesk", line))
+        Toast.makeText(this, "The line is in the clipboard", Toast.LENGTH_SHORT).show()
     }
 
     private fun share() {
@@ -274,6 +424,6 @@ class MainActivity : Activity(), Host.Watcher {
         if (way == 3 && text.isEmpty()) return
         Host.answer(text.toByteArray())
         answerField.setText("")
-        if (way == 2) waitBox.visibility = View.GONE // the meeting point lets them in from now on
+        if (way == 2) wait.visibility = View.GONE // the meeting point lets them in from now on
     }
 }
