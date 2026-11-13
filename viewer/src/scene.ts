@@ -1,5 +1,5 @@
 // The diagram of the login page, drawn by hand ( Rough.js ): this computer and the remote one, their routers, what is between them -
-// a cloud of the internet, a meeting point in it, or one house for one network -, the STUN servers of way 4, and the two paths of
+// a cloud of the internet, a meeting point above it, or one house for one network -, the STUN servers of way 4, and the two paths of
 // what goes from person to person, by chat or mail.
 //
 // The scene is drawn once per way; what it shows of the moment - waited for, on its way, alive, broken - is in the attributes of the
@@ -93,7 +93,7 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
         o(g, rc.linearPath([[-15, -10], [0, 2], [15, -10]], { ...pen, strokeWidth: 1.4, seed: 24 }), "o plane");
     }, "flyer");
 
-    // ── the middle: one house for one network; else the cloud of the internet, a meeting point in it for way 3 ──
+    // ── the middle: one house for one network; else the cloud of the internet: whatever goes between the two goes through it ──
     const mid = el("g", { id: "n-mid", class: "node" }, svg);
     if (way === 1) {
         o(mid, rc.polygon([[22, 100], [500, 8], [978, 100]], { ...pen, strokeWidth: 2.4, seed: 31 }));
@@ -101,17 +101,17 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
         write(mid, 500, 76, "one home, one office: one network", 26, "label");
     } else {
         o(mid, rc.path(cloudPath(500, 222, 250, 150), { ...pen, strokeWidth: 2.4, fill: "#9cc4f0", fillStyle: "hachure", hachureGap: 9, hachureAngle: -30, seed: 33 }), "o cloud");
-        write(mid, 500, way === 3 ? 196 : 230, "Internet", way === 3 ? 28 : 34, "label big");
+        write(mid, 500, way === 3 ? 274 : 214, "Internet", way === 3 ? 30 : 34, "label big"); // way 3: under the lines that go up
     }
 
-    // ── the STUN servers of way 4: above the cloud, asked by this computer ──
+    // ── the STUN servers of way 4: above the cloud, asked by this computer through it ──
     if (way === 4) {
         const names = ["Google", "Cloudflare", "Xiaomi", "Amazon HK"];
         const stun = el("g", { id: "stun" }, svg);
         names.forEach((name, i) => {
             const x = 318 + i * 100, y = 14;
             const rack = el("g", { id: `stun-${i}`, class: "rack" }, stun);
-            const ping = `M 312 236 C 312 160 ${x + 26} 140 ${x + 26} ${y + 56}`;
+            const ping = `M 330 238 C 430 236 ${x + 26} 210 ${x + 26} ${y + 56}`;
             el("path", { id: `ping-${i}`, d: ping, class: "ping" }, rack);
             pulses(rack, `ping-${i}`, 1, 1.4, true);
             o(rack, rc.rectangle(x, y, 52, 54, { ...pen, strokeWidth: 1.8, fill: "#ddd", fillStyle: "solid", seed: 40 + i }), "o box");
@@ -125,12 +125,14 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
         });
     }
 
-    // ── the connection: this computer, its router, the middle, the other router, the remote computer ──
+    // ── the connection: this computer, its router, through the internet - up to the meeting point and down again, on way 3 -, the
+    // other router, the remote computer; on way 1, through the router of the house ──
     const [aD, bD] = way === 1
         ? ["M 270 286 C 330 290 400 262 468 252", "M 532 252 C 610 252 690 222 748 214"]
         : way === 3
-            ? ["M 270 286 C 280 284 282 252 296 252 L 358 252 C 400 252 430 224 468 224", "M 532 224 C 572 224 600 252 642 252 L 704 252 C 722 252 730 220 748 214"]
-            : ["M 270 286 C 280 284 282 252 296 252 L 358 252 C 380 252 384 226 402 222", "M 598 222 C 616 226 622 252 642 252 L 704 252 C 722 252 730 220 748 214"];
+            ? ["M 270 286 C 280 284 282 252 296 252 L 358 252 C 420 252 466 236 474 186 C 480 146 484 112 486 86",
+               "M 514 86 C 516 112 520 146 526 186 C 534 236 580 252 642 252 L 704 252 C 722 252 730 220 748 214"]
+            : ["M 270 286 C 280 284 282 252 296 252 L 358 252 C 400 252 440 258 500 258", "M 500 258 C 560 258 600 252 642 252 L 704 252 C 722 252 730 220 748 214"];
     for (const [id, d] of [["w-a", aD], ["w-b", bD]] as const) {
         const seg = el("g", { id, class: "seg" }, svg);
         el("path", { id: id + "-path", d, class: "live" }, defs);
@@ -139,7 +141,7 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
         pulses(seg, id + "-path", 3, 2.2, true);
     }
 
-    // ── the routers: one for each house; one for both in way 1; the meeting point in the cloud for way 3 ──
+    // ── the routers: one for each house; one for both in way 1; the meeting point above the internet for way 3 ──
     const router = (g: Element, x: number, y: number, label: string, seed: number, wifi = false) => {
         o(g, rc.line(x + 12, y, x + 5, y - 22, { ...pen, strokeWidth: 2, seed }));
         o(g, rc.line(x + 52, y, x + 59, y - 22, { ...pen, strokeWidth: 2, seed: seed + 1 }));
@@ -155,8 +157,8 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
         router(el("g", { id: "r-rem", class: "router" }, svg), 642, 238, "its router", 76);
     }
     if (way === 3) {
-        router(el("g", { id: "r-meet", class: "router" }, mid), 468, 211, "", 80);
-        write(mid, 500, 262, "meeting point", 20, "label");
+        router(el("g", { id: "r-meet", class: "router" }, mid), 468, 60, "", 80);
+        write(mid, 610, 82, "meeting point", 24, "label");
     }
 
     // ── this computer: a laptop, this page on its screen ──

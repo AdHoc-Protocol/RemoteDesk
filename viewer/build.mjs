@@ -144,7 +144,7 @@ async function pictures() {
         }
         const y = p.way === 4 ? 554 : 503;
         const back = tag(240, y, 520, 86, p.parts.back, p.way === 4 ? "2" : "1", p.way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here");
-        field(back, 254, y + 44, 492, p.back, "rd1a.…, or the line it sent");
+        field(back, 254, y + 44, 492, p.back, "rd1a.EQh6cTJmY1M2dFZ4b0pXa3RnU2xh…");
 
         writeFileSync(`../docs/${p.file}.svg`, svg.outerHTML + "\n");
         svg.remove();

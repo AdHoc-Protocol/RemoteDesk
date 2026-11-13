@@ -105,6 +105,14 @@ const stun = new Map<string, "ask" | "ok" | "no">();
 /** The port the program listens on when its line names none. */
 const PORT = 8765;
 
+/** What the line of each way looks like, in its field until one is pasted. */
+const EXAMPLE: Record<Way, string> = {
+    1: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE",
+    2: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE",
+    3: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE",
+    4: "rd1a.EQh6cTJmY1M2dFZ4b0pXa3RnU2xh…",
+};
+
 /**
  * Where to dial, of what the user has: `192.168.1.20:8765`, `router.example.org`, `[fd00::1]:8765` - the address and the port, all
  * the line of the program says; `ws://` is the page's to add, `wss://` stays when typed, for a machine behind a proxy of TLS.
@@ -171,7 +179,7 @@ function draw(): void {
     if (drawn !== way) { drawScene(scene, way); drawn = way; }
     backNumber.textContent = way === 4 ? "2" : "1";
     backLabel.textContent = way === 4 ? "Its answer comes back: paste it here" : "Its line comes to you: paste it here";
-    address.placeholder = way === 4 ? "rd1a.…, or the line it sent" : "the line it sent, such as 192.168.1.20:8765#K7QM…";
+    address.placeholder = EXAMPLE[way]; // what such a line looks like: the user sees what to paste
     for (const e of [address, yourName, directStart, ...wayButtons]) e.disabled = busy || (e === directStart && making);
     connectButton.disabled = busy || !ready();
     directStart.textContent = making ? "Asking the STUN servers…" : pending !== undefined ? "Make a new line" : "Make the line";
