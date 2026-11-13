@@ -62,6 +62,9 @@ pub fn say(sign: &str, tone: Tone, text: impl Display) {
         Tone::Bad => (Color::Red, true),
         Tone::Quiet => (Color::DarkGrey, false),
     };
+    #[cfg(target_os = "android")]
+    crate::os::tell(sign, tone as i32, &paint(text, color, bold)); // the screen of the app: it has no console, so `paint` adds no colour
+    #[cfg(not(target_os = "android"))]
     println!(" {sign} {}", paint(text, color, bold));
 }
 
@@ -122,7 +125,12 @@ pub fn banner() {
 
 // ── the line to send ──
 
+/// The line for whoever connects, on the screen of the app of the phone.
+#[cfg(target_os = "android")]
+pub fn line_to_send(line: &str) { crate::os::line(line) } // the app shows it, puts it in the clipboard, offers to share it
+
 /// The line for whoever connects, in a frame, and in the clipboard - said so: pasting it into a message is all that is left.
+#[cfg(not(target_os = "android"))]
 pub fn line_to_send(line: &str) {
     println!();
     say("📨", Tone::News, "Send this line to whoever connects:");
@@ -140,6 +148,23 @@ pub fn line_to_send(line: &str) {
 }
 
 // ── keys ──
+
+/// One line the user typed, without its end; None - the input is over. The app on a phone gives what its user typed or pressed there.
+pub fn read_line() -> Option<String> {
+    #[cfg(target_os = "android")]
+    {
+        crate::os::answer()
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        use std::io::BufRead;
+        let mut line = String::new();
+        match io::stdin().lock().read_line(&mut line) {
+            Ok(0) | Err(_) => None,
+            Ok(_) => Some(line.trim_end_matches(['\r', '\n']).to_string()),
+        }
+    }
+}
 
 /// The key pressed, as it is: a character, or '\n' for Enter; None - the input is over, or Ctrl+C.
 pub fn key() -> Option<char> {

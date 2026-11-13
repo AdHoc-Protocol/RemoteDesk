@@ -447,6 +447,31 @@ A tab shows the name of its computer, with ⟳ while the connection is lost and 
 Only the computers you see send their screens: one behind the tab of another, or under the form, neither captures nor
 encodes, and its connection carries no video. It stays connected and shows its screen at once when its tab is pressed.
 
+## A phone or a tablet as the remote computer
+
+`RemoteDesk.apk` from the release shows the screen of a phone or a tablet with Android 10 or later to the same page. Install it
+(Android asks to allow apps from this source once), open it, pick one of the four ways, as on a computer, and press **Show this
+screen**. Android asks whether to show the screen: RemoteDesk asks for the whole screen. While it shows, a notification says so;
+**Stop** there, or in the app, ends it.
+
+The line to send is in the clipboard of the phone at once, and **Share the line** gives it to a messenger. Way ③ waits for
+**The line has reached them**, way ④ for the answer of the page, pasted into the app.
+
+What the phone does in this version:
+
+| What | How |
+| --- | --- |
+| The screen | Encoded by the hardware of the phone, of the size the encoder takes. Turned, the phone is shown turned |
+| The sound | What the apps play, when they let it be captured: music, video, games. Calls never. Android asks for the permission of the microphone for it |
+| Text from the computer | **Ctrl+V** on the page puts the text on the clipboard of the phone: tap a field on the phone, hold, **Paste** |
+| Text to the computer | Select it in any app and pick **To the computer** in the menu of the selection, or share it to RemoteDesk, or copy it and press **Send the clipboard** in the notification. It goes to the clipboard of the computer: paste it there |
+| Files from the computer | Into the folder of the app: `Android/data/org.unirail.RemoteDesk/files/Download` |
+
+Android lets an app read the clipboard only while the app is in front, so the phone sends text when you send it, not by itself.
+
+The viewer only watches the phone for now: the taps and keys of the page come in the next version (the service of accessibility
+of Android). The microphone of the page and sending files from the phone come with them.
+
 ## The first start
 
 On some systems the user of the remote computer allows screen sharing once:
@@ -457,6 +482,7 @@ On some systems the user of the remote computer allows screen sharing once:
 | Linux with X11 | Nothing |
 | Linux with Wayland | Allows sharing the screen and the input in the dialog of the desktop. The answer is remembered |
 | macOS | Turns on **Screen Recording** and **Accessibility** for the program in System Settings > Privacy & Security, then starts it again |
+| Android | Allows showing the screen at each start: Android asks every time |
 
 ## Options of the program
 
@@ -539,6 +565,7 @@ What the page says, under the picture, beside its parts, or in its bar:
 - The sound is not compressed: about 1.5 Mbit/s while something plays, fine in a local network. Silence is not sent.
 - The microphone is played through the speakers: programs of the remote computer do not hear it as a microphone.
 - The clipboard carries text only.
+- Remote phone: watched only, no input yet. Way ② rarely works on mobile data: the operator gives the phone no public address.
 - Way ③: IPv4 only, as SYN Mirror.
 - Way ④ with one line: IPv4 and TCP only, the port of `--listen`; a router asked by UPnP may give another port outside, the line
   shows it.
@@ -547,7 +574,8 @@ What the page says, under the picture, beside its parts, or in its bar:
 ## Building
 
 GitHub builds everything: each run of [`build.yml`](.github/workflows/build.yml) gives the program for Windows, Linux and
-macOS, each with its encryption library beside it, and the page. A push to `main` publishes them as the release of the version in
+macOS, each with its encryption library beside it, the app for Android (`android/`: the program as its library, for the ABIs
+arm64-v8a, armeabi-v7a and x86_64), and the page. A push to `main` publishes them as the release of the version in
 `host/Cargo.toml`, `v0.1.0`: a new version a release of its own, the same version built again replaces the files of its release.
 
 To build locally:

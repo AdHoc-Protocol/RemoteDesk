@@ -17,7 +17,7 @@
 // The page is the controlling side of ICE and writes the first message of Noise, as it dials on the other ways; the machine is
 // the client of DTLS and SCTP. No TURN: two NATs that are both symmetric meet no other way than ② or ③.
 
-use std::io::{self, BufRead, Read, Write};
+use std::io::{self, Read, Write};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream, ToSocketAddrs, UdpSocket};
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -222,8 +222,7 @@ pub fn start(bridge: SocketAddr, token: String, pass: String, listen: SocketAddr
                 say!("📥", Wait, "Paste here the line from the page ( rd1o.… ), then Enter");
                 say!("💡", Quiet, "On the page: 4, then Make the line - it goes into the clipboard there");
             }
-            for line in io::stdin().lock().lines() {
-                let Ok(line) = line else { return };
+            while let Some(line) = crate::console::read_line() {
                 if line.trim().is_empty() {
                     continue;
                 }

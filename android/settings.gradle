@@ -1,0 +1,2 @@
+// The app of RemoteDesk for Android: the host of ../host as its library, the phone shown to a viewer page.
+rootProject.name = 'RemoteDesk'

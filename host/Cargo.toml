@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
+# the host itself: the program of a computer below, and the library the app of a phone loads ( ../android: built as a cdylib by
+# `cargo rustc --lib --crate-type cdylib` - the computers build none )
+[lib]
+name = "rdp_host"
+path = "src/lib.rs"
+
 [[bin]]
 name = "rdp-host"
 path = "src/main.rs"
@@ -69,6 +75,8 @@ windows = { version = "*", features = [
 
 [target.'cfg(unix)'.dependencies]
 libc = "*"
+
+[target.'cfg(all(unix, not(target_os = "android")))'.dependencies]
 # the clipboard, the Downloads folder, the dialog to pick a file
 arboard = { version = "*", features = ["wayland-data-control"] }
 dirs = "*"
@@ -104,6 +112,10 @@ objc2-screen-capture-kit = "*"
 objc2-avf-audio = "*"
 objc2-core-audio-types = "*"
 objc2-app-kit = "*"
+
+[target.'cfg(target_os = "android")'.dependencies]
+# the app of ../android: the host is its library, called and calling by JNI
+jni-sys = "*"
 
 [features]
 default = ["native"]

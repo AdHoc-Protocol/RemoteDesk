@@ -34,7 +34,22 @@ static ASKED_ON: OnceLock<ThreadId> = OnceLock::new();
 
 pub fn chosen() -> Option<Way> { CHOSEN.get().copied() }
 
+/// The way and the arguments the app of a phone made of what its user chose there: it is the menu of a phone.
+#[cfg(target_os = "android")]
+static GIVEN: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+#[cfg(target_os = "android")]
+pub fn given(way: Way, args: Vec<String>) {
+    let _ = CHOSEN.set(way);
+    *GIVEN.lock().unwrap() = args;
+}
+
+/// The arguments the app of a phone gave.
+#[cfg(target_os = "android")]
+pub fn arguments() -> Vec<String> { std::mem::take(&mut *GIVEN.lock().unwrap()) }
+
 /// The arguments of the program: as given; or, started by a double click, what the menu makes of the answer.
+#[cfg(not(target_os = "android"))]
 pub fn arguments() -> Vec<String> {
     crate::console::banner();
     let given: Vec<String> = std::env::args().skip(1).collect();

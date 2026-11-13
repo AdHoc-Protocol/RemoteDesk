@@ -1,4 +1,4 @@
-# Builds the program of the machine for Windows, Linux and macOS, and the viewer page. Each build is an artifact of the run; a
+# Builds the program of the machine for Windows, Linux and macOS, its app for Android, and the viewer page. Each build is an artifact of the run; a
 # push to main publishes them as the release of its version.
 
 name: build
@@ -96,6 +96,62 @@ jobs:
           name: rdp-host-${{ matrix.name }}
           path: out/
 
+  # The app of a phone: the host as its library for the ABIs of phones and of the emulator ( cargo-ndk ), libadhoc-crypto of its
+  # release beside it, and the APK around them
+  android:
+    name: android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: host
+          key: android
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: current
+
+      # the library of the host, and the one of encryption it opens, for each ABI: under the names the app loads them by
+      - name: libraries
+        working-directory: host
+        run: |
+          set -e
+          for pair in arm64-v8a:aarch64-linux-android:arm64 armeabi-v7a:armv7-linux-androideabi:arm x86_64:x86_64-linux-android:x64; do
+            IFS=: read -r abi target arch <<< "$pair"
+            cargo ndk -t "$abi" --platform 29 rustc --lib --release --crate-type cdylib
+            mkdir -p "../android/src/main/jniLibs/$abi"
+            cp "target/$target/release/librdp_host.so" "../android/src/main/jniLibs/$abi/"
+            curl -fsSL --retry 3 -o "../android/src/main/jniLibs/$abi/libadhoc-crypto-0.1.so" "https://github.com/AdHoc-Protocol/adhoc-crypto/releases/latest/download/adhoc-crypto-android-$arch.so"
+          done
+          ls -lR ../android/src/main/jniLibs
+
+      - name: build
+        working-directory: android
+        run: |
+          gradle --no-daemon assembleRelease
+          mkdir -p ../out
+          cp build/outputs/apk/release/*.apk ../out/RemoteDesk.apk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rdp-android
+          path: out/
+
   viewer:
     name: viewer
     runs-on: ubuntu-latest
@@ -127,7 +183,7 @@ jobs:
   # The same version built again replaces the files of its release, and its tag moves to the commit they were built from.
   release:
     name: release
-    needs: [host, viewer]
+    needs: [host, android, viewer]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -153,6 +209,7 @@ jobs:
             esac
           done
           cp dist/rdp-viewer/RemoteDesk.html release/
+          cp dist/rdp-android/RemoteDesk.apk release/
           ls -l release
 
       - name: publish
@@ -170,6 +227,7 @@ jobs:
           | \`rdp-host-linux-x64.tar.gz\` | the remote computer with Linux |
           | \`rdp-host-macos-arm64.tar.gz\` | the remote computer with macOS on Apple silicon |
           | \`rdp-host-macos-x64.tar.gz\` | the remote computer with macOS on Intel |
+          | \`RemoteDesk.apk\` | the remote phone or tablet with Android 10 or later: it shows its screen |
           | \`RemoteDesk.html\` | your device: the page, one file - open it in Chrome or Edge |
 
           Unpack the program with the library of encryption beside it: it needs it. How to start: [Quick start](https://github.com/${GITHUB_REPOSITORY}#quick-start)."

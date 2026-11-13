@@ -1,0 +1,211 @@
+// The screen of the app: how the viewer will reach this phone - the four ways of a computer -, the start, and then what the host says,
+// the line to send with its button to share it, and where the host waits for its user: the line reached them, the answer of the page.
+
+package org.unirail.RemoteDesk
+
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.graphics.Typeface
+import android.media.projection.MediaProjectionConfig
+import android.media.projection.MediaProjectionManager
+import android.os.Build
+import android.os.Bundle
+import android.text.InputType
+import android.view.View
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.ScrollView
+import android.widget.TextView
+
+class MainActivity : Activity(), Host.Watcher {
+    private val ways = arrayOf(
+        "🏠  From this network" to "the same home or office: Wi-Fi",
+        "🌍  From the internet" to "this phone or its router has a public address",
+        "🤝  Meeting point" to "SYN Mirror on a router of yours",
+        "⚡  Directly" to "nothing to set up",
+    )
+
+    private lateinit var choose: LinearLayout
+    private lateinit var group: RadioGroup
+    private lateinit var point: EditText
+    private lateinit var password: EditText
+    private lateinit var running: LinearLayout
+    private lateinit var lineBox: LinearLayout
+    private lateinit var lineText: TextView
+    private lateinit var waitBox: LinearLayout
+    private lateinit var answerField: EditText
+    private lateinit var done: Button
+    private lateinit var log: TextView
+    private lateinit var logScroll: ScrollView
+    private var way = 0
+
+    override fun onCreate(saved: Bundle?) {
+        super.onCreate(saved)
+        val prefs = getPreferences(MODE_PRIVATE)
+        way = prefs.getInt("way", 0)
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(pad, pad, pad, pad) }
+        // the bars of the system over the screen of an app of Android 15: the content keeps clear of them
+        root.setOnApplyWindowInsetsListener { v, insets ->
+            @Suppress("DEPRECATION")
+            v.setPadding(pad + insets.systemWindowInsetLeft, pad + insets.systemWindowInsetTop, pad + insets.systemWindowInsetRight, pad + insets.systemWindowInsetBottom)
+            insets
+        }
+        root.addView(TextView(this).apply { text = "RemoteDesk"; textSize = 26f; typeface = Typeface.DEFAULT_BOLD })
+        root.addView(TextView(this).apply { text = "Show this phone to a computer: its browser sees the screen, right from a page."; setPadding(0, 0, 0, pad) })
+
+        // ── before the start ──
+        choose = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        choose.addView(TextView(this).apply { text = "How will the viewer reach this phone?"; typeface = Typeface.DEFAULT_BOLD })
+        group = RadioGroup(this)
+        ways.forEachIndexed { i, (name, whenTo) ->
+            group.addView(RadioButton(this).apply { id = 100 + i; text = "$name\n$whenTo"; setPadding(0, pad / 3, 0, pad / 3) })
+        }
+        group.check(100 + way)
+        choose.addView(group)
+        point = EditText(this).apply { hint = "The meeting point, as its owner gave it: router.example.org:40000"; setText(prefs.getString("point", "")); inputType = InputType.TYPE_TEXT_VARIATION_URI }
+        password = EditText(this).apply { hint = "Its password: 8 characters"; setText(prefs.getString("password", "")); inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD }
+        choose.addView(point)
+        choose.addView(password)
+        group.setOnCheckedChangeListener { _, id -> way = id - 100; fields() }
+        fields()
+        choose.addView(Button(this).apply { text = "Show this screen"; setOnClickListener { ask() } })
+        root.addView(choose)
+
+        // ── after it ──
+        running = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+        lineBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+        lineBox.addView(TextView(this).apply { text = "📨 Send this line to whoever connects. It is in the clipboard already."; typeface = Typeface.DEFAULT_BOLD })
+        lineText = TextView(this).apply { textSize = 16f; typeface = Typeface.MONOSPACE; setTextIsSelectable(true); setPadding(0, pad / 2, 0, pad / 2) }
+        lineBox.addView(lineText)
+        lineBox.addView(Button(this).apply { text = "Share the line"; setOnClickListener { share() } })
+        running.addView(lineBox)
+        waitBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(0, pad / 2, 0, pad / 2) }
+        answerField = EditText(this).apply { hint = "Paste here the line from the page ( rd1o.… )"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS }
+        waitBox.addView(answerField)
+        done = Button(this).apply { setOnClickListener { answer() } }
+        waitBox.addView(done)
+        running.addView(waitBox)
+        running.addView(Button(this).apply { text = "Stop"; setOnClickListener { startService(Intent(this@MainActivity, HostService::class.java).setAction(HostService.STOP)) } })
+        root.addView(running)
+
+        log = TextView(this).apply { setTextIsSelectable(true); setPadding(0, pad / 2, 0, 0) }
+        logScroll = ScrollView(this).apply { addView(log) }
+        root.addView(logScroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
+        setContentView(root)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Host.watcher = this
+        choose.visibility = if (Host.running) View.GONE else View.VISIBLE
+        running.visibility = if (Host.running) View.VISIBLE else View.GONE
+        log.text = ""
+        Host.news.forEach { news(it) }
+        Host.line?.let { line(it) }
+        waits()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (Host.watcher === this) Host.watcher = null
+    }
+
+    /** The fields of the meeting point: for its way only. */
+    private fun fields() {
+        val meet = if (way == 2) View.VISIBLE else View.GONE
+        point.visibility = meet
+        password.visibility = meet
+    }
+
+    /** Where the host waits for its user: the meeting point, until the line reached them; directly, the answer of the page. */
+    private fun waits() {
+        val shown = Host.running && Host.line != null && (way == 2 || way == 3)
+        waitBox.visibility = if (shown) View.VISIBLE else View.GONE
+        answerField.visibility = if (way == 3) View.VISIBLE else View.GONE
+        done.text = if (way == 3) "Connect" else "The line has reached them"
+    }
+
+    // ── the start: the permissions, the consent of Android to show the screen, the service ──
+
+    private fun ask() {
+        if (way == 2 && (point.text.isBlank() || password.text.length != 8)) {
+            news(Host.News("💡", 3, "The meeting point and its password of 8 characters, as its owner gave them"))
+            return
+        }
+        getPreferences(MODE_PRIVATE).edit().putInt("way", way).putString("point", point.text.toString().trim()).putString("password", password.text.toString()).apply()
+        // the sound of the phone needs the microphone permission; the notification its own on Android 13
+        val wanted = mutableListOf(Manifest.permission.RECORD_AUDIO)
+        if (Build.VERSION.SDK_INT >= 33) wanted += Manifest.permission.POST_NOTIFICATIONS
+        val missing = wanted.filter { checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), 1) else consent()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        consent() // without them the screen is shown all the same
+    }
+
+    private fun consent() {
+        val manager = getSystemService(MediaProjectionManager::class.java)
+        // the whole screen: the viewer works with the phone, not one app of it
+        val intent = if (Build.VERSION.SDK_INT >= 34) manager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay()) else manager.createScreenCaptureIntent()
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, 1)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != RESULT_OK || data == null) {
+            news(Host.News("✋", 3, "Android did not let the screen be shown"))
+            return
+        }
+        val arguments = when (way) {
+            2 -> arrayOf("--meet", point.text.toString().trim(), "--meet-password", password.text.toString())
+            3 -> arrayOf("--direct")
+            else -> emptyArray()
+        }
+        startForegroundService(
+            Intent(this, HostService::class.java)
+                .putExtra(HostService.CONSENT_CODE, resultCode)
+                .putExtra(HostService.CONSENT_DATA, data)
+                .putExtra(HostService.WAY, way)
+                .putExtra(HostService.ARGUMENTS, arguments)
+        )
+        choose.visibility = View.GONE
+        running.visibility = View.VISIBLE
+    }
+
+    // ── while it runs ──
+
+    override fun news(news: Host.News) {
+        if (log.text.isNotEmpty()) log.append("\n")
+        log.append("${news.sign} ${news.text}")
+        logScroll.post { logScroll.fullScroll(View.FOCUS_DOWN) }
+    }
+
+    override fun line(line: String) {
+        lineText.text = line
+        lineBox.visibility = View.VISIBLE
+        waits()
+    }
+
+    private fun share() {
+        val line = Host.line ?: return
+        startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, line), "Send the line"))
+    }
+
+    private fun answer() {
+        val text = if (way == 3) answerField.text.toString().trim() else ""
+        if (way == 3 && text.isEmpty()) return
+        Host.answer(text.toByteArray())
+        answerField.setText("")
+        if (way == 2) waitBox.visibility = View.GONE // the meeting point lets them in from now on
+    }
+}

@@ -9,7 +9,7 @@
 // port, from a new source port: a viewer that lost its connection, another viewer, or the machine started again as administrator
 // meets there again. All from one UDP socket: the port is given to the address the request came from.
 
-use std::io::{self, BufRead};
+use std::io;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream, ToSocketAddrs, UdpSocket};
 use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::Arc;
@@ -84,10 +84,9 @@ fn run(meet: Meet, server: Server, port: Option<u16>, pass: String) {
     if asked {
         say!("🔑", Wait, "Press Enter when the line has reached them: the meeting point lets them in from then on");
         let held = hold(&udp, &meet, port);
-        let mut line = String::new();
-        let read = io::stdin().lock().read_line(&mut line).unwrap_or(0);
+        let read = crate::console::read_line();
         held.store(true, Ordering::Relaxed);
-        if read == 0 {
+        if read.is_none() {
             return; // no console: nobody to grant it
         }
     }
