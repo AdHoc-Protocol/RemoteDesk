@@ -23,6 +23,8 @@ mod os;
 #[path = "mac/mod.rs"]
 mod os;
 
+#[macro_use]
+mod console; // first: its say! is for the modules after it
 mod audio;
 mod clipboard;
 mod elevate;

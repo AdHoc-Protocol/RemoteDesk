@@ -36,6 +36,8 @@ pub enum How {
 }
 
 impl How {
+    /// Its name: the tests tell by it which protocol opened the port.
+    #[cfg(test)]
     pub fn name(&self) -> &'static str {
         match self {
             How::Pcp { .. } => "PCP",
@@ -60,8 +62,8 @@ pub struct Opened {
 pub enum Refused {
     /// No router answered: none of the three protocols, or each said no.
     NoRouter,
-    /// A port was opened, and closed again: the address of the router is not public - its own address follows.
-    NotPublic(Ipv4Addr),
+    /// A port was opened, and closed again: the address of the router is not public, a NAT of the provider before it.
+    NotPublic,
 }
 
 /// Asks the router of this computer to open a port to `port` of it, the same port outside if it can.
@@ -75,9 +77,8 @@ pub fn open(port: u16) -> Result<Opened, Refused> {
         None => Err(Refused::NoRouter),
         Some(o) if public(*o.external.ip()) => Ok(o),
         Some(o) => {
-            let ip = *o.external.ip();
             o.close();
-            Err(Refused::NotPublic(ip))
+            Err(Refused::NotPublic)
         }
     }
 }

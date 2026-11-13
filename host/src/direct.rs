@@ -199,8 +199,8 @@ fn unbase64url(s: &str) -> Option<Vec<u8>> {
 // ── the machine ──
 
 /// Waits for the lines of the pages on the console: each one gets its answer and its own meeting; `bridge` - the server of the
-/// sessions on 127.0.0.1, `token` - in the answer.
-pub fn start(bridge: SocketAddr, token: String, listen: SocketAddr) {
+/// sessions on 127.0.0.1, `token` - in the answer; `pass` - the token and the check of the key, after # in the line of one way.
+pub fn start(bridge: SocketAddr, token: String, pass: String, listen: SocketAddr) {
     thread::Builder::new()
         .name("direct".into())
         .spawn(move || {
@@ -209,37 +209,33 @@ pub fn start(bridge: SocketAddr, token: String, listen: SocketAddr) {
             let stun: Arc<[SocketAddr]> = probe().into();
             let opened = match opening.map(thread::JoinHandle::join) {
                 Some(Ok(Ok(opened))) => {
-                    one_line(opened, &token);
+                    one_line(opened, &pass);
                     true
                 }
-                Some(Ok(Err(crate::portmap::Refused::NotPublic(ip)))) => {
-                    println!("Direct: the router opened a port, but its own address {ip} is not public - a NAT of the provider before it: two lines then");
-                    false
-                }
-                Some(_) => {
-                    println!("Direct: the router opens no port to this computer ( UPnP, NAT-PMP, PCP ): two lines then");
-                    false
-                }
+                // no port: its address is not public ( a NAT of the provider before it ), or it opens none - two lines then
+                Some(_) => false,
                 None => false, // the program listens on this computer alone: no port of the router leads to it
             };
-            println!(
-                "Direct: {}paste here the line the page sends ( rd1o.… ), then Enter - Make the line on the page makes it",
-                if opened { "where that line does not connect: " } else { "" }
-            );
+            if opened {
+                say!("🔁", Quiet, "If that line does not connect: paste here the line from the page ( rd1o.… ), then Enter");
+            } else {
+                say!("📥", Wait, "Paste here the line from the page ( rd1o.… ), then Enter");
+                say!("💡", Quiet, "On the page: 4, then Make the line - it goes into the clipboard there");
+            }
             for line in io::stdin().lock().lines() {
                 let Ok(line) = line else { return };
                 if line.trim().is_empty() {
                     continue;
                 }
                 let Some(page) = Card::of(&line, false) else {
-                    println!("Direct: not a line of the page - it starts with rd1o.");
+                    say!("❓", Warn, "Not a line of the page: it starts with rd1o.");
                     continue;
                 };
                 let token = token.clone();
                 let stun = stun.clone();
                 let _ = thread::Builder::new().name("direct meeting".into()).spawn(move || {
                     if let Err(e) = meet(page, bridge, &token, &stun) {
-                        println!("Direct: {e}");
+                        say!("❌", Bad, "{e}");
                     }
                 });
             }
@@ -248,16 +244,13 @@ pub fn start(bridge: SocketAddr, token: String, listen: SocketAddr) {
 }
 
 /// The router opened a port to the program: the line of way ②, with the address the router has, kept while the program runs.
-fn one_line(opened: crate::portmap::Opened, token: &str) {
-    println!("Direct: the router opened port {} to this computer ( {} ) - send this line to whoever connects:", opened.external.port(), opened.how.name());
-    let line = format!("{}#{token}", opened.external);
-    println!("  {line}");
-    crate::clipboard::tell_put(&line);
-    let token = token.to_owned();
+fn one_line(opened: crate::portmap::Opened, pass: &str) {
+    let line = format!("{}#{pass}", opened.external);
+    crate::console::line_to_send(&line);
+    let pass = pass.to_owned();
     opened.keep(move |now| {
-        let line = format!("{now}#{token}");
-        println!("Direct: the router gave another port - this line instead:\n  {line}");
-        crate::clipboard::tell_put(&line);
+        say!("🔄", Warn, "The router gave another port: this line instead");
+        crate::console::line_to_send(&format!("{now}#{pass}"));
     });
 }
 
@@ -296,10 +289,10 @@ fn meet(page: Card, bridge: SocketAddr, token: &str, stun: &[SocketAddr]) -> io:
     }
     let answer = Card { ufrag: creds.ufrag, pwd: creds.pass, print, candidates, token: token.into() };
     let line = answer.line(true);
-    println!("Direct: send this line to whoever connects, it has the token in it:\n  {line}");
-    crate::clipboard::tell_put(&line);
+    say!("✅", Good, "The answer is ready");
+    crate::console::line_to_send(&line);
     if seen.is_empty() {
-        println!("Direct: no public STUN server answered - only a page in this network can meet this machine");
+        say!("⚠️", Warn, "No public STUN server answered: only a page in this network can meet this computer");
     }
 
     run(rtc, udp, local, &page.candidates, channel, bridge, port, stun)
@@ -332,7 +325,7 @@ fn run(mut rtc: Rtc, udp: UdpSocket, local: SocketAddr, page: &[SocketAddr], cha
                 Output::Event(e) => match e {
                     Event::IceConnectionStateChange(IceConnectionState::Connected | IceConnectionState::Completed) => met = true,
                     Event::IceConnectionStateChange(IceConnectionState::Disconnected) if met => {
-                        println!("Direct: the page is gone");
+                        say!("👋", Quiet, "The page is gone");
                         return Ok(());
                     }
                     Event::ChannelOpen(id, _) if id == channel && session.is_none() => {
@@ -361,7 +354,7 @@ fn run(mut rtc: Rtc, udp: UdpSocket, local: SocketAddr, page: &[SocketAddr], cha
                             c.set_buffered_amount_low_threshold(HIGH / 4);
                         }
                         session = Some(s);
-                        println!("Direct: met the page");
+                        say!("🤝", Good, "Met the page: straight, through both routers");
                     }
                     Event::ChannelData(d) if d.id == channel => {
                         if let Some(s) = session.as_mut() {
@@ -371,7 +364,7 @@ fn run(mut rtc: Rtc, udp: UdpSocket, local: SocketAddr, page: &[SocketAddr], cha
                         }
                     }
                     Event::ChannelClose(id) if id == channel => {
-                        println!("Direct: the page left");
+                        say!("👋", Quiet, "The page left");
                         return Ok(());
                     }
                     _ => {}
@@ -404,7 +397,7 @@ fn run(mut rtc: Rtc, udp: UdpSocket, local: SocketAddr, page: &[SocketAddr], cha
         // to them - the first check of the page then gets in
         if !met {
             if started.elapsed() > PATIENCE {
-                println!("Direct: the page did not come in {} minutes", PATIENCE.as_secs() / 60);
+                say!("⌛", Warn, "The page did not come in {} minutes: ask for a new line", PATIENCE.as_secs() / 60);
                 return Ok(());
             }
             if nudged.elapsed() >= Duration::from_secs(1) {
@@ -475,14 +468,13 @@ fn probe() -> Vec<SocketAddr> {
     let named = resolve();
     let servers: Vec<SocketAddr> = named.iter().map(|(_, a)| *a).collect();
     let answers = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).map(|udp| ask(&udp, &servers, PROBING)).unwrap_or_default();
-    let Some(&(nearest, _, took)) = answers.first() else {
-        println!("Direct: none of the {} public STUN servers answers - only a page in this network can meet this machine", STUN.len());
+    if answers.is_empty() {
+        say!("⚠️", Warn, "None of the {} public STUN servers answers: only a page in this network can meet this computer", STUN.len());
         return servers;
-    };
-    println!("Direct: {} of {} public STUN servers answer, the nearest {} in {} ms", answers.len(), STUN.len(), named[nearest].0, took.as_millis());
+    }
     // one IP, a port of its own for each server: the NAT is symmetric - only a page behind a NAT that is not meets it
     if answers.iter().any(|(_, a, _)| a.ip() == answers[0].1.ip() && a.port() != answers[0].1.port()) {
-        println!("Direct: the NAT of this computer is symmetric - only a page behind a NAT that is not meets it; else way 3");
+        say!("⚠️", Warn, "The router of this computer is strict ( a symmetric NAT ): if the page does not meet it, use way 3");
     }
     answers.into_iter().map(|(i, ..)| servers[i]).collect()
 }

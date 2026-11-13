@@ -51,10 +51,10 @@ fn on_request(_request: &mut Viewer_ElevationRequest, conn: &Connection, _actor:
 
 /// The prompt of the system: it waits for the user of the machine.
 fn ask(conn: Arc<Connection>) {
-    println!("elevate: the operator asks for the rights of an administrator: the prompt is on the screen");
+    say!("🛡️", Wait, "The viewer asks for the rights of an administrator: confirm it on the screen");
     match rights::relaunch(&crate::session::relaunch_args()) {
         Ok(()) => {
-            println!("elevate: confirmed - the host goes on as administrator; the page connects again");
+            say!("🛡️", Good, "Confirmed: the program goes on as administrator, the page connects again");
             tell(&conn, Machine_Elevation_State::CONFIRMED);
             std::thread::sleep(Duration::from_millis(300)); // the answer goes out before this host ends
             crate::input::release_all();
@@ -62,11 +62,11 @@ fn ask(conn: Arc<Connection>) {
             std::process::exit(0);
         }
         Err(Refused::Declined) => {
-            println!("elevate: declined");
+            say!("🛡️", Quiet, "Declined");
             tell(&conn, Machine_Elevation_State::DECLINED);
         }
         Err(Refused::Failed(why)) => {
-            eprintln!("elevate: the prompt cannot be shown: {why}");
+            say!("🛡️", Bad, "The prompt cannot be shown: {why}");
             tell(&conn, Machine_Elevation_State::FAILED);
         }
     }

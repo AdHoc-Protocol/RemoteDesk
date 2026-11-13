@@ -152,8 +152,10 @@ pub fn run() {
     let _ = LAUNCH.set((listen, key_file.clone(), software));
     let token = token.unwrap_or_else(new_token);
     let secret = load_or_make_key(&key_file);
-    let public = crate::lib::x25519::public_key(&secret);
     let host_name = std::env::var("COMPUTERNAME").unwrap_or_else(|_| String::from("machine"));
+    // what the line carries after #: the token, and the check of the key of the machine - the page checks the key against it before
+    // the token goes, so the line alone tells the page it is this machine
+    let pass = format!("{token}-{}", key_check(&crate::lib::x25519::public_key(&secret)));
     let _ = CONFIG.set(Config { token: token.clone(), host_name, secret });
 
     actor0::start::on_receive_d::Viewer_Hello.add(on_hello);
@@ -188,8 +190,9 @@ pub fn run() {
         }
     };
 
-    println!("RemoteDesk waits for the page, on port {}{}", listen.port(), if crate::elevate::elevated_now() { ", as administrator" } else { "" });
-    println!("  key {}   ( the page shows the same the first time )", fingerprint(&public));
+    if crate::elevate::elevated_now() {
+        say!("🛡️", News, "As administrator: windows run as administrator take the input too");
+    }
     // way 4: the data channels of the pages come to a server of their own on 127.0.0.1 - the bytes of the session as they are,
     // no WebSocket - and its sessions are the ones of the other ways
     let bridge = direct.then(|| {
@@ -200,44 +203,44 @@ pub fn run() {
             .expect("the server of the direct way on 127.0.0.1")
     });
     match meet {
-        Some(meet) => crate::meet::start(meet, server.clone(), meet_given, token), // the token goes in its line for the viewer
+        Some(meet) => crate::meet::start(meet, server.clone(), meet_given, pass), // the token and the check go in its line for the viewer
         None if direct => {
             let bridge = bridge.as_ref().and_then(|b| b.local_addr().ok()).expect("the address of the direct way");
-            crate::direct::start(bridge, token, listen);
+            crate::direct::start(bridge, token, pass, listen);
         }
         None => {
-            // the line for the viewer: all it needs, the address, the port and the token after #, in one piece
+            // the line for the viewer: all it needs, the address, the port and after # the token and the check, in one piece
             let port = listen.port();
-            let in_network = here(listen).map(|ip| format!("{ip}:{port}#{token}"));
-            let unknown_here = format!("<address of this computer>:{port}#{token}");
-            let unknown_public = format!("<public address>:{port}#{token}");
-            /// The one line of the way chosen; in the clipboard when its address is known.
+            let in_network = here(listen).map(|ip| format!("{ip}:{port}#{pass}"));
+            let unknown_here = format!("<address of this computer>:{port}#{pass}");
+            let unknown_public = format!("<public address>:{port}#{pass}");
+            /// The one line of the way chosen: in a frame and in the clipboard when its address is known; else the line to fill in.
             fn one(line: Option<&str>, unknown: &str) {
-                println!("Send this line to whoever connects:");
                 match line {
-                    Some(line) => {
-                        println!("  {line}");
-                        crate::clipboard::tell_put(line);
+                    Some(line) => crate::console::line_to_send(line),
+                    None => {
+                        crate::console::line_to_send(unknown);
+                        say!("✏️", Warn, "Put the address of this computer in place of <…> before you send it");
                     }
-                    None => println!("  {unknown}\n  Put the address of this computer in place of <…>."),
                 }
             }
             match crate::menu::chosen() {
                 Some(crate::menu::Way::Here) => one(in_network.as_deref(), &unknown_here),
                 // from the internet: the address it sees this computer at is asked of STUN
                 Some(crate::menu::Way::Internet) => {
-                    let from_internet = crate::direct::public_ip().map(|ip| format!("{ip}:{port}#{token}"));
+                    let from_internet = crate::direct::public_ip().map(|ip| format!("{ip}:{port}#{pass}"));
                     one(from_internet.as_deref(), &unknown_public);
                 }
                 // started from a console or a script: both lines, each for where it goes
                 _ => {
-                    println!("Send one of these lines to whoever connects:");
-                    println!("  {}          in this network", in_network.as_deref().unwrap_or(&unknown_here));
+                    say!("📨", News, "Send one of these lines to whoever connects:");
+                    say!("🏠", Good, "{}   in this network", in_network.as_deref().unwrap_or(&unknown_here));
                     if listen.ip().is_unspecified() {
-                        println!("  {unknown_public}          from the internet: port {port} forwarded to this computer");
+                        say!("🌍", Good, "{unknown_public}   from the internet: port {port} forwarded to this computer");
                     }
                 }
             }
+            say!("👀", Wait, "Waiting for whoever connects…");
         }
     }
 
@@ -276,7 +279,7 @@ fn on_hello(hello: &mut Viewer_Hello, conn: &Connection, _actor: &Actor0) {
         let mut failures = FAILURES.lock().unwrap();
         if let Some(since) = failures.1 {
             if since.elapsed() < LOCKOUT {
-                println!("refused {name} from {from}: too many wrong tokens");
+                say!("⛔", Bad, "{name} from {from} is refused: too many wrong tokens, nobody gets in for a minute");
                 return deny(Reason::HOST_OVERLOAD, None);
             }
             *failures = (0, None);
@@ -290,7 +293,7 @@ fn on_hello(hello: &mut Viewer_Hello, conn: &Connection, _actor: &Actor0) {
         if left == 0 {
             failures.1 = Some(Instant::now());
         }
-        println!("refused {name} from {from}: a wrong token, {left} attempt(s) left");
+        say!("⛔", Bad, "{name} from {from} is refused: a wrong token, {left} attempt(s) left");
         return deny(Reason::AUTHENTICATION_FAILED, Some(left));
     }
 
@@ -300,7 +303,7 @@ fn on_hello(hello: &mut Viewer_Hello, conn: &Connection, _actor: &Actor0) {
         let mut audience = AUDIENCE.lock().unwrap();
         if audience.len() >= MAX_VIEWERS {
             drop(audience);
-            println!("refused {name} from {from}: {MAX_VIEWERS} viewers are in");
+            say!("⛔", Bad, "{name} from {from} is refused: {MAX_VIEWERS} viewers are in already");
             return deny(Reason::FULL, None);
         }
         // under the lock: no `Audience` of another change goes before the welcome - the state of the login sends none
@@ -312,7 +315,7 @@ fn on_hello(hello: &mut Viewer_Hello, conn: &Connection, _actor: &Actor0) {
         if CONTROLLER.load().is_none() {
             CONTROLLER.store(Some(this.clone()));
         }
-        println!("{name} from {from} is in, {} viewer(s)", audience.len());
+        say!("✅", Good, "{name} from {from} is in · {} watching", audience.len());
         announce(&audience);
     }
     crate::video::start(this.clone(), name);
@@ -329,7 +332,7 @@ fn on_take_control(_: &mut Viewer_TakeControl, conn: &Connection, _: &Actor0) {
     CONTROLLER.store(Some(taker.conn.clone()));
     crate::input::release_all();
     crate::audio::mic_off();
-    println!("{} takes the control", taker.name);
+    say!("🎮", News, "{} takes the control", taker.name);
     announce(&audience);
 }
 
@@ -351,7 +354,7 @@ fn on_event(conn: &Connection, e: Event) {
                 crate::input::release_all();
                 crate::audio::mic_off();
             }
-            println!("{} left, {} viewer(s)", gone.name, audience.len());
+            say!("👋", Quiet, "{} left · {} watching", gone.name, audience.len());
             announce(&audience);
             (controlled, audience.is_empty())
         })
@@ -395,12 +398,24 @@ fn same(a: &[u8], b: &[u8]) -> bool {
     a.iter().zip(b).fold(0u8, |d, (x, y)| d | (x ^ y)) == 0
 }
 
+/// The letters and digits of the token and the check: none mistaken for another, 5 bits each.
+const ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
 /// A token of 20 characters, 100 bits, of letters and digits that are not mistaken for one another.
 fn new_token() -> String {
-    const ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let mut bytes = [0u8; 20];
     getrandom::fill(&mut bytes).expect("the random numbers of the system");
     bytes.iter().map(|b| ALPHABET[(*b & 31) as usize] as char).collect()
+}
+
+/// The check of the key of the machine its line carries after the token and `-`: 8 characters of `ALPHABET`, the first 40 bits of the
+/// SHA-256 of `public`. Another machine answering at the address would have to find a key of the same 40 bits - while the line is on
+/// its way. The page checks it in src/worker/session.ts, as `keyCheck`.
+pub fn key_check(public: &[u8; 32]) -> String {
+    use sha2::{Digest, Sha256};
+    let h = Sha256::digest(public);
+    let bits = u64::from_be_bytes([0, 0, 0, h[0], h[1], h[2], h[3], h[4]]);
+    (0..8).rev().map(|i| ALPHABET[(bits >> (i * 5) & 31) as usize] as char).collect()
 }
 
 /// The secret key of Noise from `file` ( 64 hex digits ); a new one, written there, when there is none.
@@ -436,7 +451,13 @@ pub fn here_ip() -> Option<std::net::IpAddr> {
     Some(udp.local_addr().ok()?.ip()).filter(|ip| !ip.is_unspecified())
 }
 
-/// The public key, as the page shows it at the first login: hex in groups of four.
-fn fingerprint(public: &[u8; 32]) -> String {
-    public.chunks(2).map(|c| format!("{:02x}{:02x}", c[0], c[1])).collect::<Vec<_>>().join(" ")
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The check of a key: the same as the page makes of it ( src/worker/session.ts ), and as SHA-256 says.
+    #[test]
+    fn the_check_of_a_key() {
+        assert_eq!(key_check(&core::array::from_fn(|i| i as u8)), "NNG64LMG");
+    }
 }

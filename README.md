@@ -32,27 +32,32 @@ Download from the [latest release](../../releases/latest):
 Unpack the program into a folder of its own: the library of encryption beside it is part of it. Or build them yourself:
 [Building](#building).
 
-**1. On the remote computer**, double-click `rdp-host` (`rdp-host.exe` on Windows). Its window asks how you will connect, a
-number to press:
+**1. On the remote computer**, double-click `rdp-host` (`rdp-host.exe` on Windows). Its window asks how you will connect: press
+the number, the key alone is the answer.
 
 ```text
-RemoteDesk: how will the viewer reach this computer?
-  1  From this network: the same home or office
-  2  From the internet: this computer or its router has a public address
-  3  Through a meeting point with SYN Mirror
-  4  Directly: nothing to set up
-Press 1, 2, 3 or 4:
+ 🧭 How will the viewer reach this computer?
+
+    1  🏠  From this network   the same home or office
+    2  🌍  From the internet   this computer or its router has a public address
+    3  🤝  Meeting point       SYN Mirror on a router of yours
+    4  ⚡  Directly            nothing to set up
+
+ Press 1, 2, 3 or 4 › 1  🏠 From this network
 ```
 
-It prints one line to give whoever connects: all the page needs is in it, the address, the port and, after `#`, the token. The
-line is in the clipboard already: paste it into a message.
+It shows one line to give whoever connects, in a frame: all the page needs is in it, the address, the port and, after `#`, the
+token. The line is in the clipboard already: paste it into a message.
 
 ```text
-RemoteDesk waits for the page, on port 8765
-  key 8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077   ( the page shows the same the first time )
-Send this line to whoever connects:
-  192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE
-  It is in the clipboard: paste it into a message to whoever connects.
+ 📨 Send this line to whoever connects:
+    ╭───────────────────────────────────────────────────╮
+    │  192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
+    ╰───────────────────────────────────────────────────╯
+ 📋 It is in your clipboard already: just paste it into a message.
+
+ 👀 Waiting for whoever connects…
+ ✅ Anna from 192.168.1.30 is in · 1 watching
 ```
 
 The window remembers the answer: next time Enter is enough. A meeting point is typed once, its address and password, and offered
@@ -110,7 +115,7 @@ ways, and a picture to choose.
 | **The user of the remote computer** | Whoever sits at the remote computer and starts the program there: its owner, you, or someone you help | Your relative |
 | **Your device** | The computer, tablet or phone you control it from, in a browser | Your own PC |
 | **Token** | A word the program prints; only who gives it gets in. New at each start unless set | `K7QM2XHP9RTA4WZD8CNE` |
-| **Key** | What proves the remote computer is the one you mean. Kept in `host.key` beside the program | 64 hex digits |
+| **Key** | What proves the remote computer is the one you mean. Kept in `host.key` beside the program; its check is in the line, after the token and `-` | `24NDRCK9`, the check |
 | **NAT** | The home router: it hides the computers of a home behind one address and lets in only answers to what they sent out | A Wi-Fi router |
 | **Meeting point** | An OpenWrt router or a Linux server with [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror), reachable by both | A rented server |
 | **STUN server** | A public server that tells a computer the address the internet sees it at, and nothing more. Way ④ asks several, in the world, in China and in Hong Kong | `stun.miwifi.com` |
@@ -122,10 +127,10 @@ other. Which way works depends on where the two are:
 
 | Way | When | Set up | The line you paste on the page |
 |:--|:--|:--|:--|
-| [① The same network](#way-1) | One home, one office, one Wi-Fi | Nothing | `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE` |
-| [② From the internet](#way-2) | The remote computer has a public address, or its router forwards a port to it | A forwarded port | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE` |
-| [③ Through SYN Mirror](#way-3) | Both behind NAT, nothing can be forwarded | A meeting point, once | `router.example.org:41933#K7QM2XHP9RTA4WZD8CNE` |
-| [④ Direct](#way-4) | Both behind NAT, no meeting point | Nothing | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE` when the router of the remote computer opens a port; else `rd1a.…`, the answer of the program to the line of your page |
+| [① The same network](#way-1) | One home, one office, one Wi-Fi | Nothing | `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
+| [② From the internet](#way-2) | The remote computer has a public address, or its router forwards a port to it | A forwarded port | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
+| [③ Through SYN Mirror](#way-3) | Both behind NAT, nothing can be forwarded | A meeting point, once | `router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
+| [④ Direct](#way-4) | Both behind NAT, no meeting point | Nothing | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` when the router of the remote computer opens a port; else `rd1a.…`, the answer of the program to the line of your page |
 
 On every way the token is needed. On ways ①-③, and on ④ with one line, the line carries it after `#`: the whole line goes to the
 page, as the program printed it. On way ④ with two lines the answer of the program carries it.
@@ -135,7 +140,7 @@ page, as the program printed it. On way ④ with two lines the answer of the pro
 ### ① The same network
 
 1. **The user of the remote computer** starts `rdp-host` and presses **1**. It prints the line for this network, and puts it in the
-   clipboard: `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE`.
+   clipboard: `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9`.
 2. **They send you the line**, the token in it.
 3. **You** press **1** on the page and paste the line on its arrow: the page connects.
 
@@ -161,7 +166,7 @@ The remote computer is reached at a public address: its own, as a rented server 
 2. **The public address**: the router shows it on its status page, or any "what is my IP" site opened on the remote computer.
 3. **The user of the remote computer** starts `rdp-host`, presses **2**, and allows it in the firewall, for public networks too. It
    asks a STUN server the public address, prints the line with it and puts the line in the clipboard. Without an answer it prints the line for the
-   internet with `<public address>` in it: they put the address from step 2 there, `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE`,
+   internet with `<public address>` in it: they put the address from step 2 there, `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9`,
    and send you the line.
 4. **You** press **2** on the page and paste the line on its arrow: the page connects.
 
@@ -195,13 +200,16 @@ same is:
 rdp-host --meet router.example.org:40000 --meet-password Tr7kQ2xZ
 ```
 
-It prints a line to send to you, and waits for a key press:
+It shows a line to send to you, and waits for Enter:
 
 ```text
-Send this line to whoever connects:
-  router.example.org:41933#K7QM2XHP9RTA4WZD8CNE
-  It is in the clipboard: paste it into a message to whoever connects.
-Enter: grant access to this computer
+ 📨 Send this line to whoever connects:
+    ╭──────────────────────────────────────────────────────────╮
+    │  router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
+    ╰──────────────────────────────────────────────────────────╯
+ 📋 It is in your clipboard already: just paste it into a message.
+
+ 🔑 Press Enter when the line has reached them: the meeting point lets them in from then on
 ```
 
 ![Way 3 on the page: the line goes up to the meeting point through the internet, and down again](docs/page-3-connecting.svg)
@@ -256,17 +264,17 @@ The program finds out by itself in a few seconds after its start, and says which
 
 The program asks its router to forward port 8765 to it: the forwarding of way ② that a person sets up by hand, done by the
 program. It speaks the three protocols routers take such requests in: UPnP, which most home routers speak, NAT-PMP and PCP. Then
-it checks the address the router has: a public one, not a NAT of the provider before it. When both hold, it prints the line of
+it checks the address the router has: a public one, not a NAT of the provider before it. When both hold, it shows the line of
 way ②:
 
 ```text
-RemoteDesk waits for the page, on port 8765
-  key 8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077   ( the page shows the same the first time )
-Direct: 10 of 11 public STUN servers answer, the nearest stun.miwifi.com:3478 in 6 ms
-Direct: the router opened port 8765 to this computer ( UPnP ) - send this line to whoever connects:
-  203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE
-  It is in the clipboard: paste it into a message to whoever connects.
-Direct: where that line does not connect: paste here the line the page sends ( rd1o.… ), then Enter - Make the line on the page makes it
+ 📨 Send this line to whoever connects:
+    ╭──────────────────────────────────────────────────╮
+    │  203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
+    ╰──────────────────────────────────────────────────╯
+ 📋 It is in your clipboard already: just paste it into a message.
+
+ 🔁 If that line does not connect: paste here the line from the page ( rd1o.… ), then Enter
 ```
 
 1. **The user of the remote computer** sends you the line from the internet, the token in it: the program has put it in the
@@ -286,12 +294,7 @@ Advanced or NAT. Or the two lines do without it.
 ✗ From the same network, the line from the internet may not connect: many routers do not pass their own address back inside.
 Use the line for this network there.
 
-When the router opens no port, the program says why, and the two lines are the way:
-
-```text
-Direct: the router opens no port to this computer ( UPnP, NAT-PMP, PCP ): two lines then
-Direct: the router opened a port, but its own address 100.64.12.7 is not public - a NAT of the provider before it: two lines then
-```
+When the router opens no port, or its own address is not public (a NAT of the provider before it), the two lines are the way.
 
 <a id="way-4-two"></a>
 
@@ -333,16 +336,13 @@ abroad or gone. Both sides ask several, and go on with the ones that answer:
 The program, when its router opened no port:
 
 ```text
-RemoteDesk waits for the page, on port 8765
-  key 8820 c143 4615 9c69 0122 7600 32f0 b68e 25ed 2163 ad11 4413 bdbd 6364 098a f077   ( the page shows the same the first time )
-Direct: 10 of 11 public STUN servers answer, the nearest stun.miwifi.com:3478 in 6 ms
-Direct: the router opens no port to this computer ( UPnP, NAT-PMP, PCP ): two lines then
-Direct: paste here the line the page sends ( rd1o.… ), then Enter - Make the line on the page makes it
+ 📥 Paste here the line from the page ( rd1o.… ), then Enter
+ 💡 On the page: 4, then Make the line - it goes into the clipboard there
 ```
 
 | Step | Who | What happens |
 |:--|:--|:--|
-| | The user of the remote computer | Starts `rdp-host` and presses **4**. The program asks its 11 STUN servers, and prints how many answer and the nearest |
+| | The user of the remote computer | Starts `rdp-host` and presses **4**. The program asks its 11 STUN servers, and waits for the line of the page |
 | ① | You | Press **4** on the page, then **Make the line** on the arrow ①. The browser asks the four STUN servers of the page the address of your device: on the picture each of them gets ✓, or goes pale with ✕ |
 | ② | You | The page puts its line `rd1o.…` in the clipboard: send it to the user of the remote computer, by chat or mail. When the browser does not let it in, press **Put it in the clipboard** |
 | ③ | The user of the remote computer | Pastes it into the window of the program and presses **Enter**. The program asks the STUN servers that answered at its start, and prints its answer `rd1a.…`, the token in it, and puts it in the clipboard |
@@ -353,10 +353,14 @@ Direct: paste here the line the page sends ( rd1o.… ), then Enter - Make the l
 | ⑧ | The page and the program | The key, the token, then the screen: see [When you connect](#when-you-connect) |
 
 ```text
-Direct: send this line to whoever connects, it has the token in it:
-  rd1a.ERBmeVBk…
-  It is in the clipboard: paste it into a message to whoever connects.
-Direct: met the page
+ ✅ The answer is ready
+ 📨 Send this line to whoever connects:
+    ╭───────────────────╮
+    │  rd1a.ERBmeVBk…   │
+    ╰───────────────────╯
+ 📋 It is in your clipboard already: just paste it into a message.
+
+ 🤝 Met the page: straight, through both routers
 ```
 
 Each pair of lines serves one connection. A second viewer, or the same one after the connection breaks, presses **Direct
@@ -376,11 +380,14 @@ The same on every way:
 
 ![What happens when you connect](docs/connect.svg)
 
-The page keeps the key of each address it connected to. The first time it shows the key under the picture: compare it with the line
-`key` that `rdp-host` printed. If the remote computer got a new key on purpose (a new `host.key`), press **Forget the key of
-this machine** once.
+The line carries a check of the key of the remote computer: after the token, `-` and 8 characters, the first 40 bits of the
+SHA-256 of the key. The page checks the key the computer proves against it in the handshake, before the token goes: another computer
+answering at that address does not fit, and gets no token. The page says `Not the computer of the line`, and the picture shows it
+at the remote computer. Nothing to compare by hand: the line, sent by the user of the remote computer, is the proof.
 
-With the two lines of way ④ there is no address to keep the key under: the page shows the key at each connection. Compare it with the line `key`.
+A line without the check, typed by hand: the page keeps the key it saw first at that address, and refuses another one there later.
+If the remote computer got a new key on purpose (a new `host.key`), press **Forget the key of this machine** once; a line with the
+check needs none of that, it tells the new key.
 
 ## In a session
 
@@ -485,21 +492,20 @@ What the page says, under the picture, beside its parts, or in its bar:
 | `Refused: too many wrong tokens` | 5 wrong tokens in a row | Wait a minute |
 | `Refused: the machine has as many viewers as it takes.` | 8 viewers are in | Wait until one leaves |
 | `The machine answers with another key` | The remote computer got a new key file, or another computer answers at that address | If the key changed on purpose, press **Forget the key of this machine** |
-| `That is not a line of the remote computer: …` | Something else was pasted on the arrow | Paste the whole line the program printed, such as `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE` |
+| `That is not a line of the remote computer: …` | Something else was pasted on the arrow | Paste the whole line the program printed, such as `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
 | `The token is missing: …` | Only the address is there, without `#` and the token | Paste the whole line the program printed |
 | Way ③: the page does not get in, the program waits | Enter is not pressed yet, or the line is of an earlier start | The user of the remote computer presses Enter, or sends the new line |
-| Way ③: the program prints `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Check the password and the port after `:` in `--meet`; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
+| Way ③: the program says `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Check the password and the port after `:` in `--meet`; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
 | `Direct connection: no direct path between the two.` | Both NATs are symmetric: mobile networks, CGNAT | Use way ③ |
 | `Direct connection: the machine did not meet the page.` | No way through the two NATs in a minute; or the answer is to an earlier line, the program was stopped, 15 minutes passed | Press **Make a new line** and send it |
 | `This answer is to a line made before: …` | An answer `rd1a.…` came, and this page made no line: it was reloaded since | Press **Make the line** and send the new line |
 | `The direct connection is lost: make a new one.` | The connection of way ④ broke | Press **Make a new line** and send it |
-| Way ④: the program prints `not a line of the page` | Something else was pasted into its window | Paste the whole line `rd1o.…` of the page |
-| Way ④: the program prints `none of the 11 public STUN servers answers` at its start, or `no public STUN server answered` at a meeting | The remote computer reaches no STUN server: no internet, or a firewall blocks UDP | Only a page in the same network can meet it then. Use way ① or ③ |
-| Way ④: the program prints `the router opens no port to this computer` | The router speaks neither UPnP, NAT-PMP nor PCP, or has them off | Turn UPnP on in the settings of the router, or use the two lines it prints next |
-| Way ④: the program prints `its own address … is not public` | The router has a port, but sits behind a NAT of the provider (CGNAT) or behind another router | Use the two lines, or way ③ |
-| Way ④: the program prints `the router gave another port` | The router restarted and gave the port anew | Send the new line it prints |
+| Way ④: the program says `Not a line of the page` | Something else was pasted into its window | Paste the whole line `rd1o.…` of the page |
+| Way ④: the program says `None of the 11 public STUN servers answers` at its start, or `No public STUN server answered` at a meeting | The remote computer reaches no STUN server: no internet, or a firewall blocks UDP | Only a page in the same network can meet it then. Use way ① or ③ |
+| Way ④: the program shows no line of its own, and asks for the line of the page at once | The router speaks neither UPnP, NAT-PMP nor PCP, or has them off; or it sits behind a NAT of the provider (CGNAT) or another router | Use the two lines; or turn UPnP on in the settings of the router, or use way ③ |
+| Way ④: the program says `The router gave another port` | The router restarted and gave the port anew | Send the new line it shows |
 | Way ④: the line `from the internet` does not connect from the same network | The router does not pass its own address back inside | Use the line `in this network` there |
-| Way ④: the program prints `the NAT of this computer is symmetric` | Its NAT gives each server another port | It meets only a page behind a NAT that is not symmetric. If they do not meet, use way ③ |
+| Way ④: the program says `The router of this computer is strict` | Its NAT gives each server another port | It meets only a page behind a NAT that is not symmetric. If they do not meet, use way ③ |
 | The page opened from an `https://` site does not connect | Such a page may dial only `wss://`, and the program speaks `ws://` (it encrypts by itself) | Open the page from the disk or an `http://` site |
 | A low frame rate on a large display | The graphics card of the remote computer has no video encoder | Turn on **Fit** and make your window smaller |
 

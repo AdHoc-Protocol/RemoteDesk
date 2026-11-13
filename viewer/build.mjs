@@ -38,11 +38,11 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const PICTURES = [
     {
         file: "page-1-ready", way: 1, parts: { me: "try", back: "ok", wa: "try", wb: "try", rem: "try" }, rem: ["reaching it…", ""],
-        back: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE",
+        back: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
     },
     {
         file: "page-3-connecting", way: 3, parts: { me: "try", back: "ok", wa: "try", wb: "try", rem: "try" },
-        back: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE", mid: ["a router of yours brings the two together", ""], rem: ["reaching it…", ""],
+        back: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9", mid: ["a router of yours brings the two together", ""], rem: ["reaching it…", ""],
     },
     {
         file: "page-4-waiting", way: 4, parts: { out: "ok", back: "wait", rem: "wait" }, stun: ["ok", "ok", "no", "ok"], made: true,
@@ -54,7 +54,7 @@ const PICTURES = [
     },
     {
         file: "page-2-broken", way: 2, parts: { me: "ok", back: "ok", wa: "up", wb: "cut", rem: "bad" },
-        back: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE", mid: ["straight to the address of its router: the router lets you in", ""],
+        back: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9", mid: ["straight to the address of its router: the router lets you in", ""],
         rem: ["not reached: is the port forwarded on its router, and its address public?", "bad"],
     },
 ];
@@ -200,7 +200,7 @@ async function pictures() {
     {
         const STEPS = [
             ["Encrypted", "Noise from here on: nobody between reads or changes anything"],
-            ["Its key", "The computer proves its key. The page keeps it the first time; later it must be the same"],
+            ["Its key", "The computer proves its key: it must fit the check in the line, or no token goes"],
             ["The token", "From the line, with your name. 5 wrong in a row: nobody gets in for a minute"],
             ["In", "The screen comes; the remote computer prints who came in, from where"],
         ];
@@ -240,7 +240,7 @@ async function pictures() {
             hand(step, cx, y + 146, title, 26, "var(--ink)");
             lines(words, 26).forEach((line, k) => hand(step, cx, y + 170 + k * 18, line, 17, "var(--muted)"));
         });
-        lines("The first time, compare the key the page shows with the line key that rdp-host printed: the same - it is your computer", 90)
+        lines("Nothing to compare by hand: the line carries a check of the key of the remote computer, and the page checks it by itself", 90)
             .forEach((line, k) => hand(scene, 500, 306 + k * 24, line, 21, "var(--ink)"));
         save("connect", svg);
     }

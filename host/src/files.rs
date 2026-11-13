@@ -108,11 +108,11 @@ fn on_metadata(meta: &mut FileTransfer_Metadata, conn: &Connection, _actor: &Act
     let opened = crate::os::files::downloads().and_then(|folder| create_new(&folder, &name));
     match opened {
         Ok((file, path)) => {
-            println!("file: receiving {} ( {} bytes )", path.display(), meta.size);
+            say!("📥", News, "Receiving {} ( {} bytes )", path.display(), meta.size);
             *incoming = Incoming::Writing { file, path, written: 0 };
         }
         Err(e) => {
-            eprintln!("file: cannot create {name}: {e}");
+            say!("📥", Bad, "Cannot create {name}: {e}");
             *incoming = Incoming::Dropping;
             send_error(conn, &e);
         }
@@ -140,7 +140,7 @@ fn on_data(data: &mut FileTransfer_Data, conn: &Connection, _actor: &Actor0) {
         Incoming::Dropping => return,
     };
     if let Some(e) = failed {
-        eprintln!("file: cannot write: {e}");
+        say!("📥", Bad, "Cannot write the file: {e}");
         abandon(incoming, Incoming::Dropping);
         send_error(conn, &e);
     }
@@ -154,7 +154,7 @@ fn on_done(_done: &mut FileTransfer_Done, conn: &Connection, _actor: &Actor0) {
             let Some(conn) = crate::session::viewer(conn) else { return };
             std::thread::spawn(move || match file.sync_all() {
                 Ok(()) => {
-                    println!("file: received {} ( {written} bytes )", path.display());
+                    say!("📥", Good, "Received {} ( {written} bytes )", path.display());
                     actor0::working::transmitter::send_file_transfer_success(FileTransfer_Success, &conn);
                 }
                 Err(e) => {
@@ -174,12 +174,12 @@ fn on_error(error: FileTransfer_Error, conn: &Connection, _actor: &Actor0) {
     let mut all = INCOMING.lock().unwrap();
     let incoming = incoming_of(&mut all, conn);
     if matches!(*incoming, Incoming::Writing { .. }) {
-        println!("file: the page stopped the transfer ( {:?} )", error.kind().0);
+        say!("📁", Quiet, "The page stopped the transfer ( {:?} )", error.kind().0);
         abandon(incoming, Incoming::Dropping);
     }
     drop(all);
     if cancel_outgoing(conn) {
-        println!("file: the page did not take the file ( {} )", error.kind().0);
+        say!("📁", Warn, "The page did not take the file ( {} )", error.kind().0);
     }
 }
 
@@ -249,7 +249,7 @@ fn send_kind(conn: &Connection, kind: FileTransfer_Error_Kind) {
 // ── from the machine ──
 
 fn on_success(_success: &mut FileTransfer_Success, _conn: &Connection, _actor: &Actor0) {
-    println!("file: the page saved the file");
+    say!("📤", Good, "The page saved the file");
 }
 
 fn on_chunk_sent(_data: &mut FileTransfer_Data, conn: &Connection, _actor: &Actor0) {
@@ -269,7 +269,7 @@ fn on_request(_request: &mut FileTransfer_RequestTransfer, conn: &Connection, _a
         let mut outgoing = OUTGOING.lock().unwrap();
         let key = key(&conn);
         if outgoing.iter().any(|o| o.conn == key) {
-            return println!("file: a file is on its way to the page already");
+            return say!("📤", Warn, "A file is on its way to the page already");
         }
         let transfer = Arc::new(Outgoing { conn: key, cancel: AtomicBool::new(false), sent: AtomicU64::new(0), sender: OnceLock::new() });
         outgoing.push(transfer.clone());
@@ -282,7 +282,7 @@ fn on_request(_request: &mut FileTransfer_RequestTransfer, conn: &Connection, _a
             match crate::os::files::pick() {
                 Some(path) => send_file(&conn, &path, &transfer),
                 None => {
-                    println!("file: no file picked");
+                    say!("📤", Quiet, "No file picked");
                     send_kind(&conn, FileTransfer_Error_Kind::CANCELED);
                 }
             }
@@ -296,27 +296,27 @@ fn send_file(conn: &Arc<Connection>, path: &Path, transfer: &Outgoing) {
     let file = match File::open(path) {
         Ok(f) => f,
         Err(e) => {
-            eprintln!("file: cannot open {}: {e}", path.display());
+            say!("📤", Bad, "Cannot open {}: {e}", path.display());
             return send_error(conn, &e);
         }
     };
     let size = file.metadata().map(|m| m.len()).unwrap_or(0);
     let filename = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    println!("file: sending {} ( {size} bytes )", path.display());
+    say!("📤", News, "Sending {} ( {size} bytes )", path.display());
 
     let open = || conn.ext_connection().is_some();
     if cancel.load(Ordering::Acquire) || !open() {
-        return println!("file: the page no longer waits for {}", path.display());
+        return say!("📤", Quiet, "The page no longer waits for {}", path.display());
     }
     if !actor0::working::transmitter::send_file_transfer_metadata(FileTransfer_Metadata { filename: Some(filename), size }, conn) {
-        return eprintln!("file: the connection takes no more");
+        return say!("📤", Bad, "The connection takes no more");
     }
 
     let mut queued = 0u64;
     let mut offset = 0u64;
     loop {
         if cancel.load(Ordering::Acquire) || !open() {
-            return println!("file: stopped at {offset} bytes");
+            return say!("📤", Quiet, "Stopped at {offset} bytes");
         }
         if queued - transfer.sent.load(Ordering::Acquire) >= AHEAD {
             std::thread::park_timeout(Duration::from_millis(100)); // a chunk sent wakes it, and the cancel; the time - for a link that closed
@@ -330,7 +330,7 @@ fn send_file(conn: &Arc<Connection>, path: &Path, transfer: &Outgoing) {
                 Ok(n) => filled += n,
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
                 Err(e) => {
-                    eprintln!("file: cannot read {}: {e}", path.display());
+                    say!("📤", Bad, "Cannot read {}: {e}", path.display());
                     return send_error(conn, &e);
                 }
             }
@@ -353,7 +353,7 @@ fn send_file(conn: &Arc<Connection>, path: &Path, transfer: &Outgoing) {
         }
         std::thread::sleep(Duration::from_millis(5));
     }
-    println!("file: sent {} ( {offset} bytes )", path.display());
+    say!("📤", Good, "Sent {} ( {offset} bytes )", path.display());
 }
 
 /// Bytes of `file` from `offset` on, wherever its cursor is.

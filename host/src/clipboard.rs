@@ -34,7 +34,7 @@ fn on_clipboard(event: &mut ClipboardEvent, conn: &Connection, _actor: &Actor0) 
     let Some(data) = event.data.take() else { return };
     KNOWN.store(hash(&data), Ordering::Release);
     if !crate::os::clip::set(&String::from_utf8_lossy(&data)) {
-        eprintln!("clipboard: the text of the page is not set");
+        say!("📋", Bad, "The text from the page did not go into the clipboard");
     }
 }
 
@@ -44,12 +44,6 @@ pub fn put_line(line: &str) -> bool {
     crate::os::clip::set(line)
 }
 
-/// Says the line printed above is in the clipboard, when `put_line` put it there.
-pub fn tell_put(line: &str) {
-    if put_line(line) {
-        println!("  It is in the clipboard: paste it into a message to whoever connects.");
-    }
-}
 
 /// The clipboard of the machine changed - not by the page: its text, with `\n` lines, goes to the viewer that controls.
 fn changed(text: String) {
@@ -60,7 +54,7 @@ fn changed(text: String) {
         return;
     }
     if bytes.len() > MAX_BYTES {
-        return println!("clipboard: {} bytes of text are more than the page takes", bytes.len());
+        return say!("📋", Warn, "{} bytes in the clipboard: more than the page takes", bytes.len());
     }
     actor0::working::transmitter::send_clipboard_event(ClipboardEvent { data: Some(bytes) }, &conn);
 }

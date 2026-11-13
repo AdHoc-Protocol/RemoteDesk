@@ -115,7 +115,8 @@ export interface Display {
 
 /** x and y are fractions of the display, 0 … 65535. */
 export type ToWorker =
-    | { t: W.CONNECT; address: string; token: string; name: string; secret: Uint8Array; kept: Uint8Array | undefined; origin: number; canvas: OffscreenCanvas; port?: MessagePort | undefined }
+    /** `check` - what the line carries of the key of the machine, after the token ( src/worker/session.ts, keyCheck ): undefined - nothing. */
+    | { t: W.CONNECT; address: string; token: string; check: string | undefined; name: string; secret: Uint8Array; kept: Uint8Array | undefined; origin: number; canvas: OffscreenCanvas; port?: MessagePort | undefined }
     | { t: W.LEAVE }
     /** `moved` - the pointer is at x, y; dx, dy - pixels of the machine the locked pointer moved; wx, wy - 120ths of a notch. */
     | { t: W.POINTER; moved: boolean; x: number; y: number; dx: number; dy: number; wx: number; wy: number }
@@ -145,7 +146,8 @@ export type ToWorker =
     | { t: W.TAKE_CONTROL };
 
 export type ToMain =
-    | { t: M.PROVED; key: Uint8Array; accepted: boolean }
+    /** `checked` - by the check of the line, not by the key kept: `accepted` - it is the machine of the line. */
+    | { t: M.PROVED; key: Uint8Array; accepted: boolean; checked: boolean }
     /** `error` - why, in the words of the browser. */
     | { t: M.STATUS; error: string }
     /** `error` - why the connect failed, in the words of the browser; "" - the reason went by `STATUS`, or there is none. */

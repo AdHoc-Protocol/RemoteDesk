@@ -11,7 +11,6 @@
 // viewers asks. How a display is captured and encoded is the system's: `os::video::Source`.
 
 use std::collections::VecDeque;
-use std::fmt::Write as _;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -203,7 +202,7 @@ fn on_event_time(time: Viewer_EventTime, conn: &Connection, _: &Actor0) {
 /// viewer shows.
 fn layout() {
     if let Err(e) = osv::startup() {
-        eprintln!("video: the system does not start the video: {e}");
+        say!("🖥️", Bad, "The system does not start the video: {e}");
         return;
     }
     let mut told: Vec<(u8, u32, u32, String)> = Vec::new();
@@ -215,7 +214,7 @@ fn layout() {
         let Some(watches) = WATCHES.load_full() else { continue };
         let displays = osv::displays();
         if displays.is_empty() {
-            eprintln!("video: no display to capture");
+            say!("🖥️", Bad, "No display to capture");
             std::thread::sleep(Duration::from_secs(1));
             WAKE.store(true, Ordering::Release);
             continue;
@@ -256,18 +255,18 @@ fn shown(screen: u8) -> bool { WATCHES.load().as_deref().is_some_and(|all| all.i
 fn run(screen: u8) {
     let mut watchers = Watchers { list: Vec::with_capacity(8), shape: None, position: None };
     if let Err(e) = osv::startup() {
-        eprintln!("video: the system does not start the video: {e}");
+        say!("🖥️", Bad, "The system does not start the video: {e}");
         STREAMS.lock().unwrap().retain(|&s| s != screen);
         return;
     }
-    println!("video: display {screen} started");
+    say!("🖥️", Quiet, "Display {screen} is shown");
     loop {
         // none shows it: the thread ends - with the display let go, so a thread started for it again may capture it
         if !shown(screen) {
             let mut streams = STREAMS.lock().unwrap();
             if !shown(screen) {
                 streams.retain(|&s| s != screen);
-                return println!("video: display {screen} stopped");
+                return say!("🖥️", Quiet, "Display {screen} is no longer shown");
             }
         }
         let displays = osv::displays();
@@ -278,9 +277,9 @@ fn run(screen: u8) {
         };
         if let Err(e) = stream(screen, &displays, display, &mut watchers) {
             if let Some(why) = e.downcast_ref::<Restart>() {
-                println!("video: {why}");
+                say!("🖥️", Warn, "{why}");
             } else if !osv::lost(&e) {
-                eprintln!("video: {e}");
+                say!("🖥️", Bad, "{e}");
                 std::thread::sleep(Duration::from_millis(500));
             }
             wake(); // the mode may have changed: the layout is told again
@@ -399,8 +398,6 @@ fn stream(screen: u8, displays: &[Display], display: &Display, w: &mut Watchers)
     let mut rate = Rate::new();
     let mut source = Source::new(display, fps, rate.bitrate)?;
     let mut format_sent = false;
-    let mut made = 0u32; // frames since the last report
-    let mut report = Instant::now();
     let mut active_checked = Instant::now() - Duration::from_secs(1);
     let mut units: Vec<Unit> = Vec::new();
     // the frames in the encoder: when each was captured and given to it
@@ -420,18 +417,6 @@ fn stream(screen: u8, displays: &[Display], display: &Display, w: &mut Watchers)
             if w.list.is_empty() || wanted != fps {
                 return Ok(());
             }
-        }
-        if report.elapsed() >= Duration::from_secs(5) {
-            if made > 0 {
-                let mut line = format!("video: display {screen}: {made} frame(s) in 5 s, unacknowledged");
-                for v in &w.list {
-                    let state = if !v.enabled { " ( off )" } else if v.skipped { " ( passed over )" } else { "" };
-                    let _ = write!(line, " · {} {}{state}", v.watch.name, v.in_flight());
-                }
-                println!("{line}");
-            }
-            report = Instant::now();
-            made = 0;
         }
         // while the encoder works, what it gives is taken soon; a changed frame that came too early goes when its interval is
         // over, not a whole interval later; one held back by the page's acknowledgements looks again in a moment
@@ -482,7 +467,6 @@ fn stream(screen: u8, displays: &[Display], display: &Display, w: &mut Watchers)
                 let (captured, given) = encoding.pop_front().unwrap_or((captured_at, captured_at));
                 let id = send(screen, w, &mut format_sent, unit, width, height, (given - captured).as_millis() as u16, given.elapsed().as_millis() as u16);
                 rate.sent(id);
-                made += 1;
             }
         }
 
@@ -514,7 +498,7 @@ fn stream(screen: u8, displays: &[Display], display: &Display, w: &mut Watchers)
         let stalled = |v: &Subscriber| v.taking() && v.full_since.is_some_and(|since| now - since >= STALLED);
         if !room && w.list.iter().any(|v| v.taking() && !stalled(v)) {
             for v in w.list.iter_mut().filter(|v| stalled(v)) {
-                println!("video: display {screen}: {} is passed over until it catches up", v.watch.name);
+                say!("🐢", Quiet, "Display {screen}: {} is passed over until it catches up", v.watch.name);
                 v.skipped = true;
                 v.waiting.clear();
                 v.full_since = None;
@@ -538,7 +522,7 @@ fn stream(screen: u8, displays: &[Display], display: &Display, w: &mut Watchers)
             continue; // the encoder is busy: the frame waits
         }
         if let Some(what) = source.announce() {
-            println!("video: display {} ( {} ) {what}", display.screen, display.name);
+            say!("🖥️", Quiet, "Display {} ( {} ) {what}", display.screen, display.name);
         }
         encoding.push_back((captured_at, encode_start));
         dirty = false;

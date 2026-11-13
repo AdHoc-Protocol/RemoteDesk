@@ -60,30 +60,29 @@ pub fn granted() -> Option<u16> {
 
 /// Shows the line for the viewer, waits for Enter - unless access was granted before this start ( `port` ) - and meets the
 /// viewers from then on.
-pub fn start(meet: Meet, server: Server, port: Option<u16>, token: String) {
-    thread::Builder::new().name("meet".into()).spawn(move || run(meet, server, port, token)).expect("a thread of the meeting");
+pub fn start(meet: Meet, server: Server, port: Option<u16>, pass: String) {
+    thread::Builder::new().name("meet".into()).spawn(move || run(meet, server, port, pass)).expect("a thread of the meeting");
 }
 
-fn run(meet: Meet, server: Server, port: Option<u16>, token: String) {
+fn run(meet: Meet, server: Server, port: Option<u16>, pass: String) {
     // one socket for the request and the knocks: the meeting point gives the port to the address they come from
     let udp = match UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) {
         Ok(udp) => udp,
-        Err(e) => return eprintln!("the meeting: {e}"),
+        Err(e) => return say!("❌", Bad, "The meeting: {e}"),
     };
     let asked = port.is_none();
     let port = match port {
         Some(port) => port, // given before this start, to this address: its knocks open it
         None => match ask(&udp, &meet) {
             Ok(port) => port,
-            Err(e) => return eprintln!("the meeting point {}: {e}", meet.point),
+            Err(e) => return say!("❌", Bad, "The meeting point {}: {e}", meet.point),
         },
     };
-    // one line for the viewer: the address of the meeting and, after #, the token - the page takes it whole
-    let line = format!("{}:{port}#{token}", meet.point);
-    println!("Send this line to whoever connects:\n  {line}");
-    crate::clipboard::tell_put(&line);
+    // one line for the viewer: the address of the meeting and, after #, the token and the check of the key - the page takes it whole
+    let line = format!("{}:{port}#{pass}", meet.point);
+    crate::console::line_to_send(&line);
     if asked {
-        println!("Enter: grant access to this computer");
+        say!("🔑", Wait, "Press Enter when the line has reached them: the meeting point lets them in from then on");
         let held = hold(&udp, &meet, port);
         let mut line = String::new();
         let read = io::stdin().lock().read_line(&mut line).unwrap_or(0);
@@ -93,13 +92,14 @@ fn run(meet: Meet, server: Server, port: Option<u16>, token: String) {
         }
     }
     GRANTED.store(port, Ordering::Relaxed);
-    println!("access granted: the viewer connects with the line above");
+    say!("🔓", Good, "Access granted");
+    say!("👀", Wait, "Waiting for whoever connects…");
     loop {
         // a meeting point of a dynamic address: its name is looked up for each meeting
         let at = match ipv4(&meet.point) {
             Ok(router) => SocketAddrV4::new(router, port),
             Err(e) => {
-                eprintln!("the meeting point {}: {e}", meet.point);
+                say!("❌", Bad, "The meeting point {}: {e}", meet.point);
                 thread::sleep(Duration::from_secs(5));
                 continue;
             }
@@ -107,11 +107,11 @@ fn run(meet: Meet, server: Server, port: Option<u16>, token: String) {
         match once(&udp, at, &meet.password) {
             Ok(stream) => {
                 if let Err(e) = server.adopt(stream) {
-                    eprintln!("the meeting at {at}: {e}");
+                    say!("❌", Bad, "The meeting at {at}: {e}");
                 }
             }
             Err(e) => {
-                eprintln!("the meeting at {at}: {e}");
+                say!("❌", Bad, "The meeting at {at}: {e}");
                 thread::sleep(Duration::from_secs(1));
             }
         }

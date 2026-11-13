@@ -25,6 +25,8 @@ igd-next = "*"
 netdev = { version = "*", default-features = false, features = ["gateway"] }
 # the port the router opened is closed again when the program is: Ctrl+C, its window closed
 ctrlc = { version = "*", features = ["termination"] }
+# the window of the program: colours, and the menu answered by the key pressed, no Enter after it
+crossterm = "*"
 # the AdHoc runtime ( protocol/lib )
 mio = { version = "*", features = ["os-poll", "net"] }
 parking_lot = "*"

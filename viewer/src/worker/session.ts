@@ -6,6 +6,7 @@
 // ../../protocol/ is the code AdHoc generates from D:\rdp\RemoteDesk.cs ( deployed there by D:\rdp\generated\RemoteDesk.md ).
 
 import AdHoc from "../../protocol/lib/AdHoc";
+import Crypto from "../../protocol/lib/Crypto";
 import Network from "../../protocol/lib/Network.browser";
 import Viewer from "../../protocol/gen/Viewer";
 import Session from "../../protocol/gen/Session/Connection";
@@ -88,6 +89,23 @@ function stopSession(): void {
 
 const same = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v, i) => v === b[i]);
 
+/** The letters of the token and of the check, 5 bits each: as the program has them ( host/src/session.rs ). */
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const hashed = new Uint8Array(32);
+
+/**
+ * The check of `key` the line of the machine carries after its token: 8 letters, the first 40 bits of its SHA-256 - as `key_check` of
+ * the program makes it. Here at once, in the handshake: the token goes only to the machine of the line.
+ */
+function keyCheck(key: Uint8Array): string {
+    Crypto.Sha256.hash(hashed, key);
+    let bits = 0n;
+    for (let i = 0; i < 5; i++) bits = bits << 8n | BigInt(hashed[i]!);
+    let out = "";
+    for (let i = 7; i >= 0; i--) out += ALPHABET[Number(bits >> BigInt(i * 5) & 31n)];
+    return out;
+}
+
 async function connect(m: Extract<ToWorker, { t: W.CONNECT }>): Promise<void> {
     client?.closeGracefully(1000, "a new connection");
     client = undefined;
@@ -98,12 +116,15 @@ async function connect(m: Extract<ToWorker, { t: W.CONNECT }>): Promise<void> {
     canvas = m.canvas;
     input.origin(m.origin);
 
-    const secret = m.secret, kept = m.kept;
+    const secret = m.secret, kept = m.kept, check = m.check;
     noise.secret = () => secret.slice(); // a copy each time: what the handshake takes it may wipe
-    // the region "The key the far end proved" asks: the page keeps the first key it saw at an address, a later one must be the same
+    // the region "The key the far end proved" asks: the line of the machine carries a check of its key - it must fit, whatever was kept;
+    // a line without one - the page keeps the first key it saw at an address, a later one must be the same. No: the handshake ends
+    // here, and the token, sent after it, goes nowhere
     noise.proved = key => {
-        const accepted = kept === undefined || same(kept, key);
-        toPage({ t: M.PROVED, key: key.slice(), accepted });
+        const checked = check !== undefined;
+        const accepted = checked ? keyCheck(key) === check : kept === undefined || same(kept, key);
+        toPage({ t: M.PROVED, key: key.slice(), accepted, checked });
         return accepted;
     };
 

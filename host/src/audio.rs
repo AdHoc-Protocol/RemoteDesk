@@ -109,7 +109,7 @@ pub fn stop(conn: &Connection) {
     if nobody {
         if let Some(flag) = capture.take() {
             flag.store(true, Ordering::Release);
-            println!("sound: off");
+            say!("🔇", Quiet, "Sound off");
         }
     }
 }
@@ -118,7 +118,7 @@ pub fn stop(conn: &Connection) {
 pub fn mic_off() {
     if let Some(mic) = MIC.lock().unwrap().take() {
         mic.stop.store(true, Ordering::Release);
-        println!("microphone: off");
+        say!("🎙️", Quiet, "Microphone off");
     }
 }
 
@@ -161,7 +161,7 @@ fn on_audio_packet(packet: &mut AudioPacket, conn: &Connection, _actor: &Actor0)
                     .name("microphone".into())
                     .spawn(move || {
                         if let Err(e) = play(&player) {
-                            eprintln!("microphone: cannot play: {e}");
+                            say!("🎙️", Bad, "The microphone cannot play: {e}");
                             if let Some(conn) = conn {
                                 actor0::working::transmitter::send_machine_microphone_error(Machine_MicrophoneError, &conn);
                             }
@@ -169,7 +169,7 @@ fn on_audio_packet(packet: &mut AudioPacket, conn: &Connection, _actor: &Actor0)
                         }
                     })
                     .expect("the thread of the microphone");
-                println!("microphone: on, {rate} Hz mono");
+                say!("🎙️", News, "Microphone on: the viewer speaks through this computer");
                 mic
             }
         }
@@ -229,9 +229,9 @@ fn capture_sound(stop: &AtomicBool) {
             out.clear();
         }
     };
-    println!("sound: on, {RATE} Hz stereo");
+    say!("🔊", News, "Sound on: the viewer hears this computer");
     if let Err(e) = crate::os::sound::capture(stop, &mut deliver) {
-        eprintln!("sound: cannot capture: {e}");
+        say!("🔇", Bad, "The sound cannot be captured: {e}");
     }
 }
 

@@ -106,9 +106,9 @@ const PORT = 8765;
 
 /** What the line of each way looks like, in its field until one is pasted. */
 const EXAMPLE: Record<Way, string> = {
-    1: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE",
-    2: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE",
-    3: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE",
+    1: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
+    2: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
+    3: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
     4: "rd1a.EQh6cTJmY1M2dFZ4b0pXa3RnU2xh…",
 };
 
@@ -128,9 +128,13 @@ function machine(text: string): string | undefined {
  * The line of the program, as it printed it and the user pasted it - `<address>:<port>#<token>` -: where to dial and the token. The
  * field keeps it whole, untouched: the page takes it apart only here. `undefined` - not such a line.
  */
-function theLine(): { at: string; token: string } | undefined {
+function theLine(): { at: string; token: string; check: string | undefined } | undefined {
     const line = split(address.value), at = line === undefined ? undefined : machine(line.address);
-    return at === undefined || line === undefined || line.token.trim() === "" ? undefined : { at, token: line.token.trim() };
+    const pass = line?.token.trim() ?? "";
+    if (at === undefined || pass === "") return undefined;
+    // after the token, `-` and the check of the key of the machine: 8 of the letters of the token; a line without it - the token alone
+    const dash = pass.lastIndexOf("-"), check = pass.slice(dash + 1);
+    return dash > 0 && /^[A-HJ-NP-Z2-9]{8}$/.test(check) ? { at, token: pass.slice(0, dash), check } : { at, token: pass, check: undefined };
 }
 
 /** What the field on the arrow back holds. */
@@ -235,6 +239,9 @@ function draw(): void {
         case "otherKey":
             set(wireA, "up"); set(wireB, "up"); set(nodeRem, "bad"); say(remSay, "answers with another key than before: is it the same computer?", "bad");
             break;
+        case "notTheLine":
+            set(wireA, "up"); set(wireB, "up"); set(nodeRem, "bad"); say(remSay, "not the computer of the line: its key does not fit it - the token was not sent", "bad");
+            break;
         case "live":
             set(wireA, "up"); set(wireB, "up"); set(nodeMid, "ok"); set(nodeRem, "ok"); say(remSay, "let you in", "ok");
             break;
@@ -295,7 +302,7 @@ function go(): void {
     const answer = card(address.value, true);
     if (answer !== undefined) return void meet(answer);
     const line = theLine()!;
-    openDesk(line.at, line.token);
+    openDesk(line.at, line.token, undefined, undefined, line.check);
 }
 
 form.addEventListener("submit", e => { e.preventDefault(); go(); });
@@ -315,7 +322,7 @@ const STAGE_NOTE: Partial<Record<Stage, string>> = {
 };
 
 /** The desk on the machine `at`, by `typed` - the token -; direct: over `channel`, `attempt` closed with the desk. */
-function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?: Offer): void {
+function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?: Offer, check?: string): void {
     store.set("name", yourName.value);
     busy = true;
     overChannel = channel !== undefined;
@@ -326,7 +333,7 @@ function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?:
     const mine = ++opened; // connecting now: the desk before, retrying or not, ends
     desk?.leave();
     desk = open(deskHost, {
-        address: at, token: typed, name: yourName.value, store, channel,
+        address: at, token: typed, check, name: yourName.value, store, channel,
         onStage: s => {
             if (mine !== opened) return;
             where = s === "left" ? "" : s;
@@ -343,7 +350,7 @@ function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?:
         },
         onKey: (text, other) => {
             if (mine !== opened) return;
-            keyLine.textContent = text;
+            keyLine.textContent = other ? text : ""; // the key said only when it is not the one kept: else the page checks it alone
             forget.hidden = !other;
             if (text !== "") note(text, other ? "bad" : "");
         },

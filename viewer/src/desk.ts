@@ -54,6 +54,7 @@ export const english = {
     keyKept: "The key of this machine, kept from now on: {key}",
     keyIs: "The key of the machine: {key}",
     keyOther: "The machine answers with another key: {key}. The kept one: {kept}.",
+    notTheLine: "Not the computer of the line: its key does not fit the line. Someone else may answer at that address: the token was not sent.",
     keyForgotten: "The key is forgotten: the next login keeps the one the machine shows then.",
     machine: "the machine",
     display: "Display {n}",
@@ -138,6 +139,8 @@ export interface Options {
     /** Way 4, direct: the data channel the page and the machine met on ( ./direct.ts ) - the session goes over it, given to the
      *  worker. Lost, it is not dialed again: a new one takes a new exchange of the lines. */
     channel?: RTCDataChannel | undefined;
+    /** What the line of the machine carries of its key, after its token: the key the machine proves must fit it. */
+    check?: string | undefined;
     token: string;
     /** The name the machine shows its user: who connects. */
     name: string;
@@ -163,10 +166,11 @@ export interface Options {
  * handshake goes; `proved` - its key is proved, the token goes; `otherKey` - the machine answers with a key not kept for it;
  * `live` - the machine let the page in; `unreachable` - nobody answered at the address; `refused` - the machine did not take
  * the token, or has no room; `closed` - it closed while the page logged in; `failed` - the connection failed under way; `lost` - a
- * live session broke, dialed again; `lostDirect` - the direct one broke; `noAnswer` - dialed again, in vain; `left` - the user left.
+ * live session broke, dialed again; `lostDirect` - the direct one broke; `noAnswer` - dialed again, in vain; `left` - the user left;
+ * `notTheLine` - the key the machine proved does not fit the check in its line: not the machine of the line, the token not sent.
  */
 export type Stage = "dialing" | "reached" | "proved" | "otherKey" | "live" | "unreachable" | "refused" | "closed" | "failed" | "lost"
-    | "lostDirect" | "noAnswer" | "left";
+    | "lostDirect" | "noAnswer" | "left" | "notTheLine";
 
 export interface Desk {
     /** The element of the desk, in the container. */
@@ -301,13 +305,14 @@ export function open(container: HTMLElement, options: Options): Desk {
 
     let bad = false;
     const status = (text: string, isBad: boolean) => {
+        if (ended) return; // why it ended stays: what the closing connection tells after it does not cover it
         bad = isBad;
         stateLine.textContent = text;
         stateLine.className = isBad ? "rd-bad" : "";
         options.onStatus?.(text, isBad);
     };
 
-    const stage = (s: Stage) => options.onStage?.(s);
+    const stage = (s: Stage) => { if (!ended) options.onStage?.(s); };
 
     const showKey = (text: string, other: boolean) => {
         keyLine.textContent = text;
@@ -327,10 +332,19 @@ export function open(container: HTMLElement, options: Options): Desk {
      * The key the machine proved by the handshake: the first one seen at an address is kept, a later one must be the same - else
      * someone else answers at that address, and the page does not go on. The worker compared it with the kept one it was given.
      */
-    const proved = (key: Uint8Array, accepted: boolean) => {
+    const proved = (key: Uint8Array, accepted: boolean, checked: boolean) => {
         // direct: the machine is the one whose line came by hand - no address to keep its key for
         stage(accepted ? "proved" : "otherKey");
         if (options.channel !== undefined) return showKey(fill(t.keyIs, { key: fingerprint(key) }), false);
+        // checked by the line: it is the machine - its key is kept, a new one too; not it - nothing more goes there
+        if (checked) {
+            if (!accepted) {
+                stage("notTheLine");
+                return end(t.notTheLine, true, false);
+            }
+            store.set("host." + address, hex(key));
+            return showKey(fill(t.keyIs, { key: fingerprint(key) }), false);
+        }
         const kept = store.get("host." + address);
         if (kept === undefined && accepted) {
             store.set("host." + address, hex(key));
@@ -481,7 +495,7 @@ export function open(container: HTMLElement, options: Options): Desk {
             port = pair.port2;
         }
         post({
-            t: W.CONNECT, address, token, name: options.name.trim() || navigator.platform || "a browser",
+            t: W.CONNECT, address, token, check: channel === undefined ? options.check : undefined, name: options.name.trim() || navigator.platform || "a browser",
             secret: secret(), kept: kept === undefined ? undefined : unhex(kept), origin: performance.timeOrigin, canvas: next.offscreen, port,
         }, port === undefined ? [next.offscreen] : [next.offscreen, port]);
     }
@@ -624,7 +638,7 @@ export function open(container: HTMLElement, options: Options): Desk {
         failed(error: string) { status(fill(t.sessionFailed, { error }), true); },
         take(m: ToMain) {
             switch (m.t) {
-                case M.PROVED: return proved(m.key, m.accepted);
+                case M.PROVED: return proved(m.key, m.accepted, m.checked);
                 case M.STATUS: stage("failed"); return status(fill(t.linkFailed, { error: bare(m.error) }), true);
                 case M.DIALED:
                     if (m.ok) { stage("reached"); return status(t.loggingIn, false); }
