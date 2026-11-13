@@ -38,6 +38,11 @@ export interface Card {
     candidates: { ip: string; port: number }[];
     /** The token: in the answer of the machine. */
     token: string;
+    /**
+     * The answer: the router of the machine lets in only what it asked for - a page whose network gives it a new port for each
+     * address does not meet it. In the line: a byte of flags after the token, this one its bit 0; a machine before it sends none.
+     */
+    picky: boolean;
 }
 
 const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -82,7 +87,7 @@ export function line(card: Card, answer: boolean): string {
         const ip = ipBytes(c.ip)!;
         b.push(ip.length === 4 ? 4 : 6, ...ip, c.port >> 8, c.port & 255);
     }
-    if (answer) short(card.token);
+    if (answer) { short(card.token); b.push(card.picky ? 1 : 0); }
     return (answer ? ANSWER_PREFIX : OFFER_PREFIX) + base64url(Uint8Array.from(b));
 }
 
@@ -106,7 +111,9 @@ export function card(text: string, answer: boolean): Card | undefined {
         candidates.push({ ip: ipText(ip), port: port[0]! << 8 | port[1]! });
     }
     const token = answer ? text_() : "";
-    return token === undefined ? undefined : { ufrag, pwd, print: print.slice(), candidates, token };
+    const flags = answer ? byte() : -1; // -1, none: a machine before the flags
+    const picky = flags > 0 && (flags & 1) === 1;
+    return token === undefined ? undefined : { ufrag, pwd, print: print.slice(), candidates, token, picky };
 }
 
 function ipBytes(ip: string): number[] | undefined {
@@ -139,7 +146,7 @@ function ofSdp(sdp: string): Card | undefined {
         if (proto!.toLowerCase() !== "udp" || ipBytes(ip!) === undefined) continue;
         if (!candidates.some(c => c.ip === ip && c.port === +port!)) candidates.push({ ip: ip!, port: +port! });
     }
-    return print.length === 32 ? { ufrag, pwd, print, candidates, token: "" } : undefined;
+    return print.length === 32 ? { ufrag, pwd, print, candidates, token: "", picky: false } : undefined;
 }
 
 /** The SDP of the answer of the machine, as the browser takes it: one m-line, the data channel, the `mid` of the offer. */
@@ -175,6 +182,8 @@ export function relay(channel: RTCDataChannel, port: MessagePort): void {
 export interface Offer {
     /** The line of the page, `rd1o.…`. */
     readonly line: string;
+    /** The network of this device gives it a new port for each address it talks to. */
+    readonly strict: boolean;
     /** Takes the answer of the machine: the data channel once open, and the token of the machine; rejects - the two did not meet. */
     finish(card: Card): Promise<RTCDataChannel>;
     /** Gives the attempt up. */
@@ -191,8 +200,10 @@ function nameOf(url: string): string {
 /**
  * What the page learns on its way, told as it learns it, for a page that draws it: `ask` - the STUN servers are asked; `local` - an
  * address of this device itself; `seen` - a STUN server answered, the address the internet sees this device at, in `ms` from the
- * start; `silent` - a STUN server did not answer; `gathered` - the line is made; `state` - how the meeting goes, as ICE says;
- * `met` - the way found: the address of this side and of the machine, `how` - through the internet or in one network.
+ * start; `silent` - a STUN server did not answer; `gathered` - the line is made; `strict` - the network of this device gives it a
+ * new port for each address it talks to; `state` - how the meeting goes, as ICE says; `checked` - the meeting failed: the checks
+ * sent to one address of the machine and the answers; `met` - the way found: the address of this side and of the machine, `how` -
+ * through the internet or in one network.
  */
 export type Heard =
     | { k: "ask"; servers: readonly string[] }
@@ -201,6 +212,8 @@ export type Heard =
     | { k: "silent"; server: string; why: string }
     | { k: "gathered"; ms: number; seen: number }
     | { k: "state"; state: RTCIceConnectionState }
+    | { k: "strict" }
+    | { k: "checked"; address: string; sent: number; answered: number }
     | { k: "met"; mine: string; theirs: string; how: "internet" | "network"; ms: number };
 
 /** The offer of the page: its addresses gathered, its line made; `heard` is told each step of the way. */
@@ -209,6 +222,7 @@ export async function offer(heard: (h: Heard) => void = () => undefined): Promis
     const channel = pc.createDataChannel("rdp", { negotiated: true, id: CHANNEL, ordered: true });
     channel.binaryType = "arraybuffer";
     const start = performance.now(), answered = new Set<string>(), silent = new Set<string>();
+    const ports = new Map<string, Set<number>>(); // the IPv4 the internet sees this device at: the ports the STUN servers saw
     heard({ k: "ask", servers: STUN_NAMES });
     pc.addEventListener("icecandidate", e => {
         const c = e.candidate;
@@ -220,6 +234,10 @@ export async function offer(heard: (h: Heard) => void = () => undefined): Promis
             const url = (e as { url?: string | null }).url ?? (c as { url?: string | null }).url;
             const server = url ? nameOf(url) : "a STUN server";
             answered.add(server);
+            if (!c.address.includes(":")) {
+                const seen = ports.get(c.address) ?? new Set<number>();
+                ports.set(c.address, seen.add(c.port));
+            }
             heard({ k: "seen", server, address, ms: Math.round(performance.now() - start) });
         }
     });
@@ -237,8 +255,15 @@ export async function offer(heard: (h: Heard) => void = () => undefined): Promis
             if (pc.iceGatheringState === "complete") { clearTimeout(timer); done(); }
         });
     });
-    for (const server of STUN_NAMES) if (!answered.has(server) && !silent.has(server)) heard({ k: "silent", server, why: "no answer in time" });
+    for (const server of STUN_NAMES) {
+        if (answered.has(server) || silent.has(server)) continue;
+        silent.add(server); // its own error may come later, at the meeting: told once
+        heard({ k: "silent", server, why: "no answer in time" });
+    }
     heard({ k: "gathered", ms: Math.round(performance.now() - start), seen: answered.size });
+    // one IP, a port of its own for each server: a symmetric NAT, as the ones of mobile operators
+    const strict = [...ports.values()].some(p => p.size > 1);
+    if (strict) heard({ k: "strict" });
     const sdp = pc.localDescription?.sdp ?? "";
     const mine = ofSdp(sdp);
     if (mine === undefined) {
@@ -248,6 +273,7 @@ export async function offer(heard: (h: Heard) => void = () => undefined): Promis
     const mid = sdp.match(/^a=mid:(\S+)$/m)?.[1] ?? "0";
     return {
         line: line(mine, false),
+        strict,
         async finish(c: Card): Promise<RTCDataChannel> {
             const meeting = performance.now();
             pc.addEventListener("iceconnectionstatechange", () => {
@@ -259,15 +285,66 @@ export async function offer(heard: (h: Heard) => void = () => undefined): Promis
             await pc.setRemoteDescription({ type: "answer", sdp: answerSdp(c, mid) });
             if (channel.readyState === "open") return channel;
             return new Promise<RTCDataChannel>((resolve, reject) => {
-                const timer = setTimeout(() => reject(new Error("the machine did not meet the page")), MEETING_MS);
-                channel.addEventListener("open", () => { clearTimeout(timer); resolve(channel); });
+                // what ICE counted, taken each second: once it gives up, the browser drops the pairs from its statistics
+                let counted: Checks = { to: new Map(), came: 0 };
+                const counting = setInterval(() => void count(pc).then(c => { if (c.to.size > 0 || c.came > 0) counted = c; }), 1000);
+                const end = () => { clearTimeout(timer); clearInterval(counting); };
+                const fail = () => {
+                    end();
+                    reject(new Error(why(counted, strict, heard)));
+                };
+                const timer = setTimeout(fail, MEETING_MS);
+                channel.addEventListener("open", () => { end(); resolve(channel); });
                 pc.addEventListener("connectionstatechange", () => {
-                    if (pc.connectionState === "failed") { clearTimeout(timer); reject(new Error("no direct path between the two")); }
+                    if (pc.connectionState === "failed") fail();
                 });
             });
         },
         close() { pc.close(); },
     };
+}
+
+/** What ICE counted: the checks sent to each address of the machine and the answers to them; the checks of the machine that came. */
+interface Checks {
+    to: Map<string, { sent: number; answered: number }>;
+    came: number;
+}
+
+async function count(pc: RTCPeerConnection): Promise<Checks> {
+    const stats = await pc.getStats();
+    const to = new Map<string, { sent: number; answered: number }>();
+    let came = 0;
+    stats.forEach(s => {
+        if (s.type !== "candidate-pair") return;
+        came += s.requestsReceived ?? 0;
+        const r = stats.get(s.remoteCandidateId);
+        if (r === undefined || !s.requestsSent) return;
+        const ip: string = r.address ?? r.ip ?? "?";
+        const at = (ip.includes(":") ? `[${ip}]` : ip) + ":" + r.port;
+        const t = to.get(at) ?? { sent: 0, answered: 0 };
+        t.sent += s.requestsSent;
+        t.answered += s.responsesReceived ?? 0;
+        to.set(at, t);
+    });
+    return { to, came };
+}
+
+/**
+ * Why the two did not meet, from what ICE counted: each address of the machine told to `heard` with its checks. `strict` - the
+ * network of this device changes the port for each address.
+ */
+function why({ to, came }: Checks, strict: boolean, heard: (h: Heard) => void): string {
+    for (const [address, t] of to) heard({ k: "checked", address, ...t });
+    if ([...to.values()].some(t => t.answered > 0))
+        return "the addresses met, the encrypted channel did not open: the remote computer may have given this meeting up - make a new line";
+    if (came > 0)
+        return "the checks of the remote computer came, none of its answers did: something on the way lets only one direction through - use way 3";
+    return strict
+        ? "the remote computer answered none of the checks: its router lets in only what it asked for, and the network of this device " +
+          "gives it a new port for each address ( a strict NAT, as mobile operators have ) - such two meet only through way 3, " +
+          "a port open to the remote computer on its router, or this device in another network ( Wi-Fi )"
+        : "the remote computer answered none of the checks: its router, or a firewall on it, lets in nothing it did not ask for - use way 3, " +
+          "or open a port to it on its router";
 }
 
 /** The pair of addresses ICE took: this side's and the machine's, and whether it goes through the internet or stays in one network. */

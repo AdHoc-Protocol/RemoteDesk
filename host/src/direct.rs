@@ -70,7 +70,7 @@ const PIECE: usize = 1 << 14;
 // ── the lines of the exchange ──
 
 /// What one side tells the other: its ICE name and password, the SHA-256 of its DTLS certificate, the addresses it is reached at,
-/// and - in the answer of the machine - the token.
+/// and - in the answer of the machine - the token and whether its router is picky.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Card {
     pub ufrag:      String,
@@ -78,6 +78,9 @@ pub struct Card {
     pub print:      [u8; 32],
     pub candidates: Vec<SocketAddr>,
     pub token:      String,
+    /// The answer: the router of the machine lets in only what it asked for ( `Router::Picky` ) - a page whose network gives it a
+    /// new port for each address does not meet it. In the line: a byte of flags after the token, this one its bit 0.
+    pub picky:      bool,
 }
 
 /// The kind of a line, its first byte: the offer of the page, the answer of the machine.
@@ -108,6 +111,7 @@ impl Card {
         }
         if answer {
             short(&mut b, self.token.as_bytes());
+            b.push(self.picky as u8);
         }
         format!("{}.{}", if answer { "rd1a" } else { "rd1o" }, base64url(&b))
     }
@@ -136,7 +140,8 @@ impl Card {
             candidates.push(SocketAddr::new(ip, port));
         }
         let token = if answer { r.text()? } else { String::new() };
-        Some(Card { ufrag, pwd, print, candidates, token })
+        let picky = answer && r.byte().is_some_and(|flags| flags & 1 != 0);
+        Some(Card { ufrag, pwd, print, candidates, token, picky })
     }
 }
 
@@ -206,7 +211,8 @@ pub fn start(bridge: SocketAddr, token: String, pass: String, listen: SocketAddr
         .spawn(move || {
             // one line, if the router opens a port to the program; meanwhile the STUN servers, for the two lines
             let opening = (listen.is_ipv4() && !listen.ip().is_loopback()).then(|| thread::spawn(move || crate::portmap::open(listen.port())));
-            let stun: Arc<[SocketAddr]> = probe().into();
+            let (stun, router) = probe();
+            let stun: Arc<[SocketAddr]> = stun.into();
             let opened = match opening.map(thread::JoinHandle::join) {
                 Some(Ok(Ok(opened))) => {
                     one_line(opened, &pass);
@@ -233,7 +239,7 @@ pub fn start(bridge: SocketAddr, token: String, pass: String, listen: SocketAddr
                 let token = token.clone();
                 let stun = stun.clone();
                 let _ = thread::Builder::new().name("direct meeting".into()).spawn(move || {
-                    if let Err(e) = meet(page, bridge, &token, &stun) {
+                    if let Err(e) = meet(page, bridge, &token, &stun, router) {
                         say!("❌", Bad, "{e}");
                     }
                 });
@@ -254,7 +260,7 @@ fn one_line(opened: crate::portmap::Opened, pass: &str) {
 }
 
 /// One meeting: the answer printed, the page tried till it comes, the data channel bridged to the session.
-fn meet(page: Card, bridge: SocketAddr, token: &str, stun: &[SocketAddr]) -> io::Result<()> {
+fn meet(page: Card, bridge: SocketAddr, token: &str, stun: &[SocketAddr], router: Router) -> io::Result<()> {
     let udp = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))?;
     let port = udp.local_addr()?.port();
     // where it is reached: its address in its network, and the ones the internet sees
@@ -276,8 +282,7 @@ fn meet(page: Card, bridge: SocketAddr, token: &str, stun: &[SocketAddr]) -> io:
     api.set_ice_controlling(false);
     api.set_remote_ice_credentials(IceCreds { ufrag: page.ufrag.clone(), pass: page.pwd.clone() });
     api.set_remote_fingerprint(Fingerprint { hash_func: "sha-256".into(), bytes: page.print.to_vec() });
-    api.start_dtls(true).map_err(io::Error::other)?;
-    api.start_sctp(true);
+    // DTLS and SCTP start when ICE meets ( `run` ): the handshake of DTLS has 40 seconds from its start, the answer may take minutes
     let channel = api.create_data_channel(ChannelConfig { label: "rdp".into(), ordered: true, reliability: Reliability::Reliable, negotiated: Some(CHANNEL), protocol: String::new() });
     let creds = api.local_ice_credentials();
     let print: [u8; 32] = api.local_dtls_fingerprint().bytes.as_slice().try_into().map_err(|_| io::Error::other("the fingerprint of DTLS is not SHA-256"))?;
@@ -286,12 +291,21 @@ fn meet(page: Card, bridge: SocketAddr, token: &str, stun: &[SocketAddr]) -> io:
     if let Some(here) = here.filter(|h| !seen.contains(h)) {
         candidates.push(here);
     }
-    let answer = Card { ufrag: creds.ufrag, pwd: creds.pass, print, candidates, token: token.into() };
+    let picky = router == Router::Picky;
+    let answer = Card { ufrag: creds.ufrag, pwd: creds.pass, print, candidates, token: token.into(), picky };
     let line = answer.line(true);
     say!("✅", Good, "The answer is ready");
     crate::console::line_to_send(&line);
     if seen.is_empty() {
         say!("⚠️", Warn, "No public STUN server answered: only a page in this network can meet this computer");
+    }
+    // one IP, a port of its own for each STUN server: the network of the page is strict, as the one of a mobile operator
+    if page.candidates.iter().any(|a| page.candidates.iter().any(|b| a.is_ipv4() && a.ip() == b.ip() && a.port() != b.port())) {
+        match router {
+            Router::Picky => say!("⛔", Bad, "This page will not meet this computer directly: its network gives it a new port for each address ( as mobile operators do ), and the router here lets in only what it asked for. Use way 3, or the page on Wi-Fi"),
+            Router::Unknown => say!("⚠️", Warn, "The network of the page gives it a new port for each address ( a strict NAT, as mobile operators have ): it meets this computer only if this router lets in what it did not ask for; if not, use way 3"),
+            Router::Open => {}
+        }
     }
 
     run(rtc, udp, local, &page.candidates, channel, bridge, port, stun)
@@ -322,7 +336,14 @@ fn run(mut rtc: Rtc, udp: UdpSocket, local: SocketAddr, page: &[SocketAddr], cha
                     let _ = udp.send_to(&t.contents, t.destination);
                 }
                 Output::Event(e) => match e {
-                    Event::IceConnectionStateChange(IceConnectionState::Connected | IceConnectionState::Completed) => met = true,
+                    Event::IceConnectionStateChange(IceConnectionState::Connected | IceConnectionState::Completed) => {
+                        if !met {
+                            let mut api = rtc.direct_api();
+                            api.start_dtls(true).map_err(io::Error::other)?;
+                            api.start_sctp(true);
+                        }
+                        met = true;
+                    }
                     Event::IceConnectionStateChange(IceConnectionState::Disconnected) if met => {
                         say!("👋", Quiet, "The page is gone");
                         return Ok(());
@@ -461,21 +482,106 @@ pub fn public_ip() -> Option<IpAddr> {
     ask(&udp, &servers, PROBING).first().map(|(_, seen, _)| seen.ip())
 }
 
-/// Asks every server of `STUN` at the start of the machine: the ones that answered, the nearest first. None answered - all that
-/// have an address, to be asked again at each meeting: the network may come back.
-fn probe() -> Vec<SocketAddr> {
+/// What the router of this computer lets in from the internet, as found at its start ( `filtering` ).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Router {
+    /// What comes from an address this computer wrote to, from any port of it, or anything at all: a page in any network meets it -
+    /// the machine knocks at the address of the page.
+    Open,
+    /// Only what comes from the very address and port it wrote to, or a new port of its own for each address ( a symmetric NAT ): a
+    /// page whose network gives it a new port for each address too - a phone in a mobile network - does not meet it.
+    Picky,
+    /// Not found: fewer than two servers that answer from another address of theirs answered.
+    Unknown,
+}
+
+/// Asks every server of `STUN` at the start of the machine: the ones that answered, the nearest first, and what the router lets
+/// in. None answered - all that have an address, to be asked again at each meeting: the network may come back.
+fn probe() -> (Vec<SocketAddr>, Router) {
     let named = resolve();
     let servers: Vec<SocketAddr> = named.iter().map(|(_, a)| *a).collect();
+    let all = servers.clone();
+    let testing = thread::spawn(move || UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).map_or(Router::Unknown, |udp| filtering(&udp, &all)));
     let answers = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).map(|udp| ask(&udp, &servers, PROBING)).unwrap_or_default();
+    let mut router = testing.join().unwrap_or(Router::Unknown);
     if answers.is_empty() {
         say!("⚠️", Warn, "None of the {} public STUN servers answers: only a page in this network can meet this computer", STUN.len());
-        return servers;
+        return (servers, Router::Unknown);
     }
     // one IP, a port of its own for each server: the NAT is symmetric - only a page behind a NAT that is not meets it
     if answers.iter().any(|(_, a, _)| a.ip() == answers[0].1.ip() && a.port() != answers[0].1.port()) {
-        say!("⚠️", Warn, "The router of this computer is strict ( a symmetric NAT ): if the page does not meet it, use way 3");
+        router = Router::Picky;
+        say!("⚠️", Warn, "The router of this computer is strict ( a symmetric NAT ): way 4 meets a page at home or in an office, not a phone in a mobile network - for that one, way 3");
+    } else if router == Router::Picky {
+        say!("⚠️", Warn, "The router of this computer lets in only what it asked for: way 4 meets a page at home or in an office, not a phone in a mobile network - for that one, way 3");
+    } else if router == Router::Open {
+        say!("🌐", Quiet, "The router of this computer lets in the pages it calls: way 4 meets a page in any network");
     }
-    answers.into_iter().map(|(i, ..)| servers[i]).collect()
+    (answers.into_iter().map(|(i, ..)| servers[i]).collect(), router)
+}
+
+/// How long the router is tested at the start.
+const FILTERING: Duration = Duration::from_millis(1500);
+
+/// What the router lets in, by the servers of STUN that answer from another address of theirs ( RFC 5780 ): each is asked as is,
+/// to answer from another port, and from another address and port. An answer from elsewhere that comes in: the router lets in
+/// what it did not ask for - `Open`. Two servers that tell another address of theirs answered as is, none from elsewhere: it lets
+/// in only what it asked for - `Picky`. A server that does not do what is asked answers from where it was asked: no evidence.
+/// The transaction id: byte 18 - how it was asked, byte 19 - the index of the server.
+fn filtering(udp: &UdpSocket, servers: &[SocketAddr]) -> Router {
+    let n = servers.len().min(256);
+    let mut request = [0u8; 28];
+    request[..2].copy_from_slice(&1u16.to_be_bytes()); // Binding Request
+    request[4..8].copy_from_slice(&MAGIC.to_be_bytes());
+    request[20..24].copy_from_slice(&[0x00, 0x03, 0x00, 0x04]); // CHANGE-REQUEST, its flags in byte 27
+    if n == 0 || getrandom::fill(&mut request[8..18]).is_err() || udp.set_read_timeout(Some(Duration::from_millis(50))).is_err() {
+        return Router::Unknown;
+    }
+    let mut able = [false; 256]; // answered as is, and told another address of its own
+    let started = Instant::now();
+    let mut sent = started - RESEND;
+    let mut b = [0u8; 512];
+    while started.elapsed() < FILTERING {
+        if sent.elapsed() >= RESEND {
+            for (i, s) in servers[..n].iter().enumerate() {
+                request[19] = i as u8;
+                // as is; from another port; from another address and port
+                for (how, flags) in [(0u8, 0u8), (1, 0x02), (2, 0x06)] {
+                    request[18] = how;
+                    request[3] = if how == 0 { 0 } else { 8 };
+                    request[27] = flags;
+                    let _ = udp.send_to(&request[..if how == 0 { 20 } else { 28 }], s);
+                }
+            }
+            sent = Instant::now();
+        }
+        let Ok((len, from)) = udp.recv_from(&mut b) else { continue }; // the time out, or an ICMP of a closed port ( Windows )
+        let i = b[19] as usize;
+        if len < 20 || b[..2] != [0x01, 0x01] || b[8..18] != request[8..18] || i >= n {
+            continue;
+        }
+        if b[18] != 0 && from != servers[i] {
+            return Router::Open;
+        }
+        if b[18] == 0 && from == servers[i] && elsewhere(&b[..len]) {
+            able[i] = true;
+        }
+    }
+    if able.iter().filter(|a| **a).count() >= 2 { Router::Picky } else { Router::Unknown }
+}
+
+/// Whether a Binding Success Response tells another address of its server: OTHER-ADDRESS ( 0x802C ), or CHANGED-ADDRESS ( 0x0005 )
+/// of an old server.
+fn elsewhere(b: &[u8]) -> bool {
+    let mut at = 20;
+    while at + 4 <= b.len() {
+        let kind = u16::from_be_bytes([b[at], b[at + 1]]);
+        if kind == 0x802C || kind == 0x0005 {
+            return true;
+        }
+        at += 4 + (u16::from_be_bytes([b[at + 2], b[at + 3]]) as usize).div_ceil(4) * 4;
+    }
+    false
 }
 
 /// The addresses the internet sees `udp` at, by the servers that answered at the start: in the order they answer now, each once,
@@ -564,13 +670,18 @@ mod tests {
             print:      [7; 32],
             candidates: vec!["203.0.113.7:51234".parse().unwrap(), "[2001:db8::1]:40000".parse().unwrap()],
             token:      "K7QM2XHP9RTA4WZD8CNE".into(),
+            picky:      true,
         };
         let answer = card.line(true);
         assert!(answer.starts_with("rd1a."));
         assert_eq!(Card::of(&answer, true), Some(card.clone()));
         assert_eq!(Card::of(&answer, false), None);
         let offer = card.line(false);
-        assert_eq!(Card::of(&offer, false).map(|c| c.token), Some(String::new()));
+        assert_eq!(Card::of(&offer, false).map(|c| (c.token, c.picky)), Some((String::new(), false)));
+        // an answer of a machine before the flags: not picky
+        let bytes = unbase64url(&answer["rd1a.".len()..]).unwrap();
+        let old = format!("rd1a.{}", base64url(&bytes[..bytes.len() - 1]));
+        assert_eq!(Card::of(&old, true).map(|c| c.picky), Some(false));
         assert_eq!(Card::of("rd1a.!!!", true), None);
         assert!(answer.len() < 160, "{}", answer.len());
     }
@@ -591,5 +702,9 @@ mod tests {
         old.extend_from_slice(&[0, 0x01, 0, 8, 0, 0x01, 0xC8, 0x22, 198, 51, 100, 9]);
         assert_eq!(mapped(&old), Some("198.51.100.9:51234".parse().unwrap()));
         assert_eq!(mapped(&b[..20]), None);
+        assert!(!elsewhere(&b));
+        let mut told = b.clone();
+        told.extend_from_slice(&[0x80, 0x2C, 0, 8, 0, 0x01, 0x0D, 0x97, 198, 51, 100, 10]); // OTHER-ADDRESS 198.51.100.10:3479
+        assert!(elsewhere(&told));
     }
 }

@@ -413,8 +413,11 @@ The two lines work in one network too: the answer carries the address of the rem
 With `--direct` the program waits at `--listen` for ways ① and ② all along: it prints their lines when its router opened a port.
 
 ✓ The user of the remote computer sends the answer in a private message: it carries the token.
-✗ Two NATs that are both symmetric (mobile networks, the CGNAT of some providers) leave no straight way: the page says
-`no direct path between the two`. Use way ③.
+✗ A phone in a mobile network and a router that lets in only what it asked for leave no straight way: the network of the phone
+gives it a new port for each address, and the router drops what comes from a port it did not write to. Two symmetric NATs leave
+none either. Both sides are known before anything is tried: the page tells of its network when it makes its line, the program
+tells of its router at its start (STUN servers that answer from another address of theirs show it), and once the answer is
+pasted the page says at once that the two will not meet. Use way ③ then.
 
 ## When you connect
 
@@ -584,8 +587,9 @@ anyway, or stopped from the bar of the system, the phone says so in a notificati
 | Display over other apps | The marks the viewer draws | Once: **Allow** beside **Marks over the screen** in the app opens the page, turn RemoteDesk on there |
 | Accessibility: **RemoteDesk: control from the page** | Taps, swipes, the buttons of the phone, typing | Once: below |
 
-The app shows what is not allowed yet under **Finish the setup, once**, and hides it when all is. **Turn on** beside **Control
-from the page** opens **Accessibility**. Android lets an app control the others only as a
+The app shows what is not allowed yet under **Finish the setup, once**, and hides it when all is. Some phones, Xiaomi among them, turn
+the control off when a new version of the app is installed: the row shows again, turn it on as the first time. **Turn on**
+beside **Control from the page** opens **Accessibility**. Android lets an app control the others only as a
 service of accessibility, and every maker puts the list of such services in another place:
 
 1. Scroll **Accessibility** to the end, to the list of the services of the apps installed. On a Xiaomi it is **Downloaded apps**
@@ -721,8 +725,10 @@ What the page says, under the picture, beside its parts, or in its bar:
 | `The token is missing: …` | Only the address is there, without `#` and the token | Paste the whole line the program printed |
 | Way ③: the page does not get in, the program waits | Enter is not pressed yet, or the line is of an earlier start | The user of the remote computer presses Enter, or sends the new line |
 | Way ③: the program says `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Check the password and the port after `:` in `--meet`; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
-| `Direct connection: no direct path between the two.` | Both NATs are symmetric: mobile networks, CGNAT | Use way ③ |
-| `Direct connection: the machine did not meet the page.` | No way through the two NATs in a minute; or the answer is to an earlier line, the program was stopped, 15 minutes passed | Press **Make a new line** and send it |
+| `Direct connection: this device and the remote computer will not meet directly` | The network of your device gives it a new port for each address, as a mobile network does, and the router of the remote computer lets in only what it asked for. Found before the meeting: the page when it made its line, the program at its start | Use way ③; or your device on Wi-Fi; or open a port to the remote computer on its router |
+| `Direct connection: the remote computer answered none of the checks` | Its router, or a firewall on it, lets in nothing it did not ask for. Above it in the log: each address of the remote computer, the checks sent there and the ones answered | Use way ③; or open a port to it on its router |
+| `Direct connection: the checks of the remote computer came, none of its answers did` | Something on the way lets only one direction through | Use way ③ |
+| `Direct connection: the addresses met, the encrypted channel did not open` | The program gave this meeting up: it was stopped, 15 minutes passed, or the answer is to an earlier line | Press **Make a new line** and send it |
 | `This answer is to a line made before: …` | An answer `rd1a.…` came, and this page made no line: it was reloaded since | Press **Make the line** and send the new line |
 | `The direct connection is lost: make a new one.` | The connection of way ④ broke | Press **Make a new line** and send it |
 | Way ④: the program says `Not a line of the page` | Something else was pasted into its window | Paste the whole line `rd1o.…` of the page |
@@ -730,10 +736,12 @@ What the page says, under the picture, beside its parts, or in its bar:
 | Way ④: the program shows no line of its own, and asks for the line of the page at once | The router speaks neither UPnP, NAT-PMP nor PCP, or has them off; or it sits behind a NAT of the provider (CGNAT) or another router | Use the two lines; or turn UPnP on in the settings of the router, or use way ③ |
 | Way ④: the program says `The router gave another port` | The router restarted and gave the port anew | Send the new line it shows |
 | Way ④: the line `from the internet` does not connect from the same network | The router does not pass its own address back inside | Use the line `in this network` there |
-| Way ④: the program says `The router of this computer is strict` | Its NAT gives each server another port | It meets only a page behind a NAT that is not symmetric. If they do not meet, use way ③ |
+| Way ④: the program says `The router of this computer is strict` at its start | Its NAT gives each server another port | A page at home or in an office meets it; a phone in a mobile network needs way ③ |
+| Way ④: the program says `The router of this computer lets in only what it asked for` at its start | It drops what comes from an address and port it did not write to: STUN servers asked to answer from another address of theirs did, and nothing came | The same: a page at home or in an office meets it; a phone in a mobile network needs way ③ |
+| Way ④: the program says `This page will not meet this computer directly` | Its router is as in the two rows above, and the network of the page gives it a new port for each address | Use way ③, or the page on Wi-Fi |
 | The page opened from an `https://` site does not connect | Such a page may dial only `wss://`, and the program speaks `ws://` (it encrypts by itself) | Open the page from the disk or an `http://` site |
 | A low frame rate on a large display | The graphics card of the remote computer has no video encoder | Turn on **Fit** and make your window smaller |
-| `✋ The phone does not let you control it yet` | The control of the phone is off in its settings of accessibility | The user of the phone turns it on: [What to allow on the phone](#what-to-allow-on-the-phone) |
+| `✋ The phone does not let you control it yet` | The control of the phone is off in its settings of accessibility. Some phones, Xiaomi among them, turn it off when a new version of the app is installed | The user of the phone turns it on: [What to allow on the phone](#what-to-allow-on-the-phone) |
 | A phone: the switch of the control is grey | Android restricts an app installed from a file | **Settings → Apps → RemoteDesk → ⋮ → Allow restricted settings**, then the switch |
 | A phone: the screen is no longer shown | The phone locked, or showing was stopped from the bar of the system: its notification says so | Open RemoteDesk on the phone and press **Show this screen** again |
 | A phone: the marks do not show | **Display over other apps** is off for RemoteDesk | **Allow** beside **Marks over the screen** in the app |
@@ -771,7 +779,8 @@ What the page says, under the picture, beside its parts, or in its bar:
 - Way ③: IPv4 only, as SYN Mirror.
 - Way ④ with one line: IPv4 and TCP only, the port of `--listen`; a router asked by UPnP may give another port outside, the line
   shows it.
-- Way ④ with two lines: a new pair for each viewer and after each break. No relay (TURN): two symmetric NATs need way ③.
+- Way ④ with two lines: a new pair for each viewer and after each break. No relay (TURN): two symmetric NATs, or a phone in a mobile network and a router that lets in only what it asked
+  for, need way ③.
 
 ## Building
 

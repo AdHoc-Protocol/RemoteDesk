@@ -558,7 +558,12 @@ function heard(h: Heard): void {
             note(`${h.server}: ${h.why}`, "bad");
             break;
         case "gathered": note(`The line is made in ${h.ms} ms: ${h.seen} of ${STUN_NAMES.length} STUN servers answered`, h.seen > 0 ? "ok" : "bad"); break;
+        case "strict":
+            note("The network of this device gives it a new port for each address it talks to ( a strict NAT, as mobile operators have ): " +
+                "it meets the remote computer only if the router there lets in what it did not ask for. If not: way 3, or this device on Wi-Fi", "bad");
+            break;
         case "state": note(`ICE: ${h.state}`, h.state === "failed" ? "bad" : h.state === "connected" ? "ok" : ""); break;
+        case "checked": note(`${h.address}: ${h.sent} checks sent, ${h.answered} answered`, h.answered > 0 ? "" : "bad"); break;
         case "met":
             if (where === "meeting") where = "met";
             note(`The way is found in ${h.ms} ms: ${h.mine} ↔ ${h.theirs}, ${h.how === "network" ? "inside one network" : "through the internet"}`, "ok");
@@ -623,9 +628,15 @@ async function meet(answer: Card): Promise<void> {
     busy = true;
     where = "meeting";
     note(`The answer has ${answer.candidates.length} addresses of the remote computer: ${answer.candidates.map(c => c.ip + ":" + c.port).join(", ")}`);
+    // both told: this network changes the port for each address, the router there lets in only what it asked for - ICE still tries
+    const doomed = attempt.strict && answer.picky
+        ? "this device and the remote computer will not meet directly: the network of this device gives it a new port for each address " +
+          "( as mobile operators do ), and the router of the remote computer lets in only what it asked for. Use way 3, or this device on Wi-Fi"
+        : undefined;
+    if (doomed !== undefined) note(doomed, "bad");
     note("Meeting: ICE tries the addresses of both sides, pair by pair, a minute at most");
     draw();
-    show("Meeting the remote computer: trying the ways through both routers…");
+    show(doomed !== undefined ? "Direct connection: " + doomed : "Meeting the remote computer: trying the ways through both routers…", doomed !== undefined ? "bad" : undefined);
     let channel: RTCDataChannel;
     try {
         channel = await attempt.finish(answer);
@@ -633,10 +644,11 @@ async function meet(answer: Card): Promise<void> {
         attempt.close();
         busy = false;
         where = "noPath";
-        whereText = (e instanceof Error ? e.message : String(e)) + ": make a new line, or use way 3";
-        note(whereText, "bad");
+        whereText = "no direct path: make a new line, or use way 3";
+        const why = e instanceof Error ? e.message : String(e);
+        note(why, "bad");
         draw();
-        return show("Direct connection: " + whereText, "bad");
+        return show("Direct connection: " + why, "bad");
     }
     address.value = "";
     openDesk("direct", answer.token, channel, attempt);
