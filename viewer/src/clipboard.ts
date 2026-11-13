@@ -1,8 +1,8 @@
-// The clipboard of the page and the machine: text the machine copied is set on the clipboard of this device, text copied here goes
-// to the worker of the session ( ./worker/clipboard.ts, which sends it when it is new ) when the page is about to be used - it gets
-// the focus, the canvas is clicked, Ctrl ( ⌘ ) or Shift goes down before a paste. The browser lets a page read the clipboard only
-// then, and asks the user once. Of several desks on a page only the one in use ( `active` ) does it: text another machine copied waits
-// until its desk is used.
+// The clipboard of the page and the machine: text the machine copied is set on the clipboard of this device; text copied here goes
+// to the worker of the session ( ./worker/clipboard.ts, which sends it when it is new ) with a paste - Ctrl ( ⌘ ) + V, the text of
+// the paste itself ( ./input.ts ), nothing asked. Read ahead, when the page gets the focus or the canvas is clicked, only where the
+// browser lets the page read the clipboard already: never asked for - a page opened from a file would be asked at each click. Of
+// several desks on a page only the one in use ( `active` ) does it: text another machine copied waits until its desk is used.
 
 import { W, type ToWorker } from "./messages";
 
@@ -22,6 +22,14 @@ export function start(canvas: HTMLCanvasElement, active: () => boolean, post: Po
     let pending: string | undefined;
     let reading = false;
     let stopped = false; // a read that ends after the stop is not sent
+    /** The browser lets the page read the clipboard, not asking: read ahead then. */
+    let allowed = false;
+    navigator.permissions?.query({ name: "clipboard-read" as PermissionName })
+        .then(state => {
+            allowed = state.state === "granted";
+            state.onchange = () => { allowed = state.state === "granted"; };
+        })
+        .catch(() => undefined); // a browser that does not tell: never read ahead
 
     const write = (text: string) => {
         pending = undefined;
@@ -32,24 +40,17 @@ export function start(canvas: HTMLCanvasElement, active: () => boolean, post: Po
     const sync = () => {
         if (!active()) return;
         if (pending !== undefined) return write(pending);
-        if (reading || !navigator.clipboard?.readText) return;
+        if (!allowed || reading || !navigator.clipboard?.readText) return;
         reading = true;
         navigator.clipboard.readText().then(text => { if (text !== "" && !stopped) post({ t: W.CLIPBOARD, text }); })
             .catch(() => undefined) // not allowed, or the page has no focus
             .finally(() => { reading = false; });
     };
 
-    const onKeyDown = (e: KeyboardEvent) => {
-        if (e.repeat) return;
-        if (!active()) return;
-        if (e.key === "Control" || e.key === "Meta" || e.key === "Shift") sync();
-    };
-
     /** A click on the canvas makes the desk the one in use: the input of the desk took the focus before this listener. */
     const onPointerDown = sync;
     window.addEventListener("focus", sync);
     canvas.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown, true);
     sync();
 
     return {
@@ -62,7 +63,6 @@ export function start(canvas: HTMLCanvasElement, active: () => boolean, post: Po
             stopped = true;
             window.removeEventListener("focus", sync);
             canvas.removeEventListener("pointerdown", onPointerDown);
-            document.removeEventListener("keydown", onKeyDown, true);
         },
     };
 }

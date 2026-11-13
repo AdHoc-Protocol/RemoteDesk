@@ -266,21 +266,22 @@ impl Duplicator {
             self.bgra.resize(dw * dh * 4, 0);
             let dst = self.bgra.as_mut_slice();
             match self.rotation {
-                // the panel shows the desktop turned: desktop ( x, y ) is the texture at the point it was turned to
+                // the panel shows the desktop turned: desktop ( x, y ) is the texture at the point it was turned to - the texture
+                // turned clockwise by the rotation of the mode, as the video processor of src/win/gpu.rs turns it
                 DXGI_MODE_ROTATION_ROTATE90 if turned => {
                     for y in 0..dh {
                         let d = &mut dst[y * dw * 4..][..dw * 4];
-                        let tx = (dh - 1 - y) * 4;
                         for x in 0..dw {
-                            d[x * 4..x * 4 + 4].copy_from_slice(&src[x * pitch + tx..][..4]);
+                            d[x * 4..x * 4 + 4].copy_from_slice(&src[(dw - 1 - x) * pitch + y * 4..][..4]);
                         }
                     }
                 }
                 DXGI_MODE_ROTATION_ROTATE270 if turned => {
                     for y in 0..dh {
                         let d = &mut dst[y * dw * 4..][..dw * 4];
+                        let tx = (dh - 1 - y) * 4;
                         for x in 0..dw {
-                            d[x * 4..x * 4 + 4].copy_from_slice(&src[(dw - 1 - x) * pitch + y * 4..][..4]);
+                            d[x * 4..x * 4 + 4].copy_from_slice(&src[x * pitch + tx..][..4]);
                         }
                     }
                 }

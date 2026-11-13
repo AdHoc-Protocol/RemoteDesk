@@ -100,11 +100,12 @@ impl GpuEncoder {
             let processor = video.CreateVideoProcessor(&enumerator, 0)?;
             vctx.VideoProcessorSetStreamFrameFormat(&processor, 0, D3D11_VIDEO_FRAME_FORMAT_PROGRESSIVE);
             vctx.VideoProcessorSetStreamAutoProcessingMode(&processor, 0, false);
-            // DXGI turns the desktop clockwise onto the panel: it is turned on by the rest of the circle
+            // the panel's texture is the desktop turned back: the video processor turns it ( clockwise ) by the rotation of the mode
+            // itself - a panel portrait by nature, the desktop landscape at 270, shows it so
             let turn = match dup.rotation {
-                DXGI_MODE_ROTATION_ROTATE90 => Some(D3D11_VIDEO_PROCESSOR_ROTATION_270),
+                DXGI_MODE_ROTATION_ROTATE90 => Some(D3D11_VIDEO_PROCESSOR_ROTATION_90),
                 DXGI_MODE_ROTATION_ROTATE180 => Some(D3D11_VIDEO_PROCESSOR_ROTATION_180),
-                DXGI_MODE_ROTATION_ROTATE270 => Some(D3D11_VIDEO_PROCESSOR_ROTATION_90),
+                DXGI_MODE_ROTATION_ROTATE270 => Some(D3D11_VIDEO_PROCESSOR_ROTATION_270),
                 _ => None,
             };
             if let Some(turn) = turn {

@@ -63,9 +63,43 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
         post({ t: W.TEXT, text: data });
     };
 
+    // ── a paste: the text of this device goes first, then the keys - the machine pastes it ──
+    //
+    // Ctrl ( ⌘ ) + V and Shift + Insert are left to the browser: it pastes into the field, and its paste brings the text with no
+    // asking - reading the clipboard would ask the user. The text goes to the machine, then the key, held back till then. No paste
+    // comes ( no text on the clipboard ): the key goes in a moment anyway.
+
+    /** The key of a paste held back: the paste goes first. */
+    let pasteKey: { usb: number; e: KeyboardEvent; timer: ReturnType<typeof setTimeout> } | undefined;
+
+    const isPaste = (e: KeyboardEvent) =>
+        !e.repeat && !e.altKey && ((e.code === "KeyV" && (e.ctrlKey || e.metaKey)) || (e.code === "Insert" && e.shiftKey && !e.ctrlKey));
+
+    /** The key of the paste goes: after its text, or after waiting for one. */
+    const pasteGoes = () => {
+        if (!pasteKey) return;
+        clearTimeout(pasteKey.timer);
+        const { usb, e } = pasteKey;
+        pasteKey = undefined;
+        key(usb, true, e);
+    };
+
+    const onPaste = (e: ClipboardEvent) => {
+        e.preventDefault(); // into the field goes nothing: the text goes to the machine
+        const data = e.clipboardData?.getData("text/plain") ?? "";
+        if (data !== "") post({ t: W.CLIPBOARD, text: data.replace(/\r\n?/g, "\n") });
+        pasteGoes();
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
         if (e.isComposing || e.keyCode === 229) return; // an input method composes: its text comes with compositionend
         const usb = usbOf[e.code];
+        if (usb !== undefined && isPaste(e)) {
+            stamp();
+            if (pasteKey) pasteGoes();
+            pasteKey = { usb, e, timer: setTimeout(pasteGoes, 150) };
+            return; // not prevented: the browser pastes
+        }
         e.preventDefault();
         stamp();
         if (usb !== undefined) key(usb, true, e);
@@ -76,6 +110,7 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
         if (e.isComposing) return;
         const usb = usbOf[e.code];
         if (usb === undefined) return;
+        if (pasteKey?.usb === usb) pasteGoes(); // let go before the paste came: down first, then up
         e.preventDefault();
         if (held.has(usb)) key(usb, false);
     };
@@ -98,6 +133,7 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
     };
 
     field.addEventListener("keydown", onKeyDown);
+    field.addEventListener("paste", onPaste);
     field.addEventListener("keyup", onKeyUp);
     field.addEventListener("compositionend", onComposed);
     field.addEventListener("input", onInput);
@@ -274,6 +310,8 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
             stopped = true;
             if (locked()) document.exitPointerLock();
             field.removeEventListener("keydown", onKeyDown);
+            field.removeEventListener("paste", onPaste);
+            if (pasteKey) clearTimeout(pasteKey.timer);
             field.removeEventListener("keyup", onKeyUp);
             field.removeEventListener("compositionend", onComposed);
             field.removeEventListener("input", onInput);
