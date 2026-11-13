@@ -60,14 +60,56 @@ function cloudPath(cx: number, cy: number, w: number, h: number): string {
     return d + "Z";
 }
 
+/** The pen: how Rough.js draws; its colour is the style's. */
+export const PEN = { roughness: 1.3, bowing: 1.1, strokeWidth: 2.2, stroke: "#333" };
+type Rough = ReturnType<typeof rough.svg>;
+
+/** An outline by hand, put in `g`: its colour is the style's, by the state of the part it is in. */
+export function outline<T extends SVGGElement>(g: Element, shape: T, cls = "o"): T {
+    shape.classList.add(...cls.split(" "));
+    g.append(shape);
+    return shape;
+}
+
+export { el, write, pulses, cloudPath, rough };
+
+/** A laptop, at the left of the scene ( x 24…292, y 146…298 ): `screen` written on it. */
+export function laptop(rc: Rough, g: Element, screen: string): void {
+    const pen = PEN, o = outline;
+    o(g, rc.rectangle(60, 146, 196, 130, { ...pen, fill: "#fff", fillStyle: "solid", seed: 81 }), "o card");
+    o(g, rc.rectangle(72, 158, 172, 106, { ...pen, strokeWidth: 1.6, fill: "#cfe0f7", fillStyle: "hachure", hachureGap: 7, seed: 82 }), "o screen");
+    o(g, rc.line(72, 172, 244, 172, { ...pen, strokeWidth: 1.4, seed: 83 }));
+    for (let i = 0; i < 3; i++) el("circle", { cx: 80 + i * 8, cy: 165, r: 2.2, class: "pip" }, g);
+    write(g, 158, 222, screen, 24, "screen-text");
+    o(g, rc.polygon([[44, 278], [272, 278], [292, 298], [24, 298]], { ...pen, fill: "#bbb", fillStyle: "zigzag", hachureGap: 6, seed: 84 }), "o deck");
+    o(g, rc.rectangle(135, 284, 46, 9, { ...pen, strokeWidth: 1.2, seed: 85 }));
+}
+
+/** A computer with its monitor, keyboard and mouse, at the right of the scene ( x 748…984, y 134…330 ): `lines` on its screen, the last
+ *  one strong, a cursor after it. */
+export function monitor(rc: Rough, g: Element, lines: string[]): SVGTextElement {
+    const pen = PEN, o = outline;
+    o(g, rc.rectangle(748, 134, 214, 142, { ...pen, fill: "#fff", fillStyle: "solid", seed: 91 }), "o card");
+    o(g, rc.rectangle(760, 146, 190, 112, { ...pen, strokeWidth: 1.6, fill: "#20242c", fillStyle: "solid", seed: 92 }), "o console");
+    let last: SVGTextElement | undefined;
+    lines.forEach((line, i) => {
+        const strong = i === lines.length - 1;
+        last = el("text", { x: 770, y: strong ? 236 : 170 + i * 19, class: "console-text" + (strong ? " strong" : "") }, g, line);
+    });
+    el("rect", { x: 776 + 7.8 * (lines[lines.length - 1]?.length ?? 0), y: 226, width: 8, height: 13, class: "cursor" }, g);
+    o(g, rc.polygon([[843, 276], [867, 276], [873, 298], [837, 298]], { ...pen, fill: "#bbb", fillStyle: "solid", seed: 93 }), "o deck");
+    o(g, rc.ellipse(855, 300, 96, 12, { ...pen, fill: "#bbb", fillStyle: "solid", seed: 94 }), "o deck");
+    o(g, rc.polygon([[768, 308], [938, 308], [950, 326], [756, 326]], { ...pen, fill: "#bbb", fillStyle: "zigzag", hachureGap: 6, seed: 95 }), "o deck");
+    o(g, rc.ellipse(976, 318, 16, 24, { ...pen, strokeWidth: 1.6, fill: "#ddd", fillStyle: "solid", seed: 96 }), "o deck");
+    return last!;
+}
+
 /** Draws the scene of `way` into `svg`, whatever was there gone. */
 export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
     svg.replaceChildren();
     svg.setAttribute("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
     const rc = rough.svg(svg);
-    const pen = { roughness: 1.3, bowing: 1.1, strokeWidth: 2.2, stroke: "#333" };
-    /** An outline by hand: its colour is the style's, by the state of the part it is in. */
-    const o = <T extends SVGGElement>(g: Element, shape: T, cls = "o") => { shape.classList.add(...cls.split(" ")); g.append(shape); return shape; };
+    const pen = PEN, o = outline;
     const defs = el("defs", {}, svg);
 
     // ── what goes from person to person: under the scene, two long paths around it ──
@@ -164,29 +206,12 @@ export function drawScene(svg: SVGSVGElement, way: 1 | 2 | 3 | 4): void {
     // ── this computer: a laptop, this page on its screen ──
     const me = el("g", { id: "n-me", class: "node" }, svg);
     write(me, 160, 136, "You", 30, "label big");
-    o(me, rc.rectangle(60, 146, 196, 130, { ...pen, fill: "#fff", fillStyle: "solid", seed: 81 }), "o card");
-    o(me, rc.rectangle(72, 158, 172, 106, { ...pen, strokeWidth: 1.6, fill: "#cfe0f7", fillStyle: "hachure", hachureGap: 7, seed: 82 }), "o screen");
-    o(me, rc.line(72, 172, 244, 172, { ...pen, strokeWidth: 1.4, seed: 83 }));
-    for (let i = 0; i < 3; i++) el("circle", { cx: 80 + i * 8, cy: 165, r: 2.2, class: "pip" }, me);
-    write(me, 158, 222, "RemoteDesk", 24, "screen-text");
-    o(me, rc.polygon([[44, 278], [272, 278], [292, 298], [24, 298]], { ...pen, fill: "#bbb", fillStyle: "zigzag", hachureGap: 6, seed: 84 }), "o deck");
-    o(me, rc.rectangle(135, 284, 46, 9, { ...pen, strokeWidth: 1.2, seed: 85 }));
+    laptop(rc, me, "RemoteDesk");
 
     // ── the remote computer: a monitor, its keyboard and mouse; the window of rdp-host on the screen, the number pressed ──
     const rem = el("g", { id: "n-rem", class: "node" }, svg);
     write(rem, 855, 126, "Remote computer", 30, "label big");
-    o(rem, rc.rectangle(748, 134, 214, 142, { ...pen, fill: "#fff", fillStyle: "solid", seed: 91 }), "o card");
-    o(rem, rc.rectangle(760, 146, 190, 112, { ...pen, strokeWidth: 1.6, fill: "#20242c", fillStyle: "solid", seed: 92 }), "o console");
-    el("text", { x: 770, y: 170, class: "console-text" }, rem, "> rdp-host");
-    el("text", { x: 770, y: 192, class: "console-text" }, rem, "How will the viewer");
-    el("text", { x: 770, y: 208, class: "console-text" }, rem, "reach this computer?");
-    const pressed = el("text", { x: 770, y: 236, class: "console-text strong" }, rem, `Pressed: ${way}`);
-    el("rect", { x: 856, y: 226, width: 8, height: 13, class: "cursor" }, rem);
-    pressed.id = "pressed";
-    o(rem, rc.polygon([[843, 276], [867, 276], [873, 298], [837, 298]], { ...pen, fill: "#bbb", fillStyle: "solid", seed: 93 }), "o deck");
-    o(rem, rc.ellipse(855, 300, 96, 12, { ...pen, fill: "#bbb", fillStyle: "solid", seed: 94 }), "o deck");
-    o(rem, rc.polygon([[768, 308], [938, 308], [950, 326], [756, 326]], { ...pen, fill: "#bbb", fillStyle: "zigzag", hachureGap: 6, seed: 95 }), "o deck");
-    o(rem, rc.ellipse(976, 318, 16, 24, { ...pen, strokeWidth: 1.6, fill: "#ddd", fillStyle: "solid", seed: 96 }), "o deck");
+    monitor(rc, rem, ["> rdp-host", "How will the viewer", "reach this computer?", `Pressed: ${way}`]).id = "pressed";
 
     // the lines of the chat lanes lead out from under the two computers: drawn last, the computers over the paths
     svg.append(me, rem);

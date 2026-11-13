@@ -63,8 +63,8 @@ async function pictures() {
     const document = new JSDOM("<!doctype html><html><body></body></html>").window.document;
     globalThis.document = document;
     const bundled = await esbuild.build({ entryPoints: ["src/scene.ts"], bundle: true, format: "esm", platform: "browser", write: false });
-    const { drawScene } = await import("data:text/javascript;base64," + Buffer.from(bundled.outputFiles[0].text).toString("base64"));
-    const { default: rough } = await import("roughjs");
+    const drawn = await import("data:text/javascript;base64," + Buffer.from(bundled.outputFiles[0].text).toString("base64"));
+    const { drawScene, rough } = drawn;
 
     const page = readFileSync("viewer.html", "utf8");
     const between = (from, to) => { const a = page.indexOf(from), b = page.indexOf(to, a); if (a < 0 || b < 0) throw new Error(`viewer.html has no ${from}`); return page.slice(a, b); };
@@ -149,6 +149,125 @@ async function pictures() {
         writeFileSync(`../docs/${p.file}.svg`, svg.outerHTML + "\n");
         svg.remove();
         console.log(`docs/${p.file}.svg`);
+    }
+
+    // ── the other pictures of the README, in the same hand: what it is, what happens at Connect, several viewers ──
+
+    /** A picture `height` high, of the part of the scene from `top` down; `more` - its own style. */
+    const frame = (title, top, height, attrs, more = "") => {
+        const svg = el("svg", { xmlns: SVG_NS, id: "map", viewBox: `0 ${top} 1000 ${height}`, width: 1000, height, ...attrs }, document.body);
+        el("title", {}, svg, title);
+        el("style", {}, svg, style + more);
+        const defs = el("defs", {}, svg);
+        defs.innerHTML = filters + '<pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.1" style="fill: var(--dot)"/></pattern>';
+        for (const fill of ["fill: var(--paper); stroke: var(--line)", "fill: url(#dots)"])
+            el("rect", { x: 1, y: top + 1, width: 998, height: height - 2, rx: 14, style: fill }, svg);
+        const scene = el("svg", { id: "scene", width: 1000, height: 680, viewBox: "0 0 1000 680" }, svg);
+        return { svg, scene, rc: drawn.rough.svg(scene) };
+    };
+    const save = (file, svg) => {
+        writeFileSync(`../docs/${file}.svg`, svg.outerHTML + "\n");
+        svg.remove();
+        console.log(`docs/${file}.svg`);
+    };
+    const hand = (parent, x, y, words, size, fill, anchor = "middle") =>
+        el("text", { x, y, class: "hand", "text-anchor": anchor, style: `font-size: ${size}px; fill: ${fill}` }, parent, words);
+    /** Words broken into lines of `most` letters, from `y` down. */
+    const lines = (words, most) => {
+        const out = [];
+        for (const word of words.split(" ")) {
+            const last = out.length - 1;
+            if (last >= 0 && (out[last] + " " + word).length <= most) out[last] += " " + word;
+            else out.push(word);
+        }
+        return out;
+    };
+
+    // what it is: your laptop and the remote computer, alive between them through the internet; what goes each way
+    {
+        const { svg, scene } = frame("RemoteDesk: you see and control the remote computer from a browser", 96, 316,
+            { "data-way": 2, "data-me": "ok", "data-wa": "up", "data-wb": "up", "data-mid": "ok", "data-rem": "ok" });
+        drawScene(scene, 2);
+        scene.querySelector("#chat").remove();
+        scene.querySelector("#pressed").textContent = "Pressed: 2";
+        hand(scene, 500, 352, "← the screen, the sound, the clipboard, files", 22, "var(--ok)");
+        hand(scene, 500, 384, "your keys, mouse, touch, the microphone →", 22, "var(--accent)");
+        save("overview", svg);
+    }
+
+    // what happens at Connect: four steps, lit one after another
+    {
+        const STEPS = [
+            ["Encrypted", "Noise from here on: nobody between reads or changes anything"],
+            ["Its key", "The computer proves its key. The page keeps it the first time; later it must be the same"],
+            ["The token", "From the line, with your name. 5 wrong in a row: nobody gets in for a minute"],
+            ["In", "The screen comes; the remote computer prints who came in, from where"],
+        ];
+        const more = STEPS.map((_, i) => `        #step-${i} .o path { animation: lit 8s ${i * 2}s infinite; } #step-${i} .num { animation: lit-num 8s ${i * 2}s infinite; }\n`).join("")
+            + "        #steps .o path { stroke: var(--ink); } #steps .num { fill: var(--ink); }\n"
+            + "        @keyframes lit { 0%, 24% { stroke: var(--ok); } 26%, 100% { stroke: var(--ink); } }\n"
+            + "        @keyframes lit-num { 0%, 24% { fill: var(--ok); } 26%, 100% { fill: var(--ink); } }\n"
+            + "        #steps .num { stroke: none !important; }\n"
+            + "        #steps .dot { opacity: 1; fill: var(--ok); }\n";
+        const { svg, scene, rc } = frame("RemoteDesk: what happens when you press Connect", 0, 360, {}, more);
+        const g = el("g", { id: "steps" }, scene);
+        const track = "M 130 110 L 870 110";
+        el("path", { id: "track", d: track, fill: "none" }, g);
+        drawn.outline(g, rc.path(track, { ...PEN, strokeWidth: 2, strokeLineDash: [8, 8], seed: 200 }));
+        drawn.pulses(g, "track", 2, 4, false);
+        STEPS.forEach(([title, words], i) => {
+            const x = 28 + i * 240, y = 24, step = el("g", { id: `step-${i}` }, g);
+            el("rect", { x, y, width: 220, height: 250, rx: 14, style: "fill: var(--paper)" }, step);
+            drawn.outline(step, rc.rectangle(x, y, 220, 250, { ...PEN, seed: 210 + i }));
+            el("circle", { cx: x + 24, cy: y + 24, r: 13, class: "num" }, step);
+            hand(step, x + 24, y + 30, String(i + 1), 18, "var(--paper)");
+            const cx = x + 110, cy = y + 74, o = (shape) => drawn.outline(step, shape);
+            if (i === 0) { // a lock
+                o(rc.rectangle(cx - 26, cy - 6, 52, 40, { ...PEN, fill: "#e8e8e8", fillStyle: "hachure", hachureGap: 6, seed: 220 }));
+                o(rc.arc(cx, cy - 6, 34, 44, Math.PI, Math.PI * 2, false, { ...PEN, seed: 221 }));
+            } else if (i === 1) { // a key
+                o(rc.circle(cx - 24, cy + 10, 30, { ...PEN, seed: 222 }));
+                o(rc.linearPath([[cx - 9, cy + 10], [cx + 36, cy + 10], [cx + 36, cy + 22], [cx + 26, cy + 10], [cx + 22, cy + 20]], { ...PEN, seed: 223 }));
+            } else if (i === 2) { // a ticket, the token on it
+                o(rc.rectangle(cx - 44, cy - 10, 88, 46, { ...PEN, seed: 224 }));
+                hand(step, cx, cy + 20, "#K7QM…", 20, "var(--accent)");
+            } else { // a screen, windows on it
+                o(rc.rectangle(cx - 40, cy - 14, 80, 54, { ...PEN, seed: 225 }));
+                o(rc.rectangle(cx - 32, cy - 6, 34, 22, { ...PEN, strokeWidth: 1.4, fill: "#9cc4f0", fillStyle: "hachure", hachureGap: 5, seed: 226 }));
+                o(rc.rectangle(cx + 6, cy + 4, 26, 26, { ...PEN, strokeWidth: 1.4, seed: 227 }));
+            }
+            hand(step, cx, y + 146, title, 26, "var(--ink)");
+            lines(words, 26).forEach((line, k) => hand(step, cx, y + 170 + k * 18, line, 17, "var(--muted)"));
+        });
+        lines("The first time, compare the key the page shows with the line key that rdp-host printed: the same - it is your computer", 90)
+            .forEach((line, k) => hand(scene, 500, 306 + k * 24, line, 21, "var(--ink)"));
+        save("connect", svg);
+    }
+
+    // several viewers: all see through the internet, one controls - its pulses both ways, the others' toward them only
+    {
+        const VIEWERS = [["Anna", "controls", "var(--ok)"], ["Boris", "watches", "var(--accent)"], ["Vera", "watches another display", "var(--accent)"]];
+        const more = VIEWERS.map(([, , color], i) => `        #v-${i} .wire { stroke: ${color}; } #v-${i} .dot.back${i === 0 ? ", #v-0 .dot.fwd" : ""} { opacity: 1; fill: ${color}; }\n`).join("")
+            + "        #viewers .wire { fill: none; stroke-width: 3; opacity: .8; }\n";
+        const { svg, scene, rc } = frame("RemoteDesk: several viewers, all see, one controls", 20, 400, { "data-rem": "ok" }, more);
+        const g = el("g", { id: "viewers" }, scene);
+        drawn.outline(g, rc.path(drawn.cloudPath(480, 210, 230, 160), { ...PEN, strokeWidth: 2.4, fill: "#9cc4f0", fillStyle: "hachure", hachureGap: 9, hachureAngle: -30, seed: 300 }), "o cloud");
+        hand(g, 480, 268, "Internet", 30, "var(--ink)"); // under the lines that cross the cloud
+        VIEWERS.forEach(([name, does], i) => {
+            const top = 40 + i * 120, v = el("g", { id: `v-${i}` }, g);
+            const d = `M 190 ${top + 52} C 300 ${top + 52} 360 ${206 + (i - 1) * 14} 470 ${206 + (i - 1) * 14} L 560 ${206 + (i - 1) * 14} C 650 ${206 + (i - 1) * 14} 700 ${214 + (i - 1) * 8} 748 ${214 + (i - 1) * 8}`;
+            el("path", { id: `v-path-${i}`, d, class: "wire" }, v);
+            drawn.pulses(v, `v-path-${i}`, 2, 2.4, true);
+            const small = el("g", { transform: `translate(${30 - 24 * 0.55} ${top - 146 * 0.55}) scale(0.55)` }, v);
+            drawn.laptop(rc, small, name);
+            hand(v, 24, top + 112, `${name} · ${does}`, 20, VIEWERS[i][2], "start");
+        });
+        const rem = el("g", { id: "n-rem" }, scene);
+        hand(rem, 855, 126, "Remote computer", 30, "var(--ink)");
+        drawn.monitor(rc, rem, ["> rdp-host", "in: Anna, Boris, Vera", "Anna controls", "3 watching"]);
+        hand(scene, 860, 372, "one picture, sent to each;", 20, "var(--muted)");
+        hand(scene, 860, 396, "Take control moves the keys", 20, "var(--muted)");
+        save("viewers", svg);
     }
 }
 

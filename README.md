@@ -118,14 +118,7 @@ ways, and a picture to choose.
 ## How to connect
 
 On ways ①-③, and on ④ with one line, your device dials the remote computer; with the two lines of ④ the two reach for each
-other. Which way works depends on where the
-two are:
-
-![Which way is yours](docs/choose.svg)
-
-The four ways side by side, with the line you paste on the page for each:
-
-![Four ways to reach the remote computer](docs/ways.svg)
+other. Which way works depends on where the two are:
 
 | Way | When | Set up | The line you paste on the page |
 |:--|:--|:--|:--|
@@ -211,7 +204,7 @@ Send this line to whoever connects:
 Enter: grant access to this computer
 ```
 
-![Way ③ step by step](docs/meet.svg)
+![Way 3 on the page: the line goes up to the meeting point through the internet, and down again](docs/page-3-connecting.svg)
 
 | Step | Who | What happens |
 |:--|:--|:--|
@@ -346,8 +339,6 @@ Direct: 10 of 11 public STUN servers answer, the nearest stun.miwifi.com:3478 in
 Direct: the router opens no port to this computer ( UPnP, NAT-PMP, PCP ): two lines then
 Direct: paste here the line the page sends ( rd1o.… ), then Enter - Make the line on the page makes it
 ```
-
-![Way ④ with two lines, step by step](docs/direct.svg)
 
 | Step | Who | What happens |
 |:--|:--|:--|
@@ -543,7 +534,7 @@ cargo build --release              the program: host/target/release/rdp-host
 cd viewer
 npm install
 npm run build                      the page: viewer/RemoteDesk.html, one file; viewer.html with viewer.js beside it
-npm run pictures                   the pictures of the page in this README: docs/page-*.svg
+npm run pictures                   the pictures of this README: docs/*.svg
 ```
 
 On Linux the program needs these libraries first:
@@ -558,8 +549,8 @@ sudo apt-get install pkg-config clang libclang-dev libpipewire-0.3-dev libspa-0.
 - [`viewer/`](viewer): the page, in TypeScript. `src/direct.ts`: way ④; `src/scene.ts`: the picture of the page, drawn by hand
   with [Rough.js](https://roughjs.com), written in [Caveat](https://fonts.google.com/specimen/Caveat).
 - [`keymap/`](keymap): the table of keyboard keys.
-- [`docs/`](docs): the pictures of this page. `page-*.svg` are drawn by `npm run pictures` from the code of the page itself, so they
-  show it as it is; they move by themselves, as the page does.
+- [`docs/`](docs): the pictures of this README, drawn by `npm run pictures` from the code of the page itself: they show it as it
+  is, and move by themselves, as the page does.
 
 After a change of `RemoteDesk.cs`, generate the code of the protocol again with AdHocAgent:
 
