@@ -204,10 +204,15 @@ export interface Desk {
     moved(): void;
 }
 
-/** The line a machine prints for its viewer - `<address>:<port>#<token>` -: its address and token; `undefined` - not such a line. */
+/**
+ * The line a machine prints for its viewer - `<address>:<port>#<token>` -: its address and token; `undefined` - not such a line.
+ * The line is found in what was pasted as it came: a messenger puts marks no one sees around an address, non-breaking spaces, words
+ * of the message around it; a copy from the console takes its frame. They are left aside.
+ */
 export function splitLine(line: string): { address: string; token: string } | undefined {
-    const text = line.trim(), at = text.indexOf("#");
-    return at < 0 ? undefined : { address: text.slice(0, at), token: text.slice(at + 1) };
+    const text = line.replace(/\p{Cf}/gu, "").replace(/ /g, " ");
+    const m = /((?:wss?:\/\/)?(?:\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::\d{1,5})?\/?)#(\S+)/i.exec(text);
+    return m === null ? undefined : { address: m[1]!, token: m[2]! };
 }
 
 /** Forgets the key kept for `address`: the next login keeps the one the machine shows then. */
