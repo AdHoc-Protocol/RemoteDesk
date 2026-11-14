@@ -648,7 +648,7 @@ Chrome, then paste the line of the remote computer.
 | Two fingers moving together | The view zoomed or at 1:1: move it on your phone. The whole screen in view: scroll there |
 | Two fingers apart or together | Zoom the view on your phone, not the remote computer |
 | A finger at an edge, the view at 1:1 or zoomed | The view goes that way |
-| ⌨ in the bar, then type | The keyboard of the phone comes up and types text where the remote computer has its cursor; ⌨ again hides it. A touch on the screen does not bring it up |
+| Tap the field, ⌨ in the bar, then type | The keyboard of the phone comes up and types text where the remote computer has its cursor; ⌨ again hides it. The screen goes up with the keyboard, as large as it was: the field you tapped stays above it. A touch on the screen does not bring the keyboard up |
 | ✏️, then a finger | Draws over its screen |
 
 The bar fits the narrow screen: the files and the full screen are in its menu ⋯, and its handle hides it, so the whole screen of

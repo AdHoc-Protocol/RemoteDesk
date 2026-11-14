@@ -32,6 +32,9 @@ export interface Screen {
     pinch(phase: "start" | "move" | "end", ratio: number, x: number, y: number): void;
     /** The view is larger than the screen - 1:1 or zoomed -: two fingers move it, there is somewhere to move it to. */
     zoomed(): boolean;
+    /** The point of the page (`x`, `y`) - the field touched before the keyboard came up - kept above the keyboard: the desktop
+     *  goes up with it, as large as it was; none - back in its place. */
+    keep(at: { x: number; y: number } | undefined): void;
     /** Tells the worker again whether the screen is seen: the page, and the desk in it ( `seen` ). */
     visibility(): void;
     /** What the worker tells of the video. */
@@ -111,6 +114,18 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
     let panWindow: Window = window; // the window it was asked of
     /** A pinch going: the zoom it began at, the point of the frames under the fingers then. */
     let pinchFrom: { zoom: number; fx: number; fy: number } | undefined;
+    /** While the keyboard is up: where the field it types into was on the page, and how far the desktop is lifted for it. */
+    let keptY: number | undefined, lifted = 0;
+    /** The desktop lifted so that the field is above the keyboard, a margin over it - the keyboard covers the page, it does not
+     *  make it smaller - or set down again. Followed as the keyboard slides in. */
+    const lift = () => {
+        const vv = view().visualViewport, bottom = vv ? vv.offsetTop + vv.height : view().innerHeight;
+        const now = keptY === undefined ? 0 : Math.max(0, keptY + lifted + 56 - bottom);
+        if (now === lifted) return;
+        lifted = now;
+        if (zoom === undefined) canvas.style.transform = lifted ? `translateY(${-lifted}px)` : "";
+        else layout();
+    };
     /** The most a pinch zooms: pixels of the page a pixel of the frames. */
     const MAX_ZOOM = 4;
 
@@ -129,7 +144,8 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
     function layout(): void {
         host.classList.toggle("rd-one", zoom !== undefined);
         if (zoom === undefined) {
-            canvas.style.width = canvas.style.height = canvas.style.transform = "";
+            canvas.style.width = canvas.style.height = "";
+            canvas.style.transform = lifted ? `translateY(${-lifted}px)` : "";
             return placeMarker();
         }
         const w = frameWidth * zoom, h = frameHeight * zoom;
@@ -139,7 +155,7 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
         // larger than the view: within it; smaller: in its middle
         panX = w > r.width ? Math.min(Math.max(panX, 0), w - r.width) : (w - r.width) / 2;
         panY = h > r.height ? Math.min(Math.max(panY, 0), h - r.height) : (h - r.height) / 2;
-        canvas.style.transform = `translate(${-panX}px, ${-panY}px)`;
+        canvas.style.transform = `translate(${-panX}px, ${-panY - lifted}px)`;
         placeMarker();
     }
 
@@ -244,6 +260,14 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
             tell();
         },
         zoomed: () => zoom !== undefined,
+        keep(at) {
+            // where the field is now, the desktop not lifted: the lift is worked out from it, as the keyboard slides in
+            const vv = view().visualViewport;
+            keptY = at && at.y + lifted;
+            vv?.removeEventListener("resize", lift);
+            if (keptY !== undefined) vv?.addEventListener("resize", lift);
+            lift();
+        },
         visibility: onVisibility,
         take(m) {
             switch (m.t) {
@@ -295,6 +319,7 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
             onVisibility();
         },
         stop() {
+            view().visualViewport?.removeEventListener("resize", lift);
             resized.disconnect();
             relaid.disconnect();
             if (panning) panWindow.cancelAnimationFrame(panning);

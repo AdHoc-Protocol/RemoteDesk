@@ -293,7 +293,7 @@ const STYLE = `
 .rd-transfer{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 8px}
 .rd-audience{max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rd-noinput{color:var(--rd-bad);font-weight:600;white-space:nowrap}
-.rd-screen{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;position:relative}
+.rd-screen{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;position:relative;overflow:hidden}
 .rd-draw{position:absolute;inset:0;display:none;z-index:3;cursor:crosshair;touch-action:none}
 .rd-draw.rd-drawing{display:block}
 .rd-screen.rd-drop{outline:3px dashed var(--rd-accent);outline-offset:-3px}
@@ -682,7 +682,10 @@ export function open(container: HTMLElement, options: Options): Desk {
             const before = root.ownerDocument.activeElement as HTMLElement | null;
             typing = input.start(v.canvas, root, () => v.frameWidth(), post, (phase, ratio, x, y) => v.pinch(phase, ratio, x, y), () => v.zoomed(), phone);
             keyboardButton.dataset["on"] = "false";
-            typing.keyboardChanged = on => { keyboardButton.dataset["on"] = String(on); };
+            typing.keyboardChanged = on => {
+                keyboardButton.dataset["on"] = String(on);
+                if (!on) v.keep(undefined);
+            };
             // the keys stay where they were - another desk, a field of the page - unless they were in this desk, or nowhere
             if (!seen) root.querySelector("textarea")?.blur(); // a hidden desk does not take the keys
             else if (before && before !== root.ownerDocument.body && !root.contains(before)) before.focus({ preventScroll: true });
@@ -807,7 +810,11 @@ export function open(container: HTMLElement, options: Options): Desk {
     // the button takes no focus: the field keeps it, and its keyboard does not start to close as the button is touched
     keyboardButton.addEventListener("pointerdown", e => e.preventDefault());
     keyboardButton.addEventListener("click", () => {
-        if (typing) keyboardButton.dataset["on"] = String(typing.keyboard());
+        if (!typing) return;
+        const on = typing.keyboard();
+        keyboardButton.dataset["on"] = String(on);
+        // the field touched before stays in view above the keyboard
+        shown?.keep(on ? typing.touchedAt() : undefined);
     });
     drawButton.addEventListener("click", () => {
         drawing = !drawing;

@@ -21,6 +21,8 @@ export interface Input {
     keyboard(on?: boolean): boolean;
     /** Told when the keyboard on the screen goes or comes by itself: the Back of a phone closed it. */
     keyboardChanged: (on: boolean) => void;
+    /** Where a finger touched the canvas last, on the page: the field the keyboard is to type into. */
+    touchedAt(): { x: number; y: number } | undefined;
     /** The desk went into another window: its keys leave the window it left. */
     moved(): void;
     stop(): void;
@@ -44,6 +46,8 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
     // A finger on the canvas focuses the field, as a click does: the keys of a keyboard of the device come to it. The keyboard on
     // the screen would come up at each touch - so it does not ( inputmode none ), till its button in the bar asks it
     let keyboardOn = false;
+    /** Where a finger touched the canvas last. */
+    let touched: { x: number; y: number } | undefined;
     const touchScreen = view().matchMedia("(pointer: coarse)").matches;
     field.inputMode = touchScreen ? "none" : "";
     layer.appendChild(field);
@@ -354,7 +358,10 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
 
     const onPointerDown = (e: PointerEvent) => {
         e.preventDefault();
-        if (e.pointerType === "touch" && !keyboardOn) field.inputMode = "none";
+        if (e.pointerType === "touch") {
+            if (!keyboardOn) field.inputMode = "none";
+            touched = { x: e.clientX, y: e.clientY };
+        }
         field.focus({ preventScroll: true });
         canvas.setPointerCapture(e.pointerId);
         if (e.pointerType === "touch") {
@@ -479,12 +486,17 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
     canvas.addEventListener("auxclick", noMenu);
     field.focus({ preventScroll: true });
 
-    // the keyboard on the screen closed by the device - the Back of a phone - while it was asked: the view grows back
+    // the keyboard on the screen closed by the device - the Back of a phone - while it was asked: the view grows back. The page
+    // gets smaller with the keyboard ( interactive-widget, viewer.html ), its window too: its height without the keyboard is kept
     const viewport = view().visualViewport;
-    let shrunk = false;
+    let shrunk = false, full = viewport?.height ?? 0;
     const onViewport = () => {
-        if (!keyboardOn || !viewport) return;
-        const small = viewport.height < view().innerHeight * 0.85;
+        if (!viewport) return;
+        if (!keyboardOn) {
+            full = viewport.height; // turned, or a window of another size: the height with no keyboard
+            return;
+        }
+        const small = viewport.height < full * 0.85;
         if (small) shrunk = true;
         else if (shrunk) {
             shrunk = false;
@@ -500,6 +512,7 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
             field.focus({ preventScroll: true });
         },
         keyboard(on = !keyboardOn) {
+            if (on && !keyboardOn && viewport) full = viewport.height;
             keyboardOn = on;
             shrunk = false;
             field.inputMode = on ? "text" : "none";
@@ -509,6 +522,7 @@ export function start(canvas: HTMLCanvasElement, layer: HTMLElement, frameWidth:
             return keyboardOn;
         },
         keyboardChanged: () => undefined,
+        touchedAt: () => touched,
         lockPointer() {
             field.focus({ preventScroll: true });
             void canvas.requestPointerLock?.();
