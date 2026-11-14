@@ -37,7 +37,7 @@ pub struct Meet {
 }
 
 impl Meet {
-    /// The meeting point as its owner gives it - the page of SYN Mirror copies it so, in one line: `Tr7kQ2xZ@router.example.org` -
+    /// The meeting point as its owner gives it - the page of SYN Mirror copies it so, in one line: `Tr7kQ2xZ@router.example.org:40000` -
     /// apart: its password, when it is there, and the rest. A password has no `@`, nor a name or an address.
     pub fn given(text: &str) -> (Option<&str>, &str) {
         let text = text.trim();

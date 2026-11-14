@@ -142,7 +142,7 @@ fn ask(input: &mut dyn BufRead, keys: bool, file: &std::path::Path) -> (Way, Vec
                     let (with, point) = crate::meet::Meet::given(&typed);
                     break (point.to_string(), with.filter(|p| p.len() == 8).map(String::from));
                 }
-                say!("💡", Warn, "As its owner gave it - such as Tr7kQ2xZ@router.example.org - or a name or an address, and :port when its owner gave one");
+                say!("💡", Warn, "As its owner gave it - such as Tr7kQ2xZ@router.example.org:40000 - or a name or an address, and :port when its owner gave one");
             };
             let same_point = kept.meet.as_deref() == Some(point.as_str());
             let password = if let Some(p) = with { p } else { loop {

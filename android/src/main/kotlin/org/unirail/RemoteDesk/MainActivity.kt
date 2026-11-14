@@ -195,9 +195,9 @@ class MainActivity : Activity(), Host.Watcher {
             }
             choose.addView(line)
         }
-        point = field("Tr7kQ2xZ@router.example.org", prefs.getString("point", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
+        point = field("Tr7kQ2xZ@router.example.org:40000",prefs.getString("point", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         password = field("Its password: 8 characters", prefs.getString("password", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
-        // the meeting point in one line, as the page of SYN Mirror copies it - Tr7kQ2xZ@router.example.org: the password before @
+        // the meeting point in one line, as the page of SYN Mirror copies it - Tr7kQ2xZ@router.example.org:40000: the password before @
         // goes to its own field
         point.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(s: android.text.Editable) {

@@ -93,7 +93,7 @@ token. The line is in the clipboard already: paste it into a message.
 ```
 
 The window remembers the answer: next time Enter is enough. A meeting point is pasted once, in the one line the page of SYN Mirror
-copies, `Tr7kQ2xZ@router.example.org`, and offered again after that. What it remembers is in `rdp-host.settings` beside the program. The window stays open while the program runs:
+copies, `Tr7kQ2xZ@router.example.org:40000`, and offered again after that. What it remembers is in `rdp-host.settings` beside the program. The window stays open while the program runs:
 closing it stops the program.
 
 **2. On your device**, open `RemoteDesk.html` in Chrome or Edge. Press the number the remote computer pressed, paste the line
@@ -235,12 +235,12 @@ Why SYN Mirror, and not a relay server or a VPN:
 | Speed | the program of the relay can be the slowest part | only the network to the meeting point and from it: nothing waits for a program |
 
 **On the remote computer**, the program is started, and **3** pressed. The first time its window asks the meeting point, as its
-owner gave it: one line, the password, `@`, the address, as the page of SYN Mirror on the router copies it with its button
+owner gave it: one line, the password, `@`, the address, `:`, its port of requests, as the page of SYN Mirror on the router copies it with its button
 **Copy the meeting point**. Pasted, nothing else is asked; it is remembered, and next time Enter is enough. An address alone is
 taken too: then the window asks the password. From a console or a script the same is:
 
 ```text
-rdp-host --meet Tr7kQ2xZ@router.example.org
+rdp-host --meet Tr7kQ2xZ@router.example.org:40000
 ```
 
 On the phone, the line goes into the field of the meeting point: the password moves to its own field by itself.
