@@ -89,6 +89,17 @@
         #map[data-out=wait] .tag-out { --pen: var(--warn); } #map[data-out=try] .tag-out { --pen: var(--accent); } #map[data-out=ok] .tag-out { --pen: var(--ok); }
         #map[data-back=wait] .tag-back { --pen: var(--warn); } #map[data-back=ok] .tag-back { --pen: var(--ok); } #map[data-back=bad] .tag-back { --pen: var(--bad); }
         #map:not([data-way="4"]) .tag-out { display: none; }
+        /* way 4, the network of this device gives a new port for each address: the line is made, the way is in doubt - the warning
+           colour; the answer says the router there lets in only what it asked for - they will not meet: red */
+        #map[data-net=strict] #r-me, #map[data-net=strict][data-out=ok] #lane-out, #map[data-net=strict][data-out=ok] .tag-out { --pen: var(--warn); }
+        #map[data-net=strict] .tag-out .said:not(.bad) { color: var(--warn); }
+        #map[data-net=doomed] #r-me, #map[data-net=doomed] #r-rem, #map[data-net=doomed] #lane-out, #map[data-net=doomed] .tag-out { --pen: var(--bad); }
+        #map[data-net=doomed] .tag-out .said { color: var(--bad); }
+        /* the answer is no use any more: 2 is shut till a new line is made */
+        #map[data-shut="1"] .tag-back { --pen: var(--muted); opacity: .45; }
+        #map[data-shut="1"] .tag-back input { cursor: not-allowed; }
+        /* way 4: 2 shows once 1 is done */
+        #map[data-way="4"]:not([data-made="1"]) .tag-back { display: none; }
         .tag .head { margin: 0 0 6px; font-size: 16px; font-weight: 400; display: flex; align-items: center; gap: 8px; line-height: 1.1; }
         .tag .head label { margin: 0; color: inherit; font-size: inherit; }
         /* the name: right of "You", the two of them centred over the laptop */

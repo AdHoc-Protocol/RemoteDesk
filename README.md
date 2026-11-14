@@ -84,7 +84,7 @@ token. The line is in the clipboard already: paste it into a message.
 ```text
  📨 Send this line to whoever connects:
     ╭───────────────────────────────────────────────────╮
-    │  192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
+    │  192.168.1.20:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
     ╰───────────────────────────────────────────────────╯
  📋 It is in your clipboard already: just paste it into a message.
 
@@ -169,10 +169,10 @@ other. Which way works depends on where the two are:
 
 | Way | When | Set up | The line you paste on the page |
 |:--|:--|:--|:--|
-| [① The same network](#way-1) | One home, one office, one Wi-Fi | Nothing | `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
-| [② From the internet](#way-2) | The remote computer has a public address, or its router forwards a port to it | A forwarded port | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
-| [③ Through SYN Mirror](#way-3) | Both behind NAT, nothing can be forwarded | A meeting point, once | `router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
-| [④ Direct](#way-4) | Both behind NAT, no meeting point | Nothing | `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` when the router of the remote computer opens a port; else `rd1a.…`, the answer of the program to the line of your page |
+| [① The same network](#way-1) | One home, one office, one Wi-Fi | Nothing | `192.168.1.20:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
+| [② From the internet](#way-2) | The remote computer has a public address, or its router forwards a port to it | A forwarded port | `203.0.113.7:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
+| [③ Through SYN Mirror](#way-3) | Both behind NAT, nothing can be forwarded | A meeting point, once | `router.example.org:41933/K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
+| [④ Direct](#way-4) | Both behind NAT, no meeting point | Nothing | `203.0.113.7:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9` when the router of the remote computer opens a port; else `rd1a.…`, the answer of the program to the line of your page |
 
 On every way the token is needed. On ways ①-③, and on ④ with one line, the line carries it after `#`: the whole line goes to the
 page, as the program printed it. On way ④ with two lines the answer of the program carries it.
@@ -182,7 +182,7 @@ page, as the program printed it. On way ④ with two lines the answer of the pro
 ### ① The same network
 
 1. **The user of the remote computer** starts `rdp-host` and presses **1**. It prints the line for this network, and puts it in the
-   clipboard: `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9`.
+   clipboard: `192.168.1.20:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9`.
 2. **They send you the line**, the token in it.
 3. **You** press **1** on the page and paste the line on its arrow: the page connects.
 
@@ -208,7 +208,7 @@ The remote computer is reached at a public address: its own, as a rented server 
 2. **The public address**: the router shows it on its status page, or any "what is my IP" site opened on the remote computer.
 3. **The user of the remote computer** starts `rdp-host`, presses **2**, and allows it in the firewall, for public networks too. It
    asks a STUN server the public address, prints the line with it and puts the line in the clipboard. Without an answer it prints the line for the
-   internet with `<public address>` in it: they put the address from step 2 there, `203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9`,
+   internet with `<public address>` in it: they put the address from step 2 there, `203.0.113.7:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9`,
    and send you the line.
 4. **You** press **2** on the page and paste the line on its arrow: the page connects.
 
@@ -251,7 +251,7 @@ It shows a line to send to you, and waits for Enter:
 ```text
  📨 Send this line to whoever connects:
     ╭──────────────────────────────────────────────────────────╮
-    │  router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
+    │  router.example.org:41933/K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
     ╰──────────────────────────────────────────────────────────╯
  📋 It is in your clipboard already: just paste it into a message.
 
@@ -299,7 +299,7 @@ How many lines it takes depends on the router of the remote computer:
 
 | The router of the remote computer | Lines | |
 |:--|:--|:--|
-| Opens a port to the program when it asks, and has a public address | One: `address:port#token`, as on way ② | [One line](#way-4-one) |
+| Opens a port to the program when it asks, and has a public address | One: `address:port/token`, as on way ② | [One line](#way-4-one) |
 | Opens none, or has no public address of its own | Two: `rd1o.…` there, `rd1a.…` back | [Two lines](#way-4-two) |
 
 The program finds out by itself in a few seconds after its start, and says which it is.
@@ -316,7 +316,7 @@ way ②:
 ```text
  📨 Send this line to whoever connects:
     ╭──────────────────────────────────────────────────╮
-    │  203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
+    │  203.0.113.7:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9  │
     ╰──────────────────────────────────────────────────╯
  📋 It is in your clipboard already: just paste it into a message.
 
@@ -726,7 +726,7 @@ What the page says, under the picture, beside its parts, or in its bar:
 | `Refused: too many wrong tokens` | 5 wrong tokens in a row | Wait a minute |
 | `Refused: the machine has as many viewers as it takes.` | 8 viewers are in | Wait until one leaves |
 | `The machine answers with another key` | The remote computer got a new key file, or another computer answers at that address | If the key changed on purpose, press **Forget the key of this machine** |
-| `That is not a line of the remote computer: …` | Something else was pasted on the arrow | Paste the whole line the program printed, such as `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
+| `That is not a line of the remote computer: …` | Something else was pasted on the arrow | Paste the whole line the program printed, such as `192.168.1.20:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
 | `The token is missing: …` | Only the address is there, without `#` and the token | Paste the whole line the program printed |
 | Way ③: the page does not get in, the program waits | Enter is not pressed yet, or the line is of an earlier start | The user of the remote computer presses Enter, or sends the new line |
 | Way ③: the program says `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Copy the line of the meeting point again, from the page of its router: its password or port may have changed; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |

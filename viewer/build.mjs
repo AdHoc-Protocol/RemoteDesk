@@ -38,11 +38,11 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 const PICTURES = [
     {
         file: "page-1-ready", way: 1, parts: { me: "try", back: "ok", wa: "try", wb: "try", rem: "try" }, rem: ["reaching it…", ""],
-        back: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
+        back: "192.168.1.20:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
     },
     {
         file: "page-3-connecting", way: 3, parts: { me: "try", back: "ok", wa: "try", wb: "try", rem: "try" },
-        back: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9", mid: ["a router of yours brings the two together", ""], rem: ["reaching it…", ""],
+        back: "router.example.org:41933/K7QM2XHP9RTA4WZD8CNE-24NDRCK9", mid: ["a router of yours brings the two together", ""], rem: ["reaching it…", ""],
     },
     {
         file: "page-4-waiting", way: 4, parts: { out: "ok", back: "wait", rem: "wait" }, stun: ["ok", "ok", "no", "ok"], made: true,
@@ -54,7 +54,7 @@ const PICTURES = [
     },
     {
         file: "page-2-broken", way: 2, parts: { me: "ok", back: "ok", wa: "up", wb: "cut", rem: "bad" },
-        back: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9", mid: ["straight to the address of its router: the router lets you in", ""],
+        back: "203.0.113.7:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9", mid: ["straight to the address of its router: the router lets you in", ""],
         rem: ["not reached: is the port forwarded on its router, and its address public?", "bad"],
     },
 ];
@@ -231,7 +231,7 @@ async function pictures() {
                 o(rc.linearPath([[cx - 9, cy + 10], [cx + 36, cy + 10], [cx + 36, cy + 22], [cx + 26, cy + 10], [cx + 22, cy + 20]], { ...PEN, seed: 223 }));
             } else if (i === 2) { // a ticket, the token on it
                 o(rc.rectangle(cx - 44, cy - 10, 88, 46, { ...PEN, seed: 224 }));
-                hand(step, cx, cy + 20, "#K7QM…", 20, "var(--accent)");
+                hand(step, cx, cy + 20, "/K7QM…", 20, "var(--accent)");
             } else { // a screen, windows on it
                 o(rc.rectangle(cx - 40, cy - 14, 80, 54, { ...PEN, seed: 225 }));
                 o(rc.rectangle(cx - 32, cy - 6, 34, 22, { ...PEN, strokeWidth: 1.4, fill: "#9cc4f0", fillStyle: "hachure", hachureGap: 5, seed: 226 }));

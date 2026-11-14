@@ -211,11 +211,12 @@ pub fn run() {
             crate::direct::start(bridge, token, pass, listen);
         }
         None => {
-            // the line for the viewer: all it needs, the address, the port and after # the token and the check, in one piece
+            // the line for the viewer: all it needs, the address, the port and after / the token and the check, in one piece. Not #:
+            // WeChat takes it for a tag, and copies the line cut
             let port = listen.port();
-            let in_network = here(listen).map(|ip| format!("{ip}:{port}#{pass}"));
-            let unknown_here = format!("<address of this computer>:{port}#{pass}");
-            let unknown_public = format!("<public address>:{port}#{pass}");
+            let in_network = here(listen).map(|ip| format!("{ip}:{port}/{pass}"));
+            let unknown_here = format!("<address of this computer>:{port}/{pass}");
+            let unknown_public = format!("<public address>:{port}/{pass}");
             /// The one line of the way chosen: in a frame and in the clipboard when its address is known; else the line to fill in.
             fn one(line: Option<&str>, unknown: &str) {
                 match line {
@@ -230,7 +231,7 @@ pub fn run() {
                 Some(crate::menu::Way::Here) => one(in_network.as_deref(), &unknown_here),
                 // from the internet: the address it sees this computer at is asked of STUN
                 Some(crate::menu::Way::Internet) => {
-                    let from_internet = crate::direct::public_ip().map(|ip| format!("{ip}:{port}#{pass}"));
+                    let from_internet = crate::direct::public_ip().map(|ip| format!("{ip}:{port}/{pass}"));
                     one(from_internet.as_deref(), &unknown_public);
                 }
                 // started from a console or a script: both lines, each for where it goes

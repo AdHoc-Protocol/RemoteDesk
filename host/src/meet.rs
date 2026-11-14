@@ -89,8 +89,8 @@ fn run(meet: Meet, server: Server, port: Option<u16>, pass: String) {
             Err(e) => return say!("❌", Bad, "The meeting point {}: {e}", meet.point),
         },
     };
-    // one line for the viewer: the address of the meeting and, after #, the token and the check of the key - the page takes it whole
-    let line = format!("{}:{port}#{pass}", meet.point);
+    // one line for the viewer: the address of the meeting and, after /, the token and the check of the key - the page takes it whole
+    let line = format!("{}:{port}/{pass}", meet.point);
     crate::console::line_to_send(&line);
     if asked {
         say!("🔑", Wait, "Press Enter when the line has reached them: the meeting point lets them in from then on");

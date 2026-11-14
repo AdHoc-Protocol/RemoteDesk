@@ -204,7 +204,7 @@ function note(text: string, kind: Kind = ""): void {
 // ── the diagram: the way the remote computer chose in rdp-host, and where the connection is now ──
 //
 // One way at a time, its fields only, on the arrows of what goes from person to person: ways 1, 2 and 3 - the line of the machine
-// address:port#token comes here; way 4 - the line of this page goes there, its answer comes back ( or a line address:port#token, when the router of the
+// address:port/token comes here; way 4 - the line of this page goes there, its answer comes back ( or a line address:port/token, when the router of the
 // machine opened a port ). Each part of the diagram shows its state: waited for, on its way, done, or where it broke. Enter
 // connects only when the way has all it needs, and nothing is on its way already.
 
@@ -246,9 +246,9 @@ const PORT = 8765;
 
 /** What the line of each way looks like, in its field until one is pasted. */
 const EXAMPLE: Record<Way, string> = {
-    1: "192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
-    2: "203.0.113.7:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
-    3: "router.example.org:41933#K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
+    1: "192.168.1.20:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
+    2: "203.0.113.7:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
+    3: "router.example.org:41933/K7QM2XHP9RTA4WZD8CNE-24NDRCK9",
     4: "rd1a.EQh6cTJmY1M2dFZ4b0pXa3RnU2xh…",
 };
 
@@ -265,7 +265,7 @@ function machine(text: string): string | undefined {
 }
 
 /**
- * The line of the program, as it printed it and the user pasted it - `<address>:<port>#<token>` -: where to dial and the token. The
+ * The line of the program, as it printed it and the user pasted it - `<address>:<port>/<token>` -: where to dial and the token. The
  * field keeps it whole, untouched: the page takes it apart only here. `undefined` - not such a line.
  */
 function theLine(): { at: string; token: string; check: string | undefined } | undefined {
@@ -284,7 +284,8 @@ function back(): "empty" | "line" | "noToken" | "answer" | "ours" | "other" {
     if (card(text, true) !== undefined) return "answer";
     if (card(text, false) !== undefined) return "ours";
     if (theLine() !== undefined) return "line";
-    return machine(text.split("#")[0]!) !== undefined ? "noToken" : "other";
+    // an address, with nothing after / ( or # of a program of before ): the token is missing
+    return machine(/^(?:wss?:\/\/)?[^/#]*/i.exec(text)![0]) !== undefined ? "noToken" : "other";
 }
 
 /** Has the way chosen all it needs to connect. */
@@ -427,8 +428,14 @@ function draw(): void {
 /** What is waited for now, before connecting: the line under the diagram. */
 function hint(b: ReturnType<typeof back>): [string, Kind] {
     if (b === "ours") return ["That is the line of this page: it goes to the remote computer. Paste here what comes back.", "bad"];
-    if (b === "other") return [way === 4 ? "That is not an answer: it starts with rd1a., or is a line address:port#token." : english.badAddress, "bad"];
-    if (b === "noToken") return ["The token is missing: paste the whole line as the program printed it, with # and what follows.", "bad"];
+    if (b === "other") {
+        if (way === 4) return ["That is not an answer: it starts with rd1a., or is a line address:port/token.", "bad"];
+        // what in the text is not of a line, by its code: a sign that looks like one and is not shows here
+        const odd = [...new Set(address.value.trim().match(/[^\x21-\x7e]/gu) ?? [])].slice(0, 4)
+            .map(c => `${c.trim() === "" ? "·" : c} U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`);
+        return [english.badAddress + (odd.length > 0 ? ` It has: ${odd.join(", ")}.` : ""), "bad"];
+    }
+    if (b === "noToken") return ["The token is missing: paste the whole line as the program printed it, with / and what follows.", "bad"];
     if (b === "answer" && way !== 4) return ["That is the answer of a direct connection: choose 4 above.", "bad"];
     if (b === "answer" && pending === undefined)
         return ["This answer is to a line made before: make a new line in 1, send it, and paste the answer that comes back.", "bad"];
@@ -436,7 +443,7 @@ function hint(b: ReturnType<typeof back>): [string, Kind] {
     if (way !== 4) return ["Waiting for the line of the remote computer: when it comes by chat or mail, paste it on the arrow.", "wait"];
     if (making) return ["Asking the STUN servers the address of this computer…", ""];
     if (pending === undefined)
-        return ["Start with 1: make the line of this page. The remote computer sent a line address:port#token? That is way 2: choose 2 above.", "wait"];
+        return ["Start with 1: make the line of this page. The remote computer sent a line address:port/token? That is way 2: choose 2 above.", "wait"];
     if (pending.strict)
         return ["Your line is in the clipboard. This network gives a new port for each address: if rdp-host says its router lets in only " +
             "what it asked for, they will not meet - use way 3, or this device on Wi-Fi.", "wait"];

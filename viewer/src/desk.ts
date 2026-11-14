@@ -39,7 +39,7 @@ export const english = {
     dialFailed: "Cannot connect: {error}",
     linkFailed: "The connection failed: {error}",
     sessionFailed: "The session failed: {error}",
-    badAddress: "That is not a line of the remote computer: it is address:port#token, as the program printed it.",
+    badAddress: "That is not a line of the remote computer: it is address:port/token, as the program printed it.",
     noToken: "The token of the machine is needed.",
     lost: "The connection is lost: connecting again in {seconds} s ( attempt {attempt} of {of} )…",
     directLost: "The direct connection is lost: make a new one.",
@@ -205,13 +205,15 @@ export interface Desk {
 }
 
 /**
- * The line a machine prints for its viewer - `<address>:<port>#<token>` -: its address and token; `undefined` - not such a line.
+ * The line a machine prints for its viewer - `<address>:<port>/<token>` -: its address and token; `undefined` - not such a line.
+ * A program of before printed # in place of /: WeChat takes # for a tag and copies the line cut, so it is / now, and # is taken too.
  * The line is found in what was pasted as it came: a messenger puts marks no one sees around an address, non-breaking spaces, words
- * of the message around it; a copy from the console takes its frame. They are left aside.
+ * of the message around it; a keyboard of Chinese or Japanese types ＃ and ： of full width; a copy from the console takes its
+ * frame. NFKC makes the wide ones plain; the rest is left aside.
  */
 export function splitLine(line: string): { address: string; token: string } | undefined {
-    const text = line.replace(/\p{Cf}/gu, "").replace(/ /g, " ");
-    const m = /((?:wss?:\/\/)?(?:\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::\d{1,5})?\/?)#(\S+)/i.exec(text);
+    const text = line.normalize("NFKC").replace(/\p{Cf}/gu, "").replace(/ /g, " ");
+    const m = /((?:wss?:\/\/)?(?:\[[0-9a-f:.]+\]|[a-z0-9.-]+)(?::\d{1,5})?)[/#](\S+)/i.exec(text);
     return m === null ? undefined : { address: m[1]!, token: m[2]! };
 }
 

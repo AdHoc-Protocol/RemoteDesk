@@ -2,7 +2,7 @@
 // exchange go by hand, through any messenger.
 //
 // First the program asks its router to open a port to it ( src/portmap.rs ): when it does, and its address is public, one line
-// `address:port#token` is all, as on way ②, and the two lines below stay for where it does not connect.
+// `address:port/token` is all, as on way ②, and the two lines below stay for where it does not connect.
 //
 // The page makes the offer: its line `rd1o.…` - the ICE name and password of the page, the fingerprint of its DTLS
 // certificate, the addresses it can be reached at, the one a public STUN server saw among them. The user of the machine pastes it
@@ -250,12 +250,12 @@ pub fn start(bridge: SocketAddr, token: String, pass: String, listen: SocketAddr
 
 /// The router opened a port to the program: the line of way ②, with the address the router has, kept while the program runs.
 fn one_line(opened: crate::portmap::Opened, pass: &str) {
-    let line = format!("{}#{pass}", opened.external);
+    let line = format!("{}/{pass}", opened.external);
     crate::console::line_to_send(&line);
     let pass = pass.to_owned();
     opened.keep(move |now| {
         say!("🔄", Warn, "The router gave another port: this line instead");
-        crate::console::line_to_send(&format!("{now}#{pass}"));
+        crate::console::line_to_send(&format!("{now}/{pass}"));
     });
 }
 
