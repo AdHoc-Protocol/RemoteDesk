@@ -8,7 +8,7 @@
 
 use std::ffi::c_void;
 use std::sync::atomic::{fence, AtomicBool, AtomicU32, Ordering};
-use std::sync::Mutex;
+use std::sync::{Condvar, Mutex};
 
 use windows::core::{IUnknown, IUnknown_Vtbl, Interface, Result, GUID, HRESULT};
 use windows::Win32::Foundation::{CloseHandle, E_FAIL, E_NOINTERFACE, E_NOTIMPL, HANDLE, RECT, S_OK};
@@ -382,14 +382,34 @@ impl GpuEncoder {
 impl Drop for GpuEncoder {
     fn drop(&mut self) {
         unsafe {
-            let _ = self.transform.ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, 0);
+            // The encoder of NVIDIA works on a frame in a work queue of Media Foundation, apart from its calls: shut down with a
+            // frame in it - a flush, then the shutdown - its work item ran after, into the lock it had freed, and the program fell
+            // as a viewer left. So the frames in it come out first, as Media Foundation tells an asynchronous MFT to end: a
+            // drain, its outputs taken and dropped, till it tells it is drained - a second at most. The callback is a COM object
+            // of its own, apart from the encoder: as in poll
+            let wake = &*(self.wake.as_raw() as *const Wake);
             let _ = self.transform.ProcessMessage(MFT_MESSAGE_NOTIFY_END_OF_STREAM, 0);
+            if self.transform.ProcessMessage(MFT_MESSAGE_COMMAND_DRAIN, 0).is_ok() {
+                let until = std::time::Instant::now() + std::time::Duration::from_secs(1);
+                let mut out = Vec::new();
+                while !wake.drained.load(Ordering::Acquire) && !wake.broken.load(Ordering::Acquire) && std::time::Instant::now() < until {
+                    for _ in 0..wake.have.swap(0, Ordering::Acquire) {
+                        if self.output(&mut out).is_err() {
+                            break;
+                        }
+                    }
+                    out.clear();
+                    WaitForSingleObject(wake.event, 20);
+                }
+            }
+            // then the callback lets the encoder go, and the one running ends: no event is asked of an encoder shut down. The
+            // request it has pending holds no more than the callback
+            let wake = self.wake();
+            wake.let_go();
             let _ = self.transform.ProcessMessage(MFT_MESSAGE_NOTIFY_END_STREAMING, 0);
             if let Ok(shutdown) = self.transform.cast::<IMFShutdown>() {
                 let _ = shutdown.Shutdown();
             }
-            // the callback lets the encoder go: the request it has pending holds no more than the callback
-            drop(self.wake().events.lock().unwrap_or_else(|e| e.into_inner()).take());
             let _ = self.activate.ShutdownObject();
         }
     }
@@ -408,8 +428,12 @@ struct Wake {
     have:   AtomicU32,
     /// The events stopped: an error of the encoder, or it is shut down.
     broken: AtomicBool,
-    /// None once the encoder is let go.
-    events: Mutex<Option<IMFMediaEventGenerator>>,
+    /// METransformDrainComplete came: the frames given are all out, its work on them done.
+    drained: AtomicBool,
+    /// The events of the encoder - None once it is let go - and how many calls of them run now.
+    events: Mutex<(Option<IMFMediaEventGenerator>, u32)>,
+    /// Told when the last call of them ends.
+    idle:   Condvar,
 }
 
 static WAKE: IMFAsyncCallback_Vtbl = IMFAsyncCallback_Vtbl {
@@ -428,7 +452,9 @@ impl Wake {
             need: AtomicU32::new(0),
             have: AtomicU32::new(0),
             broken: AtomicBool::new(false),
-            events: Mutex::new(Some(events)),
+            drained: AtomicBool::new(false),
+            events: Mutex::new((Some(events), 0)),
+            idle: Condvar::new(),
         });
         Ok(IMFAsyncCallback::from_raw(Box::into_raw(wake) as *mut c_void))
     }
@@ -458,10 +484,27 @@ impl Wake {
 
     unsafe extern "system" fn parameters(_: *mut c_void, _: *mut u32, _: *mut u32) -> HRESULT { E_NOTIMPL }
 
+    /// The encoder is let go: no call of its events starts from now on, and the one running ends before this returns. The calls
+    /// themselves run with no lock held - an event asked may come back on this very thread.
+    fn let_go(&self) {
+        let mut state = self.events.lock().unwrap_or_else(|e| e.into_inner());
+        drop(state.0.take());
+        while state.1 > 0 {
+            state = self.idle.wait(state).unwrap_or_else(|e| e.into_inner());
+        }
+    }
+
     /// An event of the encoder: counted, the thread of the video woken, the next asked for.
     unsafe extern "system" fn invoke(this: *mut c_void, result: *mut c_void) -> HRESULT {
         let wake = &*(this as *const Wake);
-        let events = wake.events.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let events = {
+            let mut state = wake.events.lock().unwrap_or_else(|e| e.into_inner());
+            let events = state.0.clone();
+            if events.is_some() {
+                state.1 += 1;
+            }
+            events
+        };
         if let Some(events) = events {
             let told = (|| -> Result<()> {
                 let result = IMFAsyncResult::from_raw_borrowed(&result).ok_or(windows::core::Error::from(E_FAIL))?;
@@ -471,6 +514,8 @@ impl Wake {
                     wake.need.fetch_add(1, Ordering::Release);
                 } else if kind == METransformHaveOutput.0 as u32 {
                     wake.have.fetch_add(1, Ordering::Release);
+                } else if kind == METransformDrainComplete.0 as u32 {
+                    wake.drained.store(true, Ordering::Release);
                 } else if kind == MEError.0 as u32 {
                     return Err(E_FAIL.into());
                 }
@@ -478,6 +523,12 @@ impl Wake {
             })();
             if told.is_err() {
                 wake.broken.store(true, Ordering::Release);
+            }
+            drop(events);
+            let mut state = wake.events.lock().unwrap_or_else(|e| e.into_inner());
+            state.1 -= 1;
+            if state.1 == 0 {
+                wake.idle.notify_all();
             }
         }
         let _ = SetEvent(wake.event);
