@@ -69,7 +69,9 @@ export interface Audio {
 
 export function start(conn: Session): Audio {
     let player: MessagePort | undefined;
-    let on = true;
+    // off till the user turns it on; a machine of before starts it as a viewer comes in, so it is told
+    let on = false;
+    Working.ONE.transmitter.send_Viewer_AudioControl(false, conn);
     let mic: MessagePort | undefined;
 
     // ── the machine's sound ──

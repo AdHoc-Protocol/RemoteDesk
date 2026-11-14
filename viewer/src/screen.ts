@@ -30,6 +30,8 @@ export interface Screen {
     oneToOne(on: boolean): void;
     /** Two fingers zoom the view ( ./input.ts tells ): `ratio` - their distance to the one they began at, (`x`, `y`) - the point between them. */
     pinch(phase: "start" | "move" | "end", ratio: number, x: number, y: number): void;
+    /** The view is larger than the screen - 1:1 or zoomed -: two fingers move it, there is somewhere to move it to. */
+    zoomed(): boolean;
     /** Tells the worker again whether the screen is seen: the page, and the desk in it ( `seen` ). */
     visibility(): void;
     /** What the worker tells of the video. */
@@ -241,6 +243,7 @@ export function start(canvas: HTMLCanvasElement, host: HTMLElement, layer: HTMLE
             layout();
             tell();
         },
+        zoomed: () => zoom !== undefined,
         visibility: onVisibility,
         take(m) {
             switch (m.t) {

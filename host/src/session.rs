@@ -324,8 +324,8 @@ fn on_hello(hello: &mut Viewer_Hello, conn: &Connection, _actor: &Actor0) {
         say!("✅", Good, "{name} from {from} is in and controls · {} watching", audience.len());
         announce(&audience);
     }
-    crate::video::start(this.clone(), name);
-    crate::audio::start(this);
+    // the sound is off till the viewer turns it on ( Viewer_AudioControl ): nobody is heard, nor sent sound, unasked
+    crate::video::start(this, name);
 }
 
 /// The viewer takes the control: what the one before held goes up, its microphone stops.

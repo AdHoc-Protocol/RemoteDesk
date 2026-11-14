@@ -69,6 +69,7 @@ export const english = {
     micOn: "Microphone: on",
     micOff: "Microphone: off",
     micTitle: "The microphone of this device, played on the machine",
+    keyboardTitle: "Show or hide the keyboard: a touch on the screen does not bring it up",
     noSound: "No sound: {error}",
     micNotAllowed: "The microphone: not allowed",
     micError: "The microphone: {error}",
@@ -236,6 +237,7 @@ const ICONS: Record<string, string> = {
     arrow: '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
     sound: '<path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6A1.4 1.4 0 0 1 5.4 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z"/><path class="rd-on-only" d="M16 9a5 5 0 0 1 0 6"/><path class="rd-on-only" d="M19.4 18.4a9 9 0 0 0 0-12.8"/><path class="rd-off-only" d="m22 9-6 6"/><path class="rd-off-only" d="m16 9 6 6"/>',
     mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path class="rd-off-only" d="M2 2l20 20"/>',
+    keyboard: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h1M10 9h1M14 9h1M18 9h1M6 13h1M18 13h1M10 13h4M7 16h10"/>',
     send: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
     get: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
     full: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
@@ -377,6 +379,9 @@ export function open(container: HTMLElement, options: Options): Desk {
     const notice = element("span", "rd-s rd-notice");
     const soundButton = iconButton("", "sound", t.soundTitle);
     const micButton = iconButton("", "mic", t.micTitle);
+    // a device of touch: its keyboard on the screen comes when asked, not at each touch ( ./input.ts )
+    const keyboardButton = iconButton("", "keyboard", t.keyboardTitle);
+    keyboardButton.hidden = !matchMedia("(pointer: coarse)").matches;
     const sendButton = iconButton("rd-wide", "send", t.send + ": " + t.sendTitle);
     const getButton = iconButton("rd-wide", "get", t.get + ": " + t.getTitle);
     const pick = element("input", "");
@@ -407,7 +412,7 @@ export function open(container: HTMLElement, options: Options): Desk {
     // ── the bar: who and how, the buttons by what they are for; what is rare in the menu of ⋯ ──
     bar.append(dot, who, audienceLine, noInputLine, takeButton, transfer, cancelButton, notice, element("span", "rd-grow"),
         backButton, homeButton, recentsButton, phoneSeparator,
-        drawButton, arrowButton, colorButton, soundButton, micButton, separator(),
+        drawButton, arrowButton, colorButton, keyboardButton, soundButton, micButton, separator(),
         sendButton, getButton, pick, separator(),
         viewButton, fullButton, moreButton, separator(), leaveButton);
     const menu = element("div", "rd-menu");
@@ -675,7 +680,9 @@ export function open(container: HTMLElement, options: Options): Desk {
         const v = shown;
         if (on && v && !typing) {
             const before = root.ownerDocument.activeElement as HTMLElement | null;
-            typing = input.start(v.canvas, root, () => v.frameWidth(), post, (phase, ratio, x, y) => v.pinch(phase, ratio, x, y), phone);
+            typing = input.start(v.canvas, root, () => v.frameWidth(), post, (phase, ratio, x, y) => v.pinch(phase, ratio, x, y), () => v.zoomed(), phone);
+            keyboardButton.dataset["on"] = "false";
+            typing.keyboardChanged = on => { keyboardButton.dataset["on"] = String(on); };
             // the keys stay where they were - another desk, a field of the page - unless they were in this desk, or nowhere
             if (!seen) root.querySelector("textarea")?.blur(); // a hidden desk does not take the keys
             else if (before && before !== root.ownerDocument.body && !root.contains(before)) before.focus({ preventScroll: true });
@@ -797,6 +804,11 @@ export function open(container: HTMLElement, options: Options): Desk {
         colorButton.style.color = MARK_COLORS[markColor];
     };
     markLabels();
+    // the button takes no focus: the field keeps it, and its keyboard does not start to close as the button is touched
+    keyboardButton.addEventListener("pointerdown", e => e.preventDefault());
+    keyboardButton.addEventListener("click", () => {
+        if (typing) keyboardButton.dataset["on"] = String(typing.keyboard());
+    });
     drawButton.addEventListener("click", () => {
         drawing = !drawing;
         marking?.on(drawing);

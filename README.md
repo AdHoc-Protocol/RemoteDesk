@@ -453,12 +453,13 @@ in the hint of the mouse:
 | Button | What it does |
 |:--|:--|
 | ◁ ○ □ | A phone only: its buttons Back, Home and Recent apps |
+| ⌨ | A device with a touch screen only: shows or hides its keyboard on the screen. A touch on the screen does not bring it up |
 | ✏️ | Your mouse or finger draws over the screen of the remote computer instead of controlling it: see [Drawing over the screen](#drawing-over-the-screen). While it is on, ➚ draws arrows and the round button changes the colour |
-| 🔊 | Turns the sound of the remote computer on or off on your device |
-| 🎤 | Plays your microphone through the speakers of the remote computer |
+| 🔊 | Turns the sound of the remote computer on or off on your device. Off when you connect |
+| 🎤 | Plays your microphone through the speakers of the remote computer. Off when you connect |
 | ⬆ | Sends files from your device to the Downloads folder of the remote computer. You can also drop them on the screen |
 | ⬇ | The user of the remote computer picks a file, and the page saves it on your device |
-| **Whole / 1:1 / %** | Whole: the screen of the remote computer fits your window. 1:1: a pixel of it is a pixel of your screen, its text as large as there - for a large screen seen from a small one. Bring the pointer, or a finger, to an edge of the window: the view goes that way. Two fingers apart or together zoom the view about the point between them, as in AnyDesk; two fingers that move together still scroll on the remote computer. Pressed after a zoom: the whole screen again. Whole and 1:1 are kept for the next time |
+| **Whole / 1:1 / %** | Whole: the screen of the remote computer fits your window. 1:1: a pixel of it is a pixel of your screen, its text as large as there - for a large screen seen from a small one. Bring the pointer, or a finger, to an edge of the window: the view goes that way. Two fingers apart or together zoom the view about the point between them, as in AnyDesk; two fingers that move together move a view zoomed or at 1:1, and scroll on the remote computer when the whole screen is in view. Pressed after a zoom: the whole screen again. Whole and 1:1 are kept for the next time |
 | ⛶ | Full screen: Alt+Tab, the Windows key and other keys of the system go to the remote computer too |
 | ⋯ | The menu of what is set once in a while, below |
 | Red plug | Disconnects |
@@ -643,10 +644,11 @@ Chrome, then paste the line of the remote computer.
 | On your phone | On the remote computer |
 |:--|:--|
 | Tap, drag, a long press | Touch on Windows and on Linux with Wayland; the mouse on macOS and on Linux with X11 |
-| Two fingers moving together | Scroll there |
+| Tap, then at once touch and hold at the same place | The right button there: the menu of what the tap chose |
+| Two fingers moving together | The view zoomed or at 1:1: move it on your phone. The whole screen in view: scroll there |
 | Two fingers apart or together | Zoom the view on your phone, not the remote computer |
 | A finger at an edge, the view at 1:1 or zoomed | The view goes that way |
-| Tap the screen, then type | The keyboard of the phone types text there |
+| ⌨ in the bar, then type | The keyboard of the phone comes up and types text where the remote computer has its cursor; ⌨ again hides it. A touch on the screen does not bring it up |
 | ✏️, then a finger | Draws over its screen |
 
 The bar fits the narrow screen: the files and the full screen are in its menu ⋯, and its handle hides it, so the whole screen of

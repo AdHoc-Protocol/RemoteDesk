@@ -118,7 +118,8 @@ export function start(soundButton: HTMLButtonElement, micButton: HTMLButtonEleme
     // a data: URL: a page opened from the disk may not load a worklet from a Blob URL, its origin is none
     const url = "data:text/javascript;charset=utf-8," + encodeURIComponent(WORKLETS);
     let player: AudioWorkletNode | undefined;
-    let sound = true;
+    // off till the user turns it on: the sound of the machine, as the microphone
+    let sound = false;
     let mic: { stream: MediaStream; node: AudioWorkletNode; source: MediaStreamAudioSourceNode; mute: GainNode } | undefined;
     let micWanted = false;
     let stopped = false;
