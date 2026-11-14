@@ -222,7 +222,8 @@ The remote computer is reached at a public address: its own, as a rented server 
 
 Neither the remote computer nor your device needs a public address or a forwarded port: only a meeting point both can reach, an
 OpenWrt router or a Linux server with [SYN Mirror installed](https://github.com/AdHoc-Protocol/SynMirror#install). Its owner
-gives the owner of the remote computer two things: its `address:port` and its password.
+gives the owner of the remote computer one line with everything: the password, the address, the port of requests, such as
+`Tr7kQ2xZ@203.0.113.7:40000`. The page of SYN Mirror on the router copies it with one button, **Copy the meeting point**.
 
 Why SYN Mirror, and not a relay server or a VPN:
 
@@ -695,7 +696,8 @@ rdp-host --meet Tr7kQ2xZ@router.example.org:20000    a meeting point whose port 
 - Only someone with the token gets in. After 5 wrong tokens in a row the remote computer lets nobody in for a minute.
 - The lines with the token go through the clipboard. A clipboard history (Windows: Win+V) or a clipboard shared between devices
   keeps them; the token is new at each start of the program unless set with `--token`.
-- `rdp-host.settings` beside the program keeps the password of the meeting point as it is typed, and never the token. Whoever can
+- `rdp-host.settings` beside the program keeps the password of the meeting point as plain text, apart from its address, and never
+  the token. Whoever can
   read the folder of the program can read it.
 - The page checks the key of the remote computer: another key at an address it knows is refused, someone else may be answering
   there.
@@ -727,7 +729,7 @@ What the page says, under the picture, beside its parts, or in its bar:
 | `That is not a line of the remote computer: …` | Something else was pasted on the arrow | Paste the whole line the program printed, such as `192.168.1.20:8765#K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
 | `The token is missing: …` | Only the address is there, without `#` and the token | Paste the whole line the program printed |
 | Way ③: the page does not get in, the program waits | Enter is not pressed yet, or the line is of an earlier start | The user of the remote computer presses Enter, or sends the new line |
-| Way ③: the program says `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Check the password and the port after `:` in `--meet`; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
+| Way ③: the program says `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Copy the line of the meeting point again, from the page of its router: its password or port may have changed; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
 | `Direct connection: this device and the remote computer will not meet directly` | The network of your device gives it a new port for each address, as a mobile network does, and the router of the remote computer lets in only what it asked for. Found before the meeting: the page when it made its line, the program at its start | Use way ③; or your device on Wi-Fi; or open a port to the remote computer on its router |
 | `Direct connection: the remote computer answered none of the checks` | Its router, or a firewall on it, lets in nothing it did not ask for. Above it in the log: each address of the remote computer, the checks sent there and the ones answered | Use way ③; or open a port to it on its router |
 | `Direct connection: the checks of the remote computer came, none of its answers did` | Something on the way lets only one direction through | Use way ③ |

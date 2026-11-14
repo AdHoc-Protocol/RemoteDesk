@@ -354,7 +354,7 @@ class MainActivity : Activity(), Host.Watcher {
 
     private fun ask() {
         if (way == 2 && (point.text.isBlank() || password.text.length != 8)) {
-            hint.text = "The meeting point and its password of 8 characters, as its owner gave them"
+            hint.text = "The meeting point in one line, as its owner gave it: Tr7kQ2xZ@router.example.org:40000"
             hint.visibility = View.VISIBLE
             return
         }
