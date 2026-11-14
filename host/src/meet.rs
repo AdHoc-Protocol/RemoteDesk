@@ -37,9 +37,20 @@ pub struct Meet {
 }
 
 impl Meet {
-    /// The meeting point and its port of requests from `router.example.org` or `router.example.org:20000`.
-    pub fn point(text: &str) -> Option<(String, u16)> {
+    /// The meeting point as its owner gives it - the page of SYN Mirror copies it so, in one line: `Tr7kQ2xZ@router.example.org` -
+    /// apart: its password, when it is there, and the rest. A password has no `@`, nor a name or an address.
+    pub fn given(text: &str) -> (Option<&str>, &str) {
         let text = text.trim();
+        match text.split_once('@') {
+            Some((password, point)) => (Some(password), point),
+            None => (None, text),
+        }
+    }
+
+    /// The meeting point and its port of requests from `router.example.org` or `router.example.org:20000`, a password before
+    /// them or not.
+    pub fn point(text: &str) -> Option<(String, u16)> {
+        let text = Self::given(text).1;
         let (point, asks) = match text.rsplit_once(':') {
             Some((point, port)) => (point, port.parse().ok().filter(|&p| p != 0)?),
             None => (text, ASKS),

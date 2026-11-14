@@ -92,8 +92,8 @@ token. The line is in the clipboard already: paste it into a message.
  ✅ Anna from 192.168.1.30 is in · 1 watching
 ```
 
-The window remembers the answer: next time Enter is enough. A meeting point is typed once, its address and password, and offered
-again after that. What it remembers is in `rdp-host.settings` beside the program. The window stays open while the program runs:
+The window remembers the answer: next time Enter is enough. A meeting point is pasted once, in the one line the page of SYN Mirror
+copies, `Tr7kQ2xZ@router.example.org`, and offered again after that. What it remembers is in `rdp-host.settings` beside the program. The window stays open while the program runs:
 closing it stops the program.
 
 **2. On your device**, open `RemoteDesk.html` in Chrome or Edge. Press the number the remote computer pressed, paste the line
@@ -234,13 +234,16 @@ Why SYN Mirror, and not a relay server or a VPN:
 | What the middle needs | a server sized for the traffic | a small Linux server, or the OpenWrt router of a home with a public address |
 | Speed | the program of the relay can be the slowest part | only the network to the meeting point and from it: nothing waits for a program |
 
-**On the remote computer**, the program is started, and **3** pressed. The first time its window asks the address of the meeting
-point and its password, as its owner gave them; it remembers them, and next time Enter is enough. From a console or a script the
-same is:
+**On the remote computer**, the program is started, and **3** pressed. The first time its window asks the meeting point, as its
+owner gave it: one line, the password, `@`, the address, as the page of SYN Mirror on the router copies it with its button
+**Copy the meeting point**. Pasted, nothing else is asked; it is remembered, and next time Enter is enough. An address alone is
+taken too: then the window asks the password. From a console or a script the same is:
 
 ```text
-rdp-host --meet router.example.org:40000 --meet-password Tr7kQ2xZ
+rdp-host --meet Tr7kQ2xZ@router.example.org
 ```
+
+On the phone, the line goes into the field of the meeting point: the password moves to its own field by itself.
 
 It shows a line to send to you, and waits for Enter:
 
@@ -258,7 +261,7 @@ It shows a line to send to you, and waits for Enter:
 
 | Step | Who | What happens |
 |:--|:--|:--|
-| | The user of the remote computer | Starts `rdp-host` and presses **3**: the first time it types the address of the meeting point and its password |
+| | The user of the remote computer | Starts `rdp-host` and presses **3**: the first time it pastes the meeting point, its password and address in one line |
 | ① | The program | Sends the password to the port of requests of the meeting point, and gets a port nobody else holds: `41933` in the line. The port is given to the address of the remote computer: only its knocks open it |
 | ② | The program | Prints the line, and holds the port: given to it, and closed. Nobody gets in, even with the line |
 | ③ | The user of the remote computer | Sends you the line, the token in it, by chat or mail: the program has put it in the clipboard |
@@ -674,8 +677,8 @@ Started without options, by a double click, the program asks in its window what 
 | `--token <token>` | variable `RDP_TOKEN`, else new at each start | The token the page must give |
 | `--key <file>` | `host.key` beside the program | The key of the remote computer: the page recognizes the computer by it |
 | `--software` | | Encode the video on the processor even when the graphics card can (Windows). A screen larger than 4096 pixels a side is sent at half its size |
-| `--meet <meeting point>[:<port>]` | port `40000` | Way ③: meet the page through this meeting point with SYN Mirror. After `:` its port of requests, when it is not 40000 |
-| `--meet-password <8 characters>` | variable `RDP_MEET_PASSWORD` | The password of that meeting point |
+| `--meet [<password>@]<meeting point>[:<port>]` | port `40000` | Way ③: meet the page through this meeting point with SYN Mirror, as the page of the router copies it. Before `@` its password; after `:` its port of requests, when it is not 40000 |
+| `--meet-password <8 characters>` | variable `RDP_MEET_PASSWORD` | The password of that meeting point, when `--meet` has none |
 | `--direct` | | Way ④: first asks the router to open the port of `--listen` to this computer, for one line; else meets the page over WebRTC, its line pasted into the window of the program. The program waits at `--listen` for ways ① and ② all along. Not together with `--meet` |
 
 Examples:
@@ -683,7 +686,7 @@ Examples:
 ```text
 rdp-host --token MySecretToken2026          the same token at every start
 rdp-host --listen 192.168.1.20:9000         only in the local network, on port 9000
-rdp-host --meet router.example.org:20000 --meet-password Tr7kQ2xZ     a meeting point whose port of requests is 20000
+rdp-host --meet Tr7kQ2xZ@router.example.org:20000    a meeting point whose port of requests is 20000
 ```
 
 ## Safety

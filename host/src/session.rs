@@ -116,13 +116,13 @@ pub fn run() {
                 software = true;
                 crate::os::video::software_only();
             }
-            "--meet" => meet = Some(args.next().expect("--meet <meeting point>[:<port of requests>]")),
+            "--meet" => meet = Some(args.next().expect("--meet [<password>@]<meeting point>[:<port of requests>]")),
             "--meet-password" => meet_password = args.next(),
             // the host started again as administrator: the port of meeting given before this start
             "--meet-given" => meet_given = Some(args.next().and_then(|v| v.parse().ok()).expect("--meet-given <port>")),
             "--direct" => direct = true,
             _ => {
-                eprintln!("rdp-host [--listen 0.0.0.0:8765] [--token <token>] [--key <file>] [--software] [--meet <meeting point>[:40000] [--meet-password <8 characters>] | --direct]\n  the token: --token, else RDP_TOKEN, else a new one each start\n  --software: the software encoder of H.264, not the one of the GPU\n  --meet: the viewer connects through this meeting point of SYN Mirror; after : its port of requests when it is not 40000; its password: --meet-password, else RDP_MEET_PASSWORD\n  --direct: the viewer connects straight to this computer over WebRTC: its line and the answer go by hand");
+                eprintln!("rdp-host [--listen 0.0.0.0:8765] [--token <token>] [--key <file>] [--software] [--meet [<password>@]<meeting point>[:40000] [--meet-password <8 characters>] | --direct]\n  the token: --token, else RDP_TOKEN, else a new one each start\n  --software: the software encoder of H.264, not the one of the GPU\n  --meet: the viewer connects through this meeting point of SYN Mirror; after : its port of requests when it is not 40000; its password: before @, as the page of SYN Mirror copies it, else --meet-password, else RDP_MEET_PASSWORD\n  --direct: the viewer connects straight to this computer over WebRTC: its line and the answer go by hand");
                 std::process::exit(2);
             }
         }
@@ -135,9 +135,10 @@ pub fn run() {
         let _ = DIRECT.set(());
     }
     let meet = meet.map(|given| {
-        let password = meet_password.unwrap_or_default();
+        // the password in the line of the meeting point, else --meet-password
+        let password = crate::meet::Meet::given(&given).0.map(String::from).or(meet_password).unwrap_or_default();
         let Ok(bytes) = <[u8; 8]>::try_from(password.as_bytes()) else {
-            eprintln!("the password of the meeting point is 8 characters: --meet-password, else RDP_MEET_PASSWORD");
+            eprintln!("the password of the meeting point is 8 characters: --meet <password>@<meeting point>, else --meet-password, else RDP_MEET_PASSWORD");
             std::process::exit(2);
         };
         let Some((point, asks)) = crate::meet::Meet::point(&given) else {

@@ -195,8 +195,20 @@ class MainActivity : Activity(), Host.Watcher {
             }
             choose.addView(line)
         }
-        point = field("router.example.org:40000", prefs.getString("point", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
+        point = field("Tr7kQ2xZ@router.example.org", prefs.getString("point", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         password = field("Its password: 8 characters", prefs.getString("password", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+        // the meeting point in one line, as the page of SYN Mirror copies it - Tr7kQ2xZ@router.example.org: the password before @
+        // goes to its own field
+        point.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable) {
+                val at = s.indexOf('@')
+                if (at < 0) return
+                password.setText(s.substring(0, at).trim())
+                s.delete(0, at + 1)
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
         meet = column(gap(14), text("The meeting point, as its owner gave it", 13f, muted, true).apply { setPadding(dp(4), 0, 0, dp(6)) }, point, gap(8), password)
         choose.addView(meet)
         hint = text("", 13f, warn).apply { setPadding(dp(4), dp(10), 0, 0); visibility = View.GONE }
