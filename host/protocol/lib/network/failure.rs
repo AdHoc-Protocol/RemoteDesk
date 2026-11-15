@@ -241,7 +241,7 @@ mod crash {
         if lsp.contains(&file) {
             let _ = writeln!(text, "  This library is a layered provider of Winsock ( an LSP ) another program installed: Windows puts it into every");
             let _ = writeln!(text, "  program that uses the network, whether that program runs or not. Turning it off does not help: remove its LSP,");
-            let _ = writeln!(text, "  then restart the computer; the program goes on working without it. Astrill VPN: hold Ctrl, click its menu,");
+            let _ = writeln!(text, "  then restart the computer; the program goes on working without it. Astrill VPN: hold Ctrl + click its menu,");
             let _ = writeln!(text, "  Help, LSP Uninstall. No such item: netsh winsock reset, as administrator.");
         } else if folder.is_empty() || !module.to_ascii_lowercase().starts_with(&folder) {
             let _ = writeln!(text, "  This library is not of this program: of Windows, or of another program put into it - a VPN, an antivirus.");

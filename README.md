@@ -866,9 +866,11 @@ The VPN itself goes on working without it.
 Astrill VPN is one of them, with `ASProxy64.dll`: the window of the program closes as soon as it starts waiting, and other
 programs that use the network crash the same way, Java and Python ones among them. To remove its LSP:
 
-1. In the window of Astrill, **hold Ctrl** and click ☰ at the top left. Without Ctrl its menu **Help** has no item for it.
+1. In the window of Astrill, **hold Ctrl + click** ☰ at the top left. Without Ctrl its menu **Help** has no item for it.
 2. **Help → LSP Uninstall**.
 3. Restart the computer.
+
+![The menu Help of Astrill opened with Ctrl held: LSP Install, LSP Uninstall and Hard excluded apps among its items](docs/astrill-lsp-uninstall.png)
 
 To check that it is gone, in a command prompt:
 
