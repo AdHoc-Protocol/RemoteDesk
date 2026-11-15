@@ -52,9 +52,9 @@ pub fn relaunch_args() -> Vec<String> {
     }
     if let Some((point, password)) = MEET.get() {
         args.extend(["--meet".into(), point.clone(), "--meet-password".into(), password.clone()]);
-        // access is granted already: the host started again knocks at the port given before, and the viewer meets it there
-        if let Some(port) = crate::meet::granted() {
-            args.extend(["--meet-given".into(), port.to_string()]);
+        // the port given already: the host started again knocks at it with the same id, and the viewer meets it there
+        if let Some(given) = crate::meet::given() {
+            args.extend(["--meet-given".into(), given]);
         }
     }
     if DIRECT.get().is_some() {
@@ -103,7 +103,8 @@ pub fn run() {
     let mut software = false;
     let mut meet: Option<String> = None;
     let mut meet_password = std::env::var("RDP_MEET_PASSWORD").ok().filter(|p| !p.is_empty());
-    let mut meet_given: Option<u16> = None;
+    let mut meet_given: Option<(u16, [u8; 8])> = None;
+    let mut forward: Option<String> = None;
     let mut direct = false;
     // as given; started by a double click, the answer of the menu ( src/menu.rs )
     let mut args = crate::menu::arguments().into_iter();
@@ -118,11 +119,16 @@ pub fn run() {
             }
             "--meet" => meet = Some(args.next().expect("--meet [<password>@]<meeting point>[:<port of requests>]")),
             "--meet-password" => meet_password = args.next(),
-            // the host started again as administrator: the port of meeting given before this start
-            "--meet-given" => meet_given = Some(args.next().and_then(|v| v.parse().ok()).expect("--meet-given <port>")),
+            // the host started again as administrator: the port of meeting given before this start, and the id it is given to
+            "--meet-given" => meet_given = Some(args.next().and_then(|v| crate::meet::parse_given(&v)).expect("--meet-given <port>.<id in 16 hex digits>")),
             "--direct" => direct = true,
+            // the relay: the meetings joined to this server, not taken by RemoteDesk - a port of this computer, or address:port
+            "--forward" => {
+                let to = args.next().expect("--forward <port> or <address:port>, such as 3389 or 192.168.1.5:22");
+                forward = Some(if to.bytes().all(|b| b.is_ascii_digit()) { format!("127.0.0.1:{to}") } else { to });
+            }
             _ => {
-                eprintln!("rdp-host [--listen 0.0.0.0:8765] [--token <token>] [--key <file>] [--software] [--meet [<password>@]<meeting point>[:40000] [--meet-password <8 characters>] | --direct]\n  the token: --token, else RDP_TOKEN, else a new one each start\n  --software: the software encoder of H.264, not the one of the GPU\n  --meet: the viewer connects through this meeting point of SYN Mirror; after : its port of requests when it is not 40000; its password: before @, as the page of SYN Mirror copies it, else --meet-password, else RDP_MEET_PASSWORD\n  --direct: the viewer connects straight to this computer over WebRTC: its line and the answer go by hand");
+                eprintln!("rdp-host [--listen 0.0.0.0:8765] [--token <token>] [--key <file>] [--software] [--meet [<password>@]<meeting point>[:40000] [--meet-password <8 characters>] [--forward <port> | <address:port>] | --direct]\n  the token: --token, else RDP_TOKEN, else a new one each start\n  --software: the software encoder of H.264, not the one of the GPU\n  --meet: the viewer connects through this meeting point of SYN Mirror; after : its port of requests when it is not 40000; its password: before @, as the page of SYN Mirror copies it, else --meet-password, else RDP_MEET_PASSWORD\n  --forward: with --meet, the meeting point is a relay to this port of this computer, or address:port of its network, such as 3389 - Remote Desktop of Windows: whoever comes uses its own program, not the page\n  --direct: the viewer connects straight to this computer over WebRTC: its line and the answer go by hand");
                 std::process::exit(2);
             }
         }
@@ -148,6 +154,25 @@ pub fn run() {
         let _ = MEET.set((given, password));
         crate::meet::Meet { point, password: bytes, asks }
     });
+    // the relay: no session of RemoteDesk here - no key, no token, no screen; the meetings go to the server named
+    match (forward, meet) {
+        (Some(to), Some(meet)) => {
+            crate::meet::relay(meet, to);
+            loop {
+                std::thread::park(); // a meeting point that answered nothing: said; the window stays to read it
+            }
+        }
+        (Some(_), None) => {
+            eprintln!("--forward goes with --meet: the meeting point is the relay to it");
+            std::process::exit(2);
+        }
+        (None, meet) => run_session(listen, token, key_file, software, meet, meet_given, direct),
+    }
+}
+
+/// The session of RemoteDesk: the server of the page, the way the page comes by.
+#[allow(clippy::too_many_arguments)]
+fn run_session(listen: SocketAddr, token: Option<String>, key_file: PathBuf, software: bool, meet: Option<crate::meet::Meet>, meet_given: Option<(u16, [u8; 8])>, direct: bool) {
 
     let key_file = std::path::absolute(&key_file).unwrap_or(key_file); // a start as administrator begins in another folder
     let _ = LAUNCH.set((listen, key_file.clone(), software));
@@ -244,6 +269,7 @@ pub fn run() {
                 }
             }
             say!("👀", Wait, "Waiting for whoever connects…");
+            crate::console::stay_awake();
         }
     }
 

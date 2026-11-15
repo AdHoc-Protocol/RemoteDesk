@@ -1,10 +1,12 @@
 // The viewer page of RemoteDesk: the login form, and the desk of the session ( ./desk.ts - the bar, the screen, the session in its
 // worker ) put in place of the form while the machine has the page in. What the page keeps is kept on this device, in localStorage: the
-// address and the name typed last, what the desk keeps; the token is not kept - it lives in the desk, for its session only.
+// name typed last, the way, what the desk keeps, and the computers of the user - the name given to each, and its line, read by the
+// camera or connected with, its token in it: one press connects again, or sends the line on to another device.
 
 import { english, forgetKey, open, splitLine as split, type Desk, type Stage, type Store } from "./desk";
 import { card, offer, STUN_NAMES, type Card, type Heard, type Offer } from "./direct";
 import { drawScene } from "./scene";
+import { scan } from "./scan";
 import { createDockview, themeDark, themeLight, type DockviewApi, type IDockviewPanel } from "dockview";
 import dockviewStyle from "dockview/dist/styles/dockview.css";
 
@@ -37,6 +39,8 @@ const offerTold = $<HTMLSpanElement>("offer-told");
 const offerLine = $<HTMLTextAreaElement>("offer-line");
 const offerCopy = $<HTMLButtonElement>("offer-copy");
 const log = $<HTMLDetailsElement>("log"), feed = $<HTMLOListElement>("feed");
+const scanButton = $<HTMLButtonElement>("scan");
+const linesBox = $<HTMLElement>("lines"), linesList = $<HTMLOListElement>("lines-list");
 
 // ── what the page keeps on this device ──
 
@@ -268,8 +272,8 @@ function machine(text: string): string | undefined {
  * The line of the program, as it printed it and the user pasted it - `<address>:<port>/<token>` -: where to dial and the token. The
  * field keeps it whole, untouched: the page takes it apart only here. `undefined` - not such a line.
  */
-function theLine(): { at: string; token: string; check: string | undefined } | undefined {
-    const line = split(address.value), at = line === undefined ? undefined : machine(line.address);
+function theLine(text = address.value): { at: string; token: string; check: string | undefined } | undefined {
+    const line = split(text), at = line === undefined ? undefined : machine(line.address);
     const pass = line?.token.trim() ?? "";
     if (at === undefined || pass === "") return undefined;
     // after the token, `-` and the check of the key of the machine: 8 of the letters of the token; a line without it - the token alone
@@ -465,7 +469,7 @@ function go(): void {
     const answer = card(address.value, true);
     if (answer !== undefined) return void meet(answer);
     const line = theLine()!;
-    openDesk(line.at, line.token, undefined, undefined, line.check);
+    openDesk(line.at, line.token, undefined, undefined, line.check, { line: address.value.trim(), way });
 }
 
 form.addEventListener("submit", e => { e.preventDefault(); go(); });
@@ -484,8 +488,9 @@ const STAGE_NOTE: Partial<Record<Stage, string>> = {
     left: "Disconnected",
 };
 
-/** The desk on the machine `at`, by `typed` - the token -; direct: over `channel`, `attempt` closed with the desk. */
-function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?: Offer, check?: string): void {
+/** The desk on the machine `at`, by `typed` - the token -; direct: over `channel`, `attempt` closed with the desk. `from` - the line it
+ *  came of, kept among the lines once the machine lets the page in. */
+function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?: Offer, check?: string, from?: { line: string; way: Way }): void {
     store.set("name", yourName.value);
     busy = true;
     overChannel = channel !== undefined;
@@ -526,6 +531,7 @@ function openDesk(at: string, typed: string, channel?: RTCDataChannel, attempt?:
             if (!on || o.panel || o.window) return;
             // in: a panel of its own, in front; the form is free for another machine
             if (host !== "") o.title = `${host} · ${o.title}`;
+            if (from !== undefined) lineConnected(from.line, from.way, host);
             attempting = undefined;
             busy = false;
             overChannel = false;
@@ -689,6 +695,218 @@ forget.addEventListener("click", () => {
     forget.hidden = true;
     keyLine.textContent = english.keyForgotten;
 });
+
+// ── the computers kept: a name the user gave each, and its line - read by the camera, or connected with ──
+//
+// One row of the store each, newest first: when, the way, the name the machine told, the name the user gave, the line - apart by tabs; a
+// line of the program has neither tab nor end of line in it, and a name loses them. The list shows the names: a press on one connects;
+// Copy and Send take its line to another device, the computer of the user. A line read by the camera is named: a new name adds a
+// computer, a name there already gives that computer the new line - a new start of rdp-host, a new port or token.
+
+/** A computer kept. */
+interface Kept { time: number; way: Way; host: string; name: string; line: string }
+/** How many are kept: the oldest goes. */
+const KEPT = 20;
+
+function keptLines(): Kept[] {
+    const all: Kept[] = [];
+    for (const row of (store.get("lines") ?? "").split("\n")) {
+        const [time, w, host, name, line] = row.split("\t");
+        const n = Number(w);
+        if (line !== undefined && line !== "" && n >= 1 && n <= 4) all.push({ time: Number(time) || 0, way: n as Way, host: host ?? "", name: name ?? "", line });
+    }
+    return all;
+}
+
+const clean = (text: string) => text.replace(/[\t\n\r]+/g, " ").trim();
+
+function storeLines(all: Kept[]): void {
+    store.set("lines", all.length === 0 ? undefined : all.slice(0, KEPT).map(k => `${k.time}\t${k.way}\t${clean(k.host)}\t${clean(k.name)}\t${k.line}`).join("\n"));
+    drawLines();
+}
+
+/** Its name as the list shows it: the one the user gave; else the one the machine told; else its address. */
+const nameOf = (k: Kept) => k.name || k.host || (split(k.line)?.address ?? k.line);
+
+/** `line` under `name`, first: the computer of that name gets it, or a new one is added; `was` - the one being renamed, it goes. */
+function saveLine(name: string, line: string, w: Way, was?: Kept): Kept {
+    const all = keptLines(), same = all.find(k => nameOf(k) === name);
+    const kept: Kept = { time: Date.now(), way: w, host: same?.host ?? was?.host ?? "", name, line };
+    storeLines([kept, ...all.filter(k => k !== same && !(was !== undefined && k.line === was.line && nameOf(k) === nameOf(was)))]);
+    return kept;
+}
+
+/** The machine of `line` let the page in: the computer of that line comes first, with the name the machine told; a line not kept yet
+ *  is kept, by that name. */
+function lineConnected(line: string, w: Way, host: string): void {
+    const all = keptLines(), same = all.find(k => k.line === line);
+    const kept: Kept = same !== undefined ? { ...same, time: Date.now(), host: host || same.host } : { time: Date.now(), way: w, host, name: "", line };
+    storeLines([kept, ...all.filter(k => k !== same)]);
+}
+
+/** Copied, or the browser said why not: said on the button a moment. */
+async function copyLine(line: string, button: HTMLButtonElement): Promise<void> {
+    try {
+        await navigator.clipboard.writeText(line);
+        button.textContent = "Copied ✓";
+    } catch {
+        offerLine.value = line; // the old way: a selection, copied
+        offerLine.select();
+        button.textContent = document.execCommand("copy") ? "Copied ✓" : "Not copied";
+    }
+    setTimeout(() => { button.textContent = "Copy"; }, 2000);
+}
+
+function small(text: string, title: string, act: () => void, className = "second"): HTMLButtonElement {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = className;
+    b.textContent = text;
+    b.title = title;
+    b.addEventListener("click", act);
+    return b;
+}
+
+function drawLines(fresh?: string): void {
+    const all = keptLines();
+    linesBox.hidden = all.length === 0;
+    linesList.replaceChildren(...all.map(k => {
+        const li = document.createElement("li");
+        if (k.line === fresh) li.className = "new";
+        const use = document.createElement("button");
+        use.type = "button";
+        use.className = "use";
+        use.title = "Connect";
+        const name = document.createElement("b");
+        name.textContent = nameOf(k);
+        const when = document.createElement("small");
+        when.textContent = [k.name !== "" && k.host !== "" ? k.host : "", `way ${k.way}`,
+            new Date(k.time).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })].filter(x => x !== "").join(" · ");
+        use.append(name, when);
+        // the line itself only when asked: the list is of names
+        const text = document.createElement("code");
+        text.textContent = k.line;
+        use.addEventListener("click", () => {
+            if (busy) return;
+            choose(k.way);
+            address.value = k.line;
+            draw();
+            go();
+        });
+        const copy: HTMLButtonElement = small("Copy", "Its line, into the clipboard", () => void copyLine(k.line, copy));
+        const parts: HTMLElement[] = [use];
+        parts.push(small("📷 Update", "Read the QR code rdp-host shows now: this computer gets the new line", () => void update(k)));
+        parts.push(small("Line", "Show its line, or hide it", () => li.classList.toggle("open")), copy);
+        if (typeof navigator.share === "function")
+            parts.push(small("Send", "Its line to a messenger or to mail: open it on your computer and paste it into the page there",
+                () => void navigator.share({ text: k.line }).catch(() => undefined)));
+        parts.push(small("✎", "Another name", () => nameLine(k.line, k.way, k), "plain edit"),
+            small("✕", "Forget this computer", () => storeLines(keptLines().filter(x => x.line !== k.line || nameOf(x) !== nameOf(k))), "plain drop"));
+        const row = document.createElement("div");
+        row.className = "row";
+        row.append(...parts);
+        li.append(row, text);
+        return li;
+    }));
+}
+
+// the window that names a line: a new name, or one of those there - that computer gets the line
+const naming = $<HTMLDialogElement>("naming");
+const namingLine = $<HTMLElement>("naming-line"), namingName = $<HTMLInputElement>("naming-name");
+const namingNames = $<HTMLDivElement>("naming-names"), namingSays = $<HTMLParagraphElement>("naming-says");
+const namingSave = $<HTMLButtonElement>("naming-save"), namingGo = $<HTMLButtonElement>("naming-go");
+/** What the window names now: the line, its way, the computer renamed. */
+let named: { line: string; way: Way; was: Kept | undefined } | undefined;
+
+/** What saving does, said under the name: a new computer, or the new line of one there. */
+function namingSaid(): void {
+    const name = clean(namingName.value), was = named?.was;
+    const same = keptLines().find(k => nameOf(k) === name);
+    namingSave.disabled = namingGo.disabled = name === "";
+    for (const b of namingNames.querySelectorAll("button")) b.classList.toggle("on", b.textContent === name);
+    namingSays.textContent = name === "" ? "Give it a name, or press one you have"
+        : same === undefined ? (was !== undefined ? "The computer gets this name" : "A new computer in your list")
+        : same.line === named?.line ? "The same computer, the same line"
+        : `“${name}” gets this line in place of its line before`;
+}
+
+/** Opens the window for `line`: named by the user, or renamed - `was`. */
+function nameLine(line: string, w: Way, was?: Kept): void {
+    named = { line, way: w, was };
+    namingLine.textContent = line;
+    const all = keptLines();
+    // the computer this line is likely of: the same address, a new port or token of the program there
+    const at = split(line)?.address.replace(/:\d+$/, "");
+    const likely = was ?? all.find(k => k.line === line) ?? all.find(k => split(k.line)?.address.replace(/:\d+$/, "") === at);
+    namingName.value = likely !== undefined ? nameOf(likely) : "";
+    namingNames.replaceChildren(...[...new Set(all.map(nameOf))].map(n => small(n, "This computer gets the line", () => { namingName.value = n; namingSaid(); }, "chip")));
+    namingNames.hidden = all.length === 0 || was !== undefined;
+    namingGo.hidden = was !== undefined;
+    namingSaid();
+    naming.showModal();
+    namingName.focus();
+}
+
+namingName.addEventListener("input", namingSaid);
+naming.addEventListener("close", () => {
+    const n = named, how = naming.returnValue, name = clean(namingName.value);
+    named = undefined;
+    if (n === undefined || name === "" || (how !== "save" && how !== "go")) return;
+    const kept = saveLine(name, n.line, n.way, n.was);
+    drawLines(kept.line);
+    if (how === "go") {
+        if (busy) return;
+        choose(kept.way);
+        address.value = kept.line;
+        draw();
+        go();
+    } else if (n.was === undefined) {
+        show(`✓ “${name}” is in your list above: press it to connect, or copy or send its line to your computer.`, "ok");
+        linesBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+});
+
+/** The line of `k` anew, read by the camera: rdp-host was started again, a new port or token. */
+async function update(k: Kept): Promise<void> {
+    const text = await read();
+    if (text === undefined) return;
+    if (card(text, true) !== undefined) return show("That QR code is the answer of way 4 for this meeting, not a line of a computer to keep.", "bad");
+    if (theLine(text) === undefined) return show(`That QR code holds no line of rdp-host: ${text.slice(0, 80)}`, "bad");
+    note(`Read by the camera, for “${nameOf(k)}”: ${text}`, "ok");
+    const kept = saveLine(nameOf(k), text, k.way, k);
+    drawLines(kept.line);
+    show(`✓ “${nameOf(k)}” has its new line: press it to connect.`, "ok");
+}
+
+/** A QR code read by the camera; undefined - cancelled, or no camera: said. */
+async function read(): Promise<string | undefined> {
+    try {
+        return await scan();
+    } catch (e) {
+        show(`The camera: ${(e as Error).message}`, "bad");
+        return undefined;
+    }
+}
+
+// the camera: the QR code rdp-host shows. A line is named and kept, one press from connecting; the answer of way 4 is for this meeting
+// only - it goes into the field, as if pasted
+scanButton.hidden = false;
+scanButton.addEventListener("click", async () => {
+    const text = await read();
+    if (text === undefined) return;
+    if (card(text, true) !== undefined) {
+        address.value = text;
+        address.dispatchEvent(new InputEvent("input", { inputType: "insertFromPaste" }));
+        return;
+    }
+    if (theLine(text) === undefined) {
+        show(`That QR code holds no line of rdp-host: ${text.slice(0, 80)}`, "bad");
+        return;
+    }
+    note(`Read by the camera: ${text}`, "ok");
+    nameLine(text, way);
+});
+drawLines();
 
 address.addEventListener("input", e => {
     where = ""; // something new typed: what broke before is not this attempt's

@@ -144,7 +144,90 @@ pub fn line_to_send(line: &str) {
     } else {
         say("✂️", Tone::Warn, "Select it with the mouse and copy it: this computer has no clipboard to put it in.");
     }
+    qr(line);
     println!();
+}
+
+/// The line as a QR code, for a phone beside the computer: the page scans it, 📷 beside its field. Dark on light whatever the colours
+/// of the window. Only in a console wide enough: in a log it is no use.
+#[cfg(not(target_os = "android"))]
+fn qr(line: &str) {
+    if !colour() {
+        return;
+    }
+    let Some(rows) = qr_rows(line) else { return };
+    if !crossterm::terminal::size().is_ok_and(|(w, _)| w as usize >= rows[0].chars().count() + 4) {
+        return;
+    }
+    say("📷", Tone::News, "Or scan it with a phone: 📷 beside the field of the line on the page.");
+    for row in rows {
+        println!("    {}", row.with(Color::Black).on(Color::White));
+    }
+}
+
+/// The rows of the QR code of `line`, a light margin around it: two rows of modules in one row of the window - ▀ ▄ █, dark the
+/// colour of the letters.
+#[cfg(not(target_os = "android"))]
+fn qr_rows(line: &str) -> Option<Vec<String>> {
+    use qrcode::{Color as Module, EcLevel, QrCode};
+    // the light margin a reader needs around the code
+    const QUIET: usize = 2;
+    let code = QrCode::with_error_correction_level(line.as_bytes(), EcLevel::L).ok()?;
+    let side = code.width();
+    let full = side + 2 * QUIET;
+    let modules = code.to_colors();
+    let dark = |x: usize, y: usize| {
+        (QUIET..QUIET + side).contains(&x) && (QUIET..QUIET + side).contains(&y) && modules[(y - QUIET) * side + x - QUIET] == Module::Dark
+    };
+    Some(
+        (0..full)
+            .step_by(2)
+            .map(|y| {
+                (0..full)
+                    .map(|x| match (dark(x, y), dark(x, y + 1)) {
+                        (true, true) => '█',
+                        (true, false) => '▀',
+                        (false, true) => '▄',
+                        (false, false) => ' ',
+                    })
+                    .collect()
+            })
+            .collect(),
+    )
+}
+
+#[cfg(all(test, not(target_os = "android")))]
+mod tests {
+    /// The rows read back by a reader of QR codes: each character two modules, 4 pixels a module.
+    #[test]
+    fn qr_reads_back() {
+        let line = "router.example.org:41933/K7QM2XHP9RTA4WZD8CNE-24NDRCK9";
+        let rows: Vec<Vec<char>> = super::qr_rows(line).unwrap().iter().map(|r| r.chars().collect()).collect();
+        let (w, h) = (rows[0].len(), rows.len() * 2);
+        let dark = |x: usize, y: usize| match rows[y / 2][x] {
+            '█' => true,
+            '▀' => y % 2 == 0,
+            '▄' => y % 2 == 1,
+            _ => false,
+        };
+        let mut image = rqrr::PreparedImage::prepare_from_greyscale(w * 4, h * 4, |x, y| if dark(x / 4, y / 4) { 0 } else { 255 });
+        let grids = image.detect_grids();
+        assert_eq!(grids.len(), 1);
+        assert_eq!(grids[0].decode().unwrap().1, line);
+    }
+}
+
+/// Said where the program waits for whoever connects: a line used later, hours or days on, finds the machine only awake.
+pub fn stay_awake() {
+    #[cfg(windows)]
+    const HOW: &str = "Windows: Settings > System > Power, sleep Never";
+    #[cfg(target_os = "macos")]
+    const HOW: &str = "macOS: System Settings > Energy, or Battery > Options: keep it from sleeping";
+    #[cfg(target_os = "android")]
+    const HOW: &str = "the phone: keep it charged, and do not turn it off";
+    #[cfg(not(any(windows, target_os = "macos", target_os = "android")))]
+    const HOW: &str = "the settings of power of this system: suspend never";
+    say!("💤", Warn, "To connect later, this computer must stay on and awake while the program runs: asleep, it lets nobody in. {HOW}. The screen may go dark");
 }
 
 // ── keys ──

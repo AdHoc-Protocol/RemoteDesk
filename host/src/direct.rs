@@ -252,6 +252,7 @@ pub fn start(bridge: SocketAddr, token: String, pass: String, listen: SocketAddr
 fn one_line(opened: crate::portmap::Opened, pass: &str) {
     let line = format!("{}/{pass}", opened.external);
     crate::console::line_to_send(&line);
+    crate::console::stay_awake();
     let pass = pass.to_owned();
     opened.keep(move |now| {
         say!("🔄", Warn, "The router gave another port: this line instead");

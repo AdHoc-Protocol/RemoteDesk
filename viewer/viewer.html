@@ -162,6 +162,36 @@
         #feed li { animation: in .25s; } #feed li.bad { color: var(--bad); } #feed li.ok { color: var(--ok); } #feed li.wait { color: var(--warn); }
         #feed .t { color: var(--muted); margin-right: 8px; }
         #key { margin-top: 8px; color: var(--muted); font: 12px/1.4 ui-monospace, monospace; word-break: break-all; }
+        /* the lines kept: a press connects; Copy and Send take one to another device */
+        #lines { margin: 0 0 18px; }
+        #lines h2 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+        #lines .hint { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+        #lines-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+        #lines-list li { padding: 6px 8px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+        #lines-list .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        #lines-list li > code { display: none; margin-top: 6px; padding: 4px 6px; background: var(--soft); border-radius: 6px; font-size: 12px; word-break: break-all; }
+        #lines-list li.open > code { display: block; }
+        #lines-list li.new { border-color: var(--ok); animation: in .25s; }
+        #lines-list .use { flex: 1 1 12em; min-width: 0; padding: 2px 4px; text-align: left; background: transparent; color: var(--fg); }
+        #lines-list .use b { font-weight: 600; margin-right: 8px; }
+        #lines-list .use small { color: var(--muted); }
+        #lines-list .drop { color: var(--muted); font-size: 16px; padding: 0 4px; }
+        #lines-list .edit { color: var(--muted); font-size: 15px; padding: 0 4px; }
+        .tag .head .scan { margin-left: auto; padding: 3px 10px; }
+        /* the window that names a line read by the camera */
+        #naming { width: min(480px, calc(100vw - 32px)); padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--fg); }
+        #naming::backdrop { background: #0008; }
+        #naming h3 { margin: 0 0 8px; font-size: 17px; }
+        #naming code { display: block; padding: 6px 8px; background: var(--soft); border-radius: 6px; font-size: 12px; word-break: break-all; }
+        #naming-names { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        #naming-names .chip { padding: 3px 10px; background: var(--soft); color: var(--fg); border: 1px solid var(--line); border-radius: 14px; font-size: 13px; }
+        #naming-names .chip.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+        #naming-says { margin: 8px 0 0; color: var(--muted); font-size: 13px; min-height: 1.3em; }
+        #naming .buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0 0; }
+        /* the camera, over all, while it reads */
+        #scanner { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; background: #000c; color: #fff; }
+        #scanner video { max-width: 100%; max-height: 70vh; border-radius: 12px; }
+        #scanner p { margin: 0; text-align: center; }
 
         /* the page: "You" stands beside its field, in .me-spot - the one of the scene is for the pictures of the README */
         #scene #n-me .you { display: none; }
@@ -199,6 +229,12 @@
         <p>See and control a computer of yours, straight from this page.</p>
     </header>
 
+    <!-- the computers of the user, kept on this device: a name each, and its line, read by the camera or connected with -->
+    <section id="lines" hidden>
+        <h2>Your computers</h2>
+        <p class="hint">Press one to connect. Or choose the way below, as the remote computer did.</p>
+        <ol id="lines-list"></ol>
+    </section>
     <p class="ask">What did the remote computer press in rdp-host?</p>
     <div id="ways" role="radiogroup" aria-label="The way to connect">
         <button type="button" role="radio" data-way="1" aria-checked="true"><span class="num">1</span><b>Same network</b><small>home or office</small></button>
@@ -226,7 +262,8 @@
             <textarea id="offer-line" readonly tabindex="-1" aria-hidden="true"></textarea>
         </div>
         <div id="a-back" class="spot tag tag-back">
-            <p class="head"><span id="back-n" class="n">1</span> <label id="back-label" for="address"></label></p>
+            <p class="head"><span id="back-n" class="n">1</span> <label id="back-label" for="address"></label>
+                <button id="scan" class="second scan" type="button" hidden title="Read the QR code in the window of rdp-host with the camera">📷 Scan</button></p>
             <!-- the line; Enter connects: no button to look for -->
             <input id="address" type="text" spellcheck="false" autocomplete="off" enterkeyhint="go">
         </div>
@@ -240,6 +277,22 @@
     <div id="key"></div>
     <button id="forget" class="plain" type="button" hidden>Forget the key of this machine</button>
 </form>
+<!-- a line read by the camera, named: a new computer, or the new line of one there -->
+<dialog id="naming">
+    <form method="dialog">
+        <h3>Which computer is it?</h3>
+        <code id="naming-line"></code>
+        <label for="naming-name">Its name</label>
+        <input id="naming-name" type="text" spellcheck="false" autocomplete="off" maxlength="60" placeholder="Mom's laptop" enterkeyhint="done">
+        <div id="naming-names"></div>
+        <p id="naming-says"></p>
+        <p class="buttons">
+            <button id="naming-save" value="save">Save</button>
+            <button id="naming-go" class="second" value="go">Save and connect</button>
+            <button class="plain" value="cancel" formnovalidate>Cancel</button>
+        </p>
+    </form>
+</dialog>
 <div id="desk"></div>
 <script defer src="viewer.js"></script>
 </body>

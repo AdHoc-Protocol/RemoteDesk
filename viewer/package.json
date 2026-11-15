@@ -17,6 +17,7 @@
     "typescript": "latest"
   },
   "dependencies": {
-    "dockview": "^8.9.0"
+    "dockview": "^8.9.0",
+    "jsqr": "latest"
   }
 }

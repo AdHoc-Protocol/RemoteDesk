@@ -90,6 +90,13 @@ const WAYS: [(&str, &str, &str); 4] = [
     ("⚡", "Directly", "nothing to set up"),
 ];
 
+/// What the meeting point of way 3 is a relay to, as the menu offers it: the sign, the name, a word on it.
+const RELAYS: [(&str, &str, &str); 3] = [
+    ("🖥️", "RemoteDesk", "the page of RemoteDesk, as on the other ways"),
+    ("🪟", "Remote Desktop of Windows", "Remote Desktop Connection ( mstsc ): a long, strong password on the account is a must"),
+    ("🔌", "Another port", "of this computer or of its network: you type which"),
+];
+
 /// The questions, answered from `input` - the keys of the console, when `keys`; what is kept, in `file`. The way chosen, and the
 /// arguments it makes.
 fn ask(input: &mut dyn BufRead, keys: bool, file: &std::path::Path) -> (Way, Vec<String>) {
@@ -123,13 +130,48 @@ fn ask(input: &mut dyn BufRead, keys: bool, file: &std::path::Path) -> (Way, Vec
     };
     let (sign, name, _) = WAYS[way as usize];
     println!("{}", paint(format!("{}  {sign} {name}", way as u8 + 1), Color::Green, true));
-    let mut line = |prompt: &str| line(input, prompt);
-
     let mut args = Vec::new();
     match way {
         Way::Here | Way::Internet => {}
         Way::Direct => args.push(String::from("--direct")),
         Way::Meet => {
+            // what the meeting point is a relay to: RemoteDesk, Remote Desktop of Windows, or a port typed
+            say!("🤝", News, "Use SYN Mirror as a relay to:");
+            for (i, (sign, name, about)) in RELAYS.iter().enumerate() {
+                println!("    {}  {sign}  {}{}", paint(i + 1, Color::Yellow, true), paint(format!("{name:<27}"), Color::White, true), paint(about, Color::DarkGrey, false));
+            }
+            let last = kept.relay;
+            print!(" {} ", match last {
+                Some(r) => paint(format!("Press 1, 2 or 3 · Enter: {} as last time ›", r + 1), Color::Cyan, false),
+                None => paint("Press 1, 2 or 3 ›", Color::Cyan, false),
+            });
+            let relay = loop {
+                match press(input, keys) {
+                    None => std::process::exit(0),
+                    Some(c @ '1'..='3') => break c as u8 - b'1',
+                    Some('\n') if last.is_some() => break last.unwrap(),
+                    _ => {}
+                }
+            };
+            let (sign, name, _) = RELAYS[relay as usize];
+            println!("{}", paint(format!("{}  {sign} {name}", relay + 1), Color::Green, true));
+            let mut line = |prompt: &str| line(input, prompt);
+            let forward = match relay {
+                0 => None,
+                1 => Some(format!("127.0.0.1:{}", crate::meet::MSTSC)),
+                _ => Some(loop {
+                    let typed = match &kept.forward {
+                        Some(f) => line(&format!("Which port: of this computer, such as 22, or address:port of its network - Enter for {f}: ")),
+                        None => line("Which port: of this computer, such as 22, or address:port of its network: "),
+                    };
+                    let typed = if typed.is_empty() { kept.forward.clone().unwrap_or_default() } else { typed };
+                    if let Some(to) = target(&typed) {
+                        break to;
+                    }
+                    say!("💡", Warn, "A port, such as 22 or 5900, or an address and a port, such as 192.168.1.5:80");
+                }),
+            };
+            say!("💤", Warn, "To connect later, this computer must stay on and awake: asleep, it lets nobody in");
             // the point and its password as its owner gave them - in one line, as the page of SYN Mirror copies it, or apart: kept,
             // offered on Enter. The point is kept and shown without the password
             let (point, with) = loop {
@@ -157,14 +199,31 @@ fn ask(input: &mut dyn BufRead, keys: bool, file: &std::path::Path) -> (Way, Vec
                 say!("💡", Warn, "The password of a meeting point is 8 characters");
             } };
             args.extend([String::from("--meet"), point.clone(), String::from("--meet-password"), password.clone()]);
+            if let Some(to) = &forward {
+                args.extend([String::from("--forward"), to.clone()]);
+            }
             kept.meet = Some(point);
             kept.meet_password = Some(password);
+            kept.relay = Some(relay);
+            if relay == 2 {
+                kept.forward = forward;
+            }
         }
     }
     kept.way = Some(way);
     kept.save(file);
     println!();
     (way, args)
+}
+
+/// Where a relay goes, of what the user typed: a port alone - of this computer -, or address:port. None - neither.
+fn target(typed: &str) -> Option<String> {
+    let typed = typed.trim();
+    if let Ok(port) = typed.parse::<u16>() {
+        return (port != 0).then(|| format!("127.0.0.1:{port}"));
+    }
+    let (host, port) = typed.rsplit_once(':')?;
+    (!host.is_empty() && !host.contains(' ') && port.parse::<u16>().is_ok_and(|p| p != 0)).then(|| typed.to_string())
 }
 
 /// The key pressed: of the console, when `keys`; else the next character of `input` ( '\n' - Enter ). None - the input is over.
@@ -194,11 +253,15 @@ fn line(input: &mut dyn BufRead, prompt: &str) -> String {
     s.trim().to_string()
 }
 
-/// What the menu keeps beside the program: the last way, the meeting point and its password. Lines `key = value`.
+/// What the menu keeps beside the program: the last way, the meeting point and its password, what it is a relay to and the port
+/// typed for it. Lines `key = value`.
 struct Kept {
     way:           Option<Way>,
     meet:          Option<String>,
     meet_password: Option<String>,
+    /// 0 - RemoteDesk, 1 - Remote Desktop of Windows, 2 - the port typed
+    relay:         Option<u8>,
+    forward:       Option<String>,
 }
 
 impl Kept {
@@ -207,7 +270,7 @@ impl Kept {
     }
 
     fn load(file: &std::path::Path) -> Self {
-        let mut kept = Kept { way: None, meet: None, meet_password: None };
+        let mut kept = Kept { way: None, meet: None, meet_password: None, relay: None, forward: None };
         for l in std::fs::read_to_string(file).unwrap_or_default().lines() {
             let Some((k, v)) = l.split_once('=') else { continue };
             let v = v.trim().to_string();
@@ -215,6 +278,8 @@ impl Kept {
                 "way" => kept.way = [Way::Here, Way::Internet, Way::Meet, Way::Direct].get(v.parse::<usize>().unwrap_or(0).wrapping_sub(1)).copied(),
                 "meet" if !v.is_empty() => kept.meet = Some(v),
                 "meet_password" if !v.is_empty() => kept.meet_password = Some(v),
+                "relay" => kept.relay = v.parse::<u8>().ok().filter(|r| (1..=3).contains(r)).map(|r| r - 1),
+                "forward" if !v.is_empty() => kept.forward = Some(v),
                 _ => {}
             }
         }
@@ -231,6 +296,12 @@ impl Kept {
         }
         if let Some(p) = &self.meet_password {
             s += &format!("meet_password = {p}\n");
+        }
+        if let Some(r) = self.relay {
+            s += &format!("relay = {}\n", r + 1);
+        }
+        if let Some(f) = &self.forward {
+            s += &format!("forward = {f}\n");
         }
         if let Err(e) = std::fs::write(file, s) {
             say!("💾", Quiet, "Not kept for the next start: {e}");
@@ -255,18 +326,24 @@ mod tests {
         assert_eq!(run("\n", &file), (Way::Direct, vec![String::from("--direct")]));
         // a meeting point: a wrong one, then the right one; a short password, then the right one
         assert_eq!(
-            run("3router:abc\nrouter.example.org:40000\nshort\nTr7kQ2xZ\n", &file),
+            run("31router:abc\nrouter.example.org:40000\nshort\nTr7kQ2xZ\n", &file),
             (Way::Meet, ["--meet", "router.example.org:40000", "--meet-password", "Tr7kQ2xZ"].map(String::from).to_vec())
         );
-        // kept: Enter, Enter, Enter - the same way, point and password
-        assert_eq!(run("\n\n\n", &file).1, ["--meet", "router.example.org:40000", "--meet-password", "Tr7kQ2xZ"].map(String::from).to_vec());
+        // kept: Enter, Enter, Enter, Enter - the same way, relay, point and password
+        assert_eq!(run("\n\n\n\n", &file).1, ["--meet", "router.example.org:40000", "--meet-password", "Tr7kQ2xZ"].map(String::from).to_vec());
         // another point: its password is asked anew
-        assert_eq!(run("3other.example.org:41000\n\nAb12Cd34\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
+        assert_eq!(run("3\nother.example.org:41000\n\nAb12Cd34\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
         // one line, as the page of SYN Mirror copies it: no password asked; kept apart, the point shown without it
-        assert_eq!(run("3Yk0n6jLe@unirail.org\n", &file).1, ["--meet", "unirail.org", "--meet-password", "Yk0n6jLe"].map(String::from).to_vec());
-        assert_eq!(run("3Ab12Cd34@other.example.org:41000\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
+        assert_eq!(run("31Yk0n6jLe@unirail.org\n", &file).1, ["--meet", "unirail.org", "--meet-password", "Yk0n6jLe"].map(String::from).to_vec());
+        assert_eq!(run("31Ab12Cd34@other.example.org:41000\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
         assert!(std::fs::read_to_string(&file).unwrap().contains("meet = other.example.org:41000\n"));
-        assert_eq!(run("\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
+        assert_eq!(run("\n\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
+        // a relay to Remote Desktop of Windows: its port, nothing typed
+        assert_eq!(run("32\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "127.0.0.1:3389"].map(String::from).to_vec());
+        // a relay to a port typed: a wrong one, then a port of this computer; then another of its network; Enter - the same
+        assert_eq!(run("33x\n22\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "127.0.0.1:22"].map(String::from).to_vec());
+        assert_eq!(run("3\n192.168.1.5:5900\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "192.168.1.5:5900"].map(String::from).to_vec());
+        assert_eq!(run("\n\n\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "192.168.1.5:5900"].map(String::from).to_vec());
         // this network, and the internet: no arguments, the way tells the lines
         assert_eq!(run("1", &file), (Way::Here, vec![]));
         assert_eq!(run("2", &file), (Way::Internet, vec![]));

@@ -33,6 +33,8 @@ netdev = { version = "*", default-features = false, features = ["gateway"] }
 ctrlc = { version = "*", features = ["termination"] }
 # the window of the program: colours, and the menu answered by the key pressed, no Enter after it
 crossterm = "*"
+# the line to send as a QR code in the window: a phone beside the computer scans it from the page
+qrcode = { version = "*", default-features = false }
 # the AdHoc runtime ( protocol/lib )
 mio = { version = "*", features = ["os-poll", "net"] }
 parking_lot = "*"
@@ -124,3 +126,7 @@ jni-sys = "*"
 default = ["native"]
 # what links libraries of C on Linux: PipeWire ( Wayland ), openh264, PulseAudio. A `cargo check` of another system goes without it.
 native = ["dep:pipewire", "dep:openh264", "dep:libpulse-binding", "dep:libpulse-simple-binding"]
+
+[dev-dependencies]
+# the test of the QR code of the window: read back as a phone reads it
+rqrr = "*"

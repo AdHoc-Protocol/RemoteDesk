@@ -235,7 +235,7 @@ class MainActivity : Activity(), Host.Watcher {
         actions.addView(secondary("Copy") { copy() }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply { setMargins(0, 0, dp(6), 0) })
         actions.addView(primary("Share") { share() }.apply { textSize = 15f; minHeight = dp(44); background = shape(accent, 22) }, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f).apply { setMargins(dp(6), 0, 0, 0) })
         answerField = field("Paste the answer of the page: rd1o.…", "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
-        done = secondary("") { answer() }
+        done = secondary("Connect") { answer() }
         wait = column(gap(14), answerField, gap(8), done).apply { visibility = View.GONE }
         lineCard = card(text("SEND THIS LINE TO WHOEVER CONNECTS", 11f, muted, true).apply { letterSpacing = 0.08f }, lineText, actions, wait).apply { visibility = View.GONE }
 
@@ -314,12 +314,9 @@ class MainActivity : Activity(), Host.Watcher {
         hint.visibility = View.GONE
     }
 
-    /** Where the host waits for its user: the meeting point, until the line reached them; directly, the answer of the page. */
+    /** Where the host waits for its user: directly, the answer of the page. */
     private fun waits() {
-        val shown = Host.running && Host.line != null && (way == 2 || way == 3)
-        wait.visibility = if (shown) View.VISIBLE else View.GONE
-        answerField.visibility = if (way == 3) View.VISIBLE else View.GONE
-        done.text = if (way == 3) "Connect" else "The line has reached them"
+        wait.visibility = if (Host.running && Host.line != null && way == 3) View.VISIBLE else View.GONE
     }
 
     /** Opens the settings of accessibility: Android scrolls to the service and lights it up where it can. */
@@ -432,10 +429,9 @@ class MainActivity : Activity(), Host.Watcher {
     }
 
     private fun answer() {
-        val text = if (way == 3) answerField.text.toString().trim() else ""
-        if (way == 3 && text.isEmpty()) return
+        val text = answerField.text.toString().trim()
+        if (text.isEmpty()) return
         Host.answer(text.toByteArray())
         answerField.setText("")
-        if (way == 2) wait.visibility = View.GONE // the meeting point lets them in from now on
     }
 }
