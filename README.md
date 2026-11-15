@@ -855,6 +855,39 @@ rdp-host --meet Tr7kQ2xZ@router.example.org:20000    a meeting point whose port 
 
 ## When something goes wrong
 
+**The program closes or does not work: try the remote computer with its VPN turned off first.** A VPN may put its own code
+into every program on the computer that uses the network, and some of that code breaks programs. A VPN on the device of the page
+does not matter.
+
+Some VPNs do it through an LSP, a layered provider of Winsock: a library Windows puts into every program that opens a socket,
+whether the VPN runs or not. Then turning the VPN off or closing it does not help: remove its LSP, then restart the computer.
+The VPN itself goes on working without it.
+
+Astrill VPN is one of them, with `ASProxy64.dll`: the window of the program closes as soon as it starts waiting, and other
+programs that use the network crash the same way, Java and Python ones among them. To remove its LSP:
+
+1. In the window of Astrill, **hold Ctrl** and click ☰ at the top left. Without Ctrl its menu **Help** has no item for it.
+2. **Help → LSP Uninstall**.
+3. Restart the computer.
+
+To check that it is gone, in a command prompt:
+
+```
+netsh winsock show catalog | findstr /i asproxy
+```
+
+Nothing printed: the LSP is gone. Updating Astrill does not help: its newer versions break programs the same way.
+
+No **LSP Uninstall** in the menu, or the VPN is uninstalled and its LSP stayed: run `netsh winsock reset` in a command prompt
+opened as administrator, then restart the computer. It removes every LSP, of other programs too: a program that put one there
+may need to be installed again. Do not delete `ASProxy64.dll` by hand: Windows still looks for it, and programs then get no
+sockets at all.
+
+When the program crashes on Windows, it says why in its window and keeps the window open until Enter. The same goes to
+`rdp-host-crash.log` beside the program, or in `%TEMP%` when it cannot write there: what failed, in which library, and the calls
+that led there. When that library is an LSP, the log says so and that its LSP must be removed. Another library from outside the
+folder of the program is of Windows or of another program, such as a VPN or an antivirus: turn that program off. Send the file
+along when you report the crash.
 
 What the page says, under the picture, beside its parts, or in its bar:
 

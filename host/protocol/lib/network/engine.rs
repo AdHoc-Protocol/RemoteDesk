@@ -203,6 +203,7 @@ impl Engine {
     /// work done, only one more thread to be switched out, and a loop that is switched out stalls
     /// every connection on it. `buffer_size` - at least [`MIN_BUFFER`].
     pub fn new(name: &str, threads: usize, buffer_size: usize) -> Arc<Self> {
+        super::failure::catch_crashes(); // a crash of a loop, or of a library put into the process, told - not a silent end
         let buffer_size = buffer_size.max(MIN_BUFFER);
         let cores = std::thread::available_parallelism().map_or(1, |n| n.get());
         let n = threads.clamp(1, cores.min(255)); // a connection names its loop in a byte

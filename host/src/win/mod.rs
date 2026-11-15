@@ -13,8 +13,12 @@ pub mod rights;
 pub mod sound;
 pub mod video;
 
-/// Before anything: the coordinates of the desktop in physical pixels - the capture and the input agree on them.
-pub fn init() { capture::dpi_aware(); }
+/// Before anything: a crash told, not a window closed in silence; the coordinates of the desktop in physical pixels - the capture
+/// and the input agree on them.
+pub fn init() {
+    crate::lib::network::failure::catch_crashes();
+    capture::dpi_aware();
+}
 
 /// Runs the host on this thread.
 pub fn main(run: fn()) { run() }
