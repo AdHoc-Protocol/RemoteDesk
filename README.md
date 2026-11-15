@@ -71,6 +71,40 @@ Only Remote Desktop of Windows, SSH or another port through a meeting point, wit
 Unpack the program into a folder of its own: the library of encryption beside it is part of it. Or build them yourself:
 [Building](#building).
 
+<a id="macos-not-opened"></a>
+On macOS a double click on `rdp-host` downloaded with a browser shows **"rdp-host" Not Opened: Apple could not verify "rdp-host"
+is free of malware**. The browser marks what it downloads, and macOS opens a marked program only when it is signed with an Apple
+Developer ID, which `rdp-host` is not. The simplest way on macOS is to download it with Terminal, not with a browser: `curl`
+does not mark what it downloads, so nothing stops it. One line downloads, unpacks and starts it:
+
+- Apple silicon (M1, M2 and later):
+
+  ```bash
+  mkdir -p ~/rdp-host && cd ~/rdp-host && curl -L https://github.com/AdHoc-Protocol/RemoteDesk/releases/latest/download/rdp-host-macos-arm64.tar.gz | tar -xz && ./rdp-host
+  ```
+
+- Intel:
+
+  ```bash
+  mkdir -p ~/rdp-host && cd ~/rdp-host && curl -L https://github.com/AdHoc-Protocol/RemoteDesk/releases/latest/download/rdp-host-macos-x64.tar.gz | tar -xz && ./rdp-host
+  ```
+
+Next time: `~/rdp-host/rdp-host` in Terminal, or a double click on it in the folder `rdp-host` of the home folder. The same line
+again updates it to the latest version.
+
+Already downloaded with a browser? Press **Done**, then take one of the ways:
+
+- Remove the mark from the folder, with the program and its library at once. In Terminal type
+  `xattr -dr com.apple.quarantine ` with a space at the end, drag the folder of the program into the window and press Return:
+
+  ```bash
+  xattr -dr com.apple.quarantine ~/Downloads/rdp-host-macos-arm64
+  ```
+
+- Or without Terminal: System Settings > Privacy & Security, at the bottom **"rdp-host" was blocked**, **Open Anyway**, and the
+  password. The library of encryption may then be stopped the same way: once more for it. A right click and **Open** no longer
+  lets a program through on recent macOS.
+
 ### Control a computer
 
 **1. On the remote computer**, double-click `rdp-host` (`rdp-host.exe` on Windows). Its window asks how you will connect: press

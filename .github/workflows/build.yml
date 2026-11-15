@@ -241,7 +241,15 @@ jobs:
           | \`RemoteDesk.apk\` | the remote phone or tablet with Android 10 or later: it shows its screen |
           | \`RemoteDesk.html\` | your device: the page, one file - open it in Chrome or Edge |
 
-          Unpack the program with the library of encryption beside it: it needs it. How to start: [Quick start](https://github.com/${GITHUB_REPOSITORY}#quick-start)."
+          Unpack the program with the library of encryption beside it: it needs it. How to start: [Quick start](https://github.com/${GITHUB_REPOSITORY}#quick-start).
+
+          macOS: download with Terminal, not a browser, and it opens without \"rdp-host\" Not Opened. Apple silicon:
+
+          \`\`\`bash
+          mkdir -p ~/rdp-host && cd ~/rdp-host && curl -L https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/rdp-host-macos-arm64.tar.gz | tar -xz && ./rdp-host
+          \`\`\`
+
+          Intel: \`rdp-host-macos-x64.tar.gz\` in place of \`rdp-host-macos-arm64.tar.gz\`. Already downloaded with a browser: [macOS: Not Opened](https://github.com/${GITHUB_REPOSITORY}#macos-not-opened)."
           git tag -f "$tag"
           git push -f origin "refs/tags/$tag"
           if gh release view "$tag" > /dev/null 2>&1; then
