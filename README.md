@@ -65,7 +65,7 @@ From the [latest release](../../releases/latest):
 | Your device: a computer, a tablet, a phone | [`RemoteDesk.html`](../../releases/latest/download/RemoteDesk.html): the page, one file |
 
 Only Remote Desktop of Windows, SSH or another port through a meeting point, without RemoteDesk? The small scripts of
-[SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#any-port-of-computer-a) do that alone, nothing else to install: see
+[SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#any-port-of-the-server) do that alone, nothing else to install: see
 [The meeting point as a relay](#relay).
 
 Unpack the program into a folder of its own: the library of encryption beside it is part of it. Or build them yourself:
@@ -385,15 +385,15 @@ that port, in its kernel ([Guard against guessing](https://github.com/AdHoc-Prot
 the second line of defense; the password is the first.
 
 **Only the relay, no RemoteDesk at all.** When nobody needs the page of RemoteDesk, only Remote Desktop of Windows, SSH, VNC or
-another port through the meeting point, SYN Mirror has scripts of its own for the remote computer, computer A in its words: one
+another port through the meeting point, SYN Mirror has scripts of its own for the remote computer, the server in its words: one
 script and nothing else, the program `rdp-host` not needed. Windows PowerShell of Windows runs the one, the perl of Linux and
 macOS the other. They ask the same - what to open, then the meeting point -, show the same line `router.example.org:41933` and
 join whoever comes the same way, the bytes as they are:
 
 | The remote computer | Download, from the releases of SYN Mirror | Start |
 |:--|:--|:--|
-| Windows | [`syn-mirror-client-windows.zip`](https://github.com/AdHoc-Protocol/SynMirror/releases/latest/download/syn-mirror-client-windows.zip): unpack it into a folder | A double click on `syn-mirror-client.cmd` |
-| Linux, macOS | [`syn-mirror-client.pl`](https://github.com/AdHoc-Protocol/SynMirror/releases/latest/download/syn-mirror-client.pl) | `perl syn-mirror-client.pl` |
+| Windows | [`syn-mirror-server-windows.zip`](https://github.com/AdHoc-Protocol/SynMirror/releases/latest/download/syn-mirror-server-windows.zip): unpack it into a folder | A double click on `syn-mirror-server.cmd` |
+| Linux, macOS | [`syn-mirror-server.pl`](https://github.com/AdHoc-Protocol/SynMirror/releases/latest/download/syn-mirror-server.pl) | `perl syn-mirror-server.pl` |
 
 ```text
  🔌 What should the other computer reach through the meeting point?
@@ -412,7 +412,7 @@ join whoever comes the same way, the bytes as they are:
 | The line, the QR code | The line in a frame and as a QR code | The line in a frame |
 
 Both keep the answers of the menu, put the line in the clipboard, wait again at the same port after each connection, and need
-the computer awake; to both the warning above holds: a strong password. How each works, and its own options: the README of SYN Mirror, [Any port of computer A](https://github.com/AdHoc-Protocol/SynMirror#any-port-of-computer-a).
+the computer awake; to both the warning above holds: a strong password. How each works, and its own options: the README of SYN Mirror, [Any port of the server](https://github.com/AdHoc-Protocol/SynMirror#any-port-of-the-server).
 
 <a id="way-4"></a>
 
