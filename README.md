@@ -308,6 +308,12 @@ Any line of [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#the-lines) 
 | `Tr7kQ2xZp4Lm9sWd@203.0.113.7:40000` | Asks for a port at each start | `203.0.113.7:41933/…`: another at each start |
 | `Fx2pL8wNq7Rk3mZa=203.0.113.7:41000` | A [fixed port](https://github.com/AdHoc-Protocol/SynMirror#fixed-ports): knocks with its key, asks nothing | `203.0.113.7:41000/…`: the address and port the same at every start |
 | `Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000` | The address of the meeting point [changes](https://github.com/AdHoc-Protocol/SynMirror#a-meeting-point-whose-address-changes): reads it at 198.51.100.9, again every 30 seconds, and follows it | `<its address now>:41933/…`: a new line when the address changes |
+| `Fx2pL8wNq7Rk3mZa=Rk8mP2qLx3Vb7NtY@198.51.100.9:40000` | The address changes, a fixed port: reads the address and the port there | `<its address now>:41000/…` |
+
+The line is one form for all who take it - this program, the scripts of the server of SYN Mirror, a DeFreez host - and each takes
+it the same: a password or a key of 16 letters and digits, a name or an IPv4 address, a port of 1…65535, 40000 when the line names
+none. The cases are in [`docs/lines.tsv` of SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror/blob/changing-address-fixed-ports/docs/lines.tsv);
+`host/src/lines.tsv` is its copy, and the tests of the program take each case as the file says.
 
 Why SYN Mirror, and not a relay server or a VPN:
 
@@ -406,7 +412,7 @@ nor the key of RemoteDesk takes part: the server there checks who comes.
 From a console or a script the same is `--forward`:
 
 ```text
-rdp-host --meet Tr7kQ2xZ@router.example.org:40000 --forward 3389
+rdp-host --meet Tr7kQ2xZp4Lm9sWd@router.example.org:40000 --forward 3389
 ```
 
 The program then shows the line without a token, `router.example.org:41933`, and waits, as on way ③: after each connection it
