@@ -172,31 +172,34 @@ fn ask(input: &mut dyn BufRead, keys: bool, file: &std::path::Path) -> (Way, Vec
                 }),
             };
             say!("💤", Warn, "To connect later, this computer must stay on and awake: asleep, it lets nobody in");
-            // the point and its password as its owner gave them - in one line, as the page of SYN Mirror copies it, or apart: kept,
-            // offered on Enter. The point is kept and shown without the password
+            // the point and its password, or the key of its fixed port, as its owner gave them - in one line, as the page of SYN Mirror
+            // copies it, or apart: kept, offered on Enter. The point is kept and shown without the password: `=` before it for a fixed
+            // port, `@` before it when its address is read where its record is kept
             let (point, with) = loop {
                 let typed = match &kept.meet {
                     Some(m) => line(&format!("The meeting point - Enter for {m}: ")),
                     None => line("The meeting point, as its owner gave it: "),
                 };
                 let typed = if typed.is_empty() { kept.meet.clone().unwrap_or_default() } else { typed };
-                if crate::meet::Meet::point(&typed).is_some() {
-                    let (with, point) = crate::meet::Meet::given(&typed);
-                    break (point.to_string(), with.filter(|p| p.len() == 8).map(String::from));
+                let (with, point) = crate::meet::Meet::given(&typed);
+                if crate::meet::Meet::place(&point).is_ok() {
+                    break (point, with.filter(|p| crate::meet::Meet::of(p, "router").is_ok()));
                 }
-                say!("💡", Warn, "As its owner gave it - such as Tr7kQ2xZ@router.example.org:40000 - or a name or an address, and :port when its owner gave one");
+                say!("💡", Warn, "As its owner gave it - such as Tr7kQ2xZp4Lm9sWd@router.example.org:40000, or Fx2pL8wNq7Rk3mZa=router.example.org:41000 for a fixed port - or a name or an address, and :port when its owner gave one");
             };
+            let fixed = point.starts_with('=');
+            let what = if fixed { "The key of its fixed port" } else { "Its password" };
             let same_point = kept.meet.as_deref() == Some(point.as_str());
             let password = if let Some(p) = with { p } else { loop {
                 let typed = match (&kept.meet_password, same_point) {
-                    (Some(_), true) => line("Its password, 8 characters - Enter for the same as last time: "),
-                    _ => line("Its password, 8 characters: "),
+                    (Some(_), true) => line(&format!("{what}, 16 characters - Enter for the same as last time: ")),
+                    _ => line(&format!("{what}, 16 characters: ")),
                 };
                 let password = if typed.is_empty() && same_point { kept.meet_password.clone().unwrap_or_default() } else { typed };
-                if password.len() == 8 {
+                if crate::meet::Meet::of(&password, &point).is_ok() {
                     break password;
                 }
-                say!("💡", Warn, "The password of a meeting point is 8 characters");
+                say!("💡", Warn, "{what} is 16 letters and digits, as the owner of the meeting point gave it");
             } };
             args.extend([String::from("--meet"), point.clone(), String::from("--meet-password"), password.clone()]);
             if let Some(to) = &forward {
@@ -324,26 +327,36 @@ mod tests {
         assert_eq!(run("\n74", &file), (Way::Direct, vec![String::from("--direct")]));
         // the next one: Enter - as last time
         assert_eq!(run("\n", &file), (Way::Direct, vec![String::from("--direct")]));
-        // a meeting point: a wrong one, then the right one; a short password, then the right one
+        // a meeting point: a wrong one, then the right one; a short password - of 8, as before -, then the right one
         assert_eq!(
-            run("31router:abc\nrouter.example.org:40000\nshort\nTr7kQ2xZ\n", &file),
-            (Way::Meet, ["--meet", "router.example.org:40000", "--meet-password", "Tr7kQ2xZ"].map(String::from).to_vec())
+            run("31router:abc\nrouter.example.org:40000\nTr7kQ2xZ\nTr7kQ2xZp4Lm9sWd\n", &file),
+            (Way::Meet, ["--meet", "router.example.org:40000", "--meet-password", "Tr7kQ2xZp4Lm9sWd"].map(String::from).to_vec())
         );
         // kept: Enter, Enter, Enter, Enter - the same way, relay, point and password
-        assert_eq!(run("\n\n\n\n", &file).1, ["--meet", "router.example.org:40000", "--meet-password", "Tr7kQ2xZ"].map(String::from).to_vec());
+        assert_eq!(run("\n\n\n\n", &file).1, ["--meet", "router.example.org:40000", "--meet-password", "Tr7kQ2xZp4Lm9sWd"].map(String::from).to_vec());
         // another point: its password is asked anew
-        assert_eq!(run("3\nother.example.org:41000\n\nAb12Cd34\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
+        assert_eq!(run("3\nother.example.org:41000\n\nAb12Cd34Ef56Gh78\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78"].map(String::from).to_vec());
         // one line, as the page of SYN Mirror copies it: no password asked; kept apart, the point shown without it
-        assert_eq!(run("31Yk0n6jLe@unirail.org\n", &file).1, ["--meet", "unirail.org", "--meet-password", "Yk0n6jLe"].map(String::from).to_vec());
-        assert_eq!(run("31Ab12Cd34@other.example.org:41000\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
+        assert_eq!(run("31Yk0n6jLeQ2wE4rT6@unirail.org\n", &file).1, ["--meet", "unirail.org", "--meet-password", "Yk0n6jLeQ2wE4rT6"].map(String::from).to_vec());
+        assert_eq!(run("31Ab12Cd34Ef56Gh78@other.example.org:41000\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78"].map(String::from).to_vec());
         assert!(std::fs::read_to_string(&file).unwrap().contains("meet = other.example.org:41000\n"));
-        assert_eq!(run("\n\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34"].map(String::from).to_vec());
+        assert_eq!(run("\n\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78"].map(String::from).to_vec());
+        // a fixed port, and an address read where the record of the meeting point is kept: the rest kept with = or @ before it
+        assert_eq!(run("31Fx2pL8wNq7Rk3mZa=other.example.org:41000\n", &file).1, ["--meet", "=other.example.org:41000", "--meet-password", "Fx2pL8wNq7Rk3mZa"].map(String::from).to_vec());
+        assert_eq!(run("\n\n\n\n", &file).1, ["--meet", "=other.example.org:41000", "--meet-password", "Fx2pL8wNq7Rk3mZa"].map(String::from).to_vec());
+        assert_eq!(
+            run("31Ab12Cd34Ef56Gh78@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000,Hx4nT7wAe2Kq9VsM@s2.example.org\n", &file).1,
+            ["--meet", "@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000,Hx4nT7wAe2Kq9VsM@s2.example.org", "--meet-password", "Ab12Cd34Ef56Gh78"].map(String::from).to_vec()
+        );
+        // the point apart, the key of its fixed port typed after it
+        assert_eq!(run("31=other.example.org:41000\nFx2pL8wNq7Rk3mZa\n", &file).1, ["--meet", "=other.example.org:41000", "--meet-password", "Fx2pL8wNq7Rk3mZa"].map(String::from).to_vec());
+        assert_eq!(run("31Ab12Cd34Ef56Gh78@other.example.org:41000\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78"].map(String::from).to_vec());
         // a relay to Remote Desktop of Windows: its port, nothing typed
-        assert_eq!(run("32\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "127.0.0.1:3389"].map(String::from).to_vec());
+        assert_eq!(run("32\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78", "--forward", "127.0.0.1:3389"].map(String::from).to_vec());
         // a relay to a port typed: a wrong one, then a port of this computer; then another of its network; Enter - the same
-        assert_eq!(run("33x\n22\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "127.0.0.1:22"].map(String::from).to_vec());
-        assert_eq!(run("3\n192.168.1.5:5900\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "192.168.1.5:5900"].map(String::from).to_vec());
-        assert_eq!(run("\n\n\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34", "--forward", "192.168.1.5:5900"].map(String::from).to_vec());
+        assert_eq!(run("33x\n22\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78", "--forward", "127.0.0.1:22"].map(String::from).to_vec());
+        assert_eq!(run("3\n192.168.1.5:5900\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78", "--forward", "192.168.1.5:5900"].map(String::from).to_vec());
+        assert_eq!(run("\n\n\n\n\n", &file).1, ["--meet", "other.example.org:41000", "--meet-password", "Ab12Cd34Ef56Gh78", "--forward", "192.168.1.5:5900"].map(String::from).to_vec());
         // this network, and the internet: no arguments, the way tells the lines
         assert_eq!(run("1", &file), (Way::Here, vec![]));
         assert_eq!(run("2", &file), (Way::Internet, vec![]));

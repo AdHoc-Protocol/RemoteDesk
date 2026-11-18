@@ -1,0 +1,36 @@
+# The lines of a server, as every program takes them: syn-mirror-server.pl and .ps1, rdp-host --meet ( RemoteDesk ), a DeFreez host
+# ( Me.Mirror.meet ). A copy of this file lies in each of them; their tests read it. One line a case: the line, a tab, what it is -
+# the password or the key, @ ( a port given at each start ) or = ( a fixed port ), and where: <point>:<port> or, the address read,
+# <read key>@<keeper>:<port>[,...] - the ports put in where the line has none; or `error`.
+#
+# A password, a key, a read key: 16 letters and digits. A point, a keeper: a name or an IPv4 address, none of : @ = , or a space in
+# it. A port: 1…65535; none after a point of @ or a keeper - 40000, the first port SYN Mirror installs; a fixed port names its own.
+# Spaces around the line and around each read go.
+Tr7kQ2xZp4Lm9sWd@router.example.org:40000	Tr7kQ2xZp4Lm9sWd @ router.example.org:40000
+Tr7kQ2xZp4Lm9sWd@router.example.org	Tr7kQ2xZp4Lm9sWd @ router.example.org:40000
+Tr7kQ2xZp4Lm9sWd@203.0.113.7:20000	Tr7kQ2xZp4Lm9sWd @ 203.0.113.7:20000
+  Tr7kQ2xZp4Lm9sWd@203.0.113.7:65535  	Tr7kQ2xZp4Lm9sWd @ 203.0.113.7:65535
+Fx2pL8wNq7Rk3mZa=router.example.org:41000	Fx2pL8wNq7Rk3mZa = router.example.org:41000
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000	Tr7kQ2xZp4Lm9sWd @ Rk8mP2qLx3Vb7NtY@198.51.100.9:40000
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000,Hx4nT7wAe2Kq9VsM@s2.example.org	Tr7kQ2xZp4Lm9sWd @ Rk8mP2qLx3Vb7NtY@198.51.100.9:40000,Hx4nT7wAe2Kq9VsM@s2.example.org:40000
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40001, Hx4nT7wAe2Kq9VsM@s2.example.org:40002	Tr7kQ2xZp4Lm9sWd @ Rk8mP2qLx3Vb7NtY@198.51.100.9:40001,Hx4nT7wAe2Kq9VsM@s2.example.org:40002
+Fx2pL8wNq7Rk3mZa=Rk8mP2qLx3Vb7NtY@198.51.100.9:40000	Fx2pL8wNq7Rk3mZa = Rk8mP2qLx3Vb7NtY@198.51.100.9:40000
+Fx2pL8wNq7Rk3mZa=Rk8mP2qLx3Vb7NtY@s.example.org	Fx2pL8wNq7Rk3mZa = Rk8mP2qLx3Vb7NtY@s.example.org:40000
+Tr7kQ2xZ@router.example.org:40000	error
+Tr7kQ2xZp4Lm9sWdX@router.example.org:40000	error
+Tr7kQ2xZp4Lm9sW!@router.example.org	error
+Tr7kQ2xZp4Lm9sWd#router.example.org:40000	error
+router.example.org:40000	error
+@router.example.org:40000	error
+Tr7kQ2xZp4Lm9sWd@	error
+Fx2pL8wNq7Rk3mZa=router.example.org	error
+Tr7kQ2xZp4Lm9sWd@router:abc	error
+Tr7kQ2xZp4Lm9sWd@router.example.org:0	error
+Tr7kQ2xZp4Lm9sWd@router.example.org:65536	error
+Tr7kQ2xZp4Lm9sWd@router example.org	error
+Tr7kQ2xZp4Lm9sWd@[2001:db8::1]:40000	error
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qL@198.51.100.9:40000	error
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000,	error
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000:1	error
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:70000	error
+Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9,router.example.org:40000	error

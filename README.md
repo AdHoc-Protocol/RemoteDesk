@@ -138,7 +138,7 @@ token. The line is in the clipboard already: paste it into a message.
 ```
 
 The window remembers the answer: next time Enter is enough. A meeting point is pasted once, in the one line the page of SYN Mirror
-copies, `Tr7kQ2xZ@router.example.org:40000`, and offered again after that. What it remembers is in `rdp-host.settings` beside the program. The window stays open while the program runs:
+copies, `Tr7kQ2xZp4Lm9sWd@router.example.org:40000`, and offered again after that. What it remembers is in `rdp-host.settings` beside the program. The window stays open while the program runs:
 closing it stops the program.
 
 **2. On your device**, open `RemoteDesk.html` in Chrome or Edge. Press the number the remote computer pressed, paste the line
@@ -300,7 +300,14 @@ The remote computer is reached at a public address: its own, as a rented server 
 Neither the remote computer nor your device needs a public address or a forwarded port: only a meeting point both can reach, an
 OpenWrt router or a Linux server with [SYN Mirror installed](https://github.com/AdHoc-Protocol/SynMirror#install). Its owner
 gives the owner of the remote computer one line with everything: the password, the address, the port of requests, such as
-`Tr7kQ2xZ@203.0.113.7:40000`. The page of SYN Mirror on the router copies it with one button, **Copy the meeting point**.
+`Tr7kQ2xZp4Lm9sWd@203.0.113.7:40000`. The page of SYN Mirror on the router copies it with one button, **Copy the meeting point**.
+Any line of [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#the-lines) is taken:
+
+| The line | What the program does | The line it sends you |
+|:--|:--|:--|
+| `Tr7kQ2xZp4Lm9sWd@203.0.113.7:40000` | Asks for a port at each start | `203.0.113.7:41933/…`: another at each start |
+| `Fx2pL8wNq7Rk3mZa=203.0.113.7:41000` | A [fixed port](https://github.com/AdHoc-Protocol/SynMirror#fixed-ports): knocks with its key, asks nothing | `203.0.113.7:41000/…`: the address and port the same at every start |
+| `Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000` | The address of the meeting point [changes](https://github.com/AdHoc-Protocol/SynMirror#a-meeting-point-whose-address-changes): reads it at 198.51.100.9, again every 30 seconds, and follows it | `<its address now>:41933/…`: a new line when the address changes |
 
 Why SYN Mirror, and not a relay server or a VPN:
 
@@ -317,13 +324,13 @@ is what this section shows; **2**, Remote Desktop of Windows, and **3**, another
 [The meeting point as a relay](#relay). The first time its window asks the meeting point, as its
 owner gave it: one line, the password, `@`, the address, `:`, its port of requests, as the page of SYN Mirror on the router copies it with its button
 **Copy the meeting point**. Pasted, nothing else is asked; it is remembered, and next time Enter is enough. An address alone is
-taken too: then the window asks the password. From a console or a script the same is:
+taken too: then the window asks the password, 16 characters, or for a fixed port its key. From a console or a script the same is:
 
 ```text
-rdp-host --meet Tr7kQ2xZ@router.example.org:40000
+rdp-host --meet Tr7kQ2xZp4Lm9sWd@router.example.org:40000
 ```
 
-On the phone, the line goes into the field of the meeting point: the password moves to its own field by itself.
+On the phone, the line goes into the field of the meeting point: the password, or the key, moves to its own field by itself.
 
 It shows a line to send to you, and waits for you at once:
 
@@ -361,6 +368,10 @@ its start, and nobody presses anything there. Two things end the line:
   (the setting Wait of SYN Mirror), then gives it to others. Turn sleep off on a computer that is to wait for you: on Windows,
   **Settings > System > Power**, sleep **Never**. The screen may go dark: that does not stop the program.
 - **The meeting point restarts**, or its password changes.
+
+A meeting point whose address changes does not end it, when its line reads the address: the program reads it again every 30
+seconds, knocks at the new address with the same id, and gets the same port there; it prints the new line - the new address -
+and puts it in the clipboard again. Send it again. A fixed port does not end at a new start of the program: the line stays.
 
 A new address of the remote computer does not end it: the port is given to the id the program sent, and its knocks open the port
 from any address. Nor does a NAT that gives the remote computer another port for each packet.
@@ -845,8 +856,8 @@ Started without options, by a double click, the program asks in its window what 
 | `--token <token>` | variable `RDP_TOKEN`, else new at each start | The token the page must give |
 | `--key <file>` | `host.key` beside the program | The key of the remote computer: the page recognizes the computer by it |
 | `--software` | | Encode the video on the processor even when the graphics card can (Windows). A screen larger than 4096 pixels a side is sent at half its size |
-| `--meet [<password>@]<meeting point>[:<port>]` | port `40000` | Way ③: meet the page through this meeting point with SYN Mirror, as the page of the router copies it. Before `@` its password; after `:` its port of requests, when it is not 40000 |
-| `--meet-password <8 characters>` | variable `RDP_MEET_PASSWORD` | The password of that meeting point, when `--meet` has none |
+| `--meet <the line of the meeting point>` | port `40000` | Way ③: meet the page through this meeting point with SYN Mirror, its line as the page of the router copies it. Before `@` its password; after `:` its port of requests, when it is not 40000. `=` in place of `@`: a fixed port, its key before it. A read key, `@`, a meeting point after the first `@` or `=`: the address read there, several separated by commas |
+| `--meet-password <16 characters>` | variable `RDP_MEET_PASSWORD` | The password of that meeting point, or the key of its fixed port, when `--meet` has none |
 | `--forward <port>` or `--forward <address:port>` | | With `--meet`: the meeting point leads to this port of the remote computer, such as `3389`, Remote Desktop of Windows, or to address:port of its network, not to RemoteDesk. See [The meeting point as a relay](#relay) |
 | `--direct` | | Way ④: first asks the router to open the port of `--listen` to this computer, for one line; else meets the page over WebRTC, its line pasted into the window of the program. The program waits at `--listen` for ways ① and ② all along. Not together with `--meet` |
 
@@ -855,7 +866,9 @@ Examples:
 ```text
 rdp-host --token MySecretToken2026          the same token at every start
 rdp-host --listen 192.168.1.20:9000         only in the local network, on port 9000
-rdp-host --meet Tr7kQ2xZ@router.example.org:20000    a meeting point whose port of requests is 20000
+rdp-host --meet Tr7kQ2xZp4Lm9sWd@router.example.org:20000                       a meeting point whose port of requests is 20000
+rdp-host --meet Fx2pL8wNq7Rk3mZa=router.example.org:41000                       a fixed port of it: the same line at every start
+rdp-host --meet Tr7kQ2xZp4Lm9sWd@Rk8mP2qLx3Vb7NtY@198.51.100.9:40000          its address changes: read at 198.51.100.9
 ```
 
 ## Safety
@@ -876,8 +889,8 @@ rdp-host --meet Tr7kQ2xZ@router.example.org:20000    a meeting point whose port 
 - With `--forward` the meeting point leads straight to the server named: whoever dials the port of meeting reaches it, with no
   token of RemoteDesk. Its own login is all that guards it, and it will be guessed at: for Remote Desktop of Windows a long
   password of its own, 16 characters or more; see [The meeting point as a relay](#relay).
-- With SYN Mirror the port of meeting is given to the id of the program alone: 8 random bytes, new at each start. Whoever
-  reaches the port still needs the token.
+- With SYN Mirror the port of meeting is given to the id of the program alone: 8 random bytes, new at each start; a fixed port
+  to its key alone. Whoever reaches the port still needs the token.
 - On way ④ with one line the router opens the port of the program to the internet while the program runs, as on way ②: only
   someone with the token gets in, and the port is closed with the program.
 - On way ④ with two lines the answer of the program carries the token: it goes only to the one who sent the line. The STUN
@@ -937,7 +950,7 @@ What the page says, under the picture, beside its parts, or in its bar:
 | `That is not a line of the remote computer: …` | Something else was pasted on the arrow | Paste the whole line the program printed, such as `192.168.1.20:8765/K7QM2XHP9RTA4WZD8CNE-24NDRCK9` |
 | `The token is missing: …` | Only the address is there, without `/` and the token | Paste the whole line the program printed |
 | Way ③: the page does not get in, the program waits | The line is of an earlier start, or the remote computer slept a minute or more and the meeting point gave its port away | The user of the remote computer starts the program again and sends the new line; turns sleep off |
-| Way ③: the program says `no port of meeting` | A wrong password or port of requests, or its address is blocked by the meeting point for wrong passwords | Copy the line of the meeting point again, from the page of its router: its password or port may have changed; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
+| Way ③: the program says `no port of meeting` | A wrong password or port of requests, its address is blocked by the meeting point for wrong passwords, or the meeting point is of before the passwords of 16 characters | Copy the line of the meeting point again, from the page of its router: its password or port may have changed; see [SYN Mirror](https://github.com/AdHoc-Protocol/SynMirror#when-something-goes-wrong) |
 | `Direct connection: this device and the remote computer will not meet directly` | The network of your device gives it a new port for each address, as a mobile network does, and the router of the remote computer lets in only what it asked for. Found before the meeting: the page when it made its line, the program at its start | Use way ③; or your device on Wi-Fi; or open a port to the remote computer on its router |
 | `Direct connection: the remote computer answered none of the checks` | Its router, or a firewall on it, lets in nothing it did not ask for. Above it in the log: each address of the remote computer, the checks sent there and the ones answered | Use way ③; or open a port to it on its router |
 | `Direct connection: the checks of the remote computer came, none of its answers did` | Something on the way lets only one direction through | Use way ③ |
@@ -989,8 +1002,8 @@ What the page says, under the picture, beside its parts, or in its bar:
 **The ways**
 
 - Way ②: rarely on mobile data: the operator gives the phone no public address.
-- Way ③: IPv4 only, as SYN Mirror. The remote computer must not sleep: see [Through SYN Mirror](#way-3). SYN Mirror older than the
-  ids of the program gives it no port: update it.
+- Way ③: IPv4 only, as SYN Mirror. The remote computer must not sleep: see [Through SYN Mirror](#way-3). A SYN Mirror of before the
+  passwords of 16 characters gives it no port, nor does it take the line of one: update both.
 - Way ④ with one line: IPv4 and TCP only, the port of `--listen`; a router asked by UPnP may give another port outside, the line
   shows it.
 - Way ④ with two lines: a new pair for each viewer and after each break. No relay (TURN): two symmetric NATs, or a phone in a mobile network and a router that lets in only what it asked

@@ -195,16 +195,19 @@ class MainActivity : Activity(), Host.Watcher {
             }
             choose.addView(line)
         }
-        point = field("Tr7kQ2xZ@router.example.org:40000",prefs.getString("point", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
-        password = field("Its password: 8 characters", prefs.getString("password", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
-        // the meeting point in one line, as the page of SYN Mirror copies it - Tr7kQ2xZ@router.example.org:40000: the password before @
-        // goes to its own field
+        point = field("Tr7kQ2xZp4Lm9sWd@router.example.org:40000",prefs.getString("point", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
+        password = field("Its password, or the key of its fixed port: 16 characters", prefs.getString("password", "") ?: "", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+        // the meeting point in one line, as the page of SYN Mirror copies it - Tr7kQ2xZp4Lm9sWd@router.example.org:40000, or with = for a
+        // fixed port: the password or the key before @ or = goes to its own field. The rest stays as the host takes it: = before it for a
+        // fixed port, @ before it when the address is read where the record of the meeting point is kept
         point.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(s: android.text.Editable) {
-                val at = s.indexOf('@')
-                if (at < 0) return
+                val at = s.indexOfFirst { it == '@' || it == '=' }
+                if (at <= 0) return
+                val mark = s[at]
                 password.setText(s.substring(0, at).trim())
                 s.delete(0, at + 1)
+                if (mark == '=' || s.contains('@')) s.insert(0, mark.toString())
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -350,8 +353,8 @@ class MainActivity : Activity(), Host.Watcher {
     // ── the start: the permissions, the consent of Android to show the screen, the service ──
 
     private fun ask() {
-        if (way == 2 && (point.text.isBlank() || password.text.length != 8)) {
-            hint.text = "The meeting point in one line, as its owner gave it: Tr7kQ2xZ@router.example.org:40000"
+        if (way == 2 && (point.text.isBlank() || password.text.length != 16)) {
+            hint.text = "The meeting point in one line, as its owner gave it: Tr7kQ2xZp4Lm9sWd@router.example.org:40000"
             hint.visibility = View.VISIBLE
             return
         }

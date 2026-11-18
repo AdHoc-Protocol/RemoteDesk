@@ -34,7 +34,8 @@ static CONFIG: OnceLock<Config> = OnceLock::new();
 /// What the host was started with, for a start of it as administrator: the same address, key and token.
 static LAUNCH: OnceLock<(SocketAddr, PathBuf, bool)> = OnceLock::new();
 
-/// The meeting point of SYN Mirror the host meets its viewer through, as given: `--meet`, `--meet-password`.
+/// The meeting point of SYN Mirror the host meets its viewer through: the rest of its line, as `meet::Meet::given` makes it, and the
+/// password or the key - `--meet`, `--meet-password`.
 static MEET: OnceLock<(String, String)> = OnceLock::new();
 
 /// Started with `--direct`: started again as administrator, it is so again.
@@ -117,7 +118,7 @@ pub fn run() {
                 software = true;
                 crate::os::video::software_only();
             }
-            "--meet" => meet = Some(args.next().expect("--meet [<password>@]<meeting point>[:<port of requests>]")),
+            "--meet" => meet = Some(args.next().expect("--meet <the line of the meeting point>, such as Tr7kQ2xZp4Lm9sWd@router.example.org:40000")),
             "--meet-password" => meet_password = args.next(),
             // the host started again as administrator: the port of meeting given before this start, and the id it is given to
             "--meet-given" => meet_given = Some(args.next().and_then(|v| crate::meet::parse_given(&v)).expect("--meet-given <port>.<id in 16 hex digits>")),
@@ -128,7 +129,7 @@ pub fn run() {
                 forward = Some(if to.bytes().all(|b| b.is_ascii_digit()) { format!("127.0.0.1:{to}") } else { to });
             }
             _ => {
-                eprintln!("rdp-host [--listen 0.0.0.0:8765] [--token <token>] [--key <file>] [--software] [--meet [<password>@]<meeting point>[:40000] [--meet-password <8 characters>] [--forward <port> | <address:port>] | --direct]\n  the token: --token, else RDP_TOKEN, else a new one each start\n  --software: the software encoder of H.264, not the one of the GPU\n  --meet: the viewer connects through this meeting point of SYN Mirror; after : its port of requests when it is not 40000; its password: before @, as the page of SYN Mirror copies it, else --meet-password, else RDP_MEET_PASSWORD\n  --forward: with --meet, the meeting point is a relay to this port of this computer, or address:port of its network, such as 3389 - Remote Desktop of Windows: whoever comes uses its own program, not the page\n  --direct: the viewer connects straight to this computer over WebRTC: its line and the answer go by hand");
+                eprintln!("rdp-host [--listen 0.0.0.0:8765] [--token <token>] [--key <file>] [--software] [--meet <the line of the meeting point> [--meet-password <16 characters>] [--forward <port> | <address:port>] | --direct]\n  the token: --token, else RDP_TOKEN, else a new one each start\n  --software: the software encoder of H.264, not the one of the GPU\n  --meet: the viewer connects through this meeting point of SYN Mirror, its line as its page copies it: <password>@<meeting point>[:40000], <key>=<meeting point>:<fixed port>, or either with <read key>@<meeting point that keeps its address>[:40000],... after @ or =, its address read there; the password or the key: before @ or =, else --meet-password, else RDP_MEET_PASSWORD\n  --forward: with --meet, the meeting point is a relay to this port of this computer, or address:port of its network, such as 3389 - Remote Desktop of Windows: whoever comes uses its own program, not the page\n  --direct: the viewer connects straight to this computer over WebRTC: its line and the answer go by hand");
                 std::process::exit(2);
             }
         }
@@ -141,18 +142,19 @@ pub fn run() {
         let _ = DIRECT.set(());
     }
     let meet = meet.map(|given| {
-        // the password in the line of the meeting point, else --meet-password
-        let password = crate::meet::Meet::given(&given).0.map(String::from).or(meet_password).unwrap_or_default();
-        let Ok(bytes) = <[u8; 8]>::try_from(password.as_bytes()) else {
-            eprintln!("the password of the meeting point is 8 characters: --meet <password>@<meeting point>, else --meet-password, else RDP_MEET_PASSWORD");
-            std::process::exit(2);
-        };
-        let Some((point, asks)) = crate::meet::Meet::point(&given) else {
-            eprintln!("--meet {given}: a name or an address, and after : the port of requests, such as router.example.org:40000");
-            std::process::exit(2);
-        };
-        let _ = MEET.set((given, password));
-        crate::meet::Meet { point, password: bytes, asks }
+        // the password or the key in the line of the meeting point, else --meet-password
+        let (with, rest) = crate::meet::Meet::given(&given);
+        let password = with.or(meet_password).unwrap_or_default();
+        match crate::meet::Meet::of(&password, &rest) {
+            Ok(meet) => {
+                let _ = MEET.set((rest, password));
+                meet
+            }
+            Err(e) => {
+                eprintln!("--meet {}: {e}; the password or the key before @ or =, else --meet-password, else RDP_MEET_PASSWORD", crate::meet::Meet::given(&given).1);
+                std::process::exit(2);
+            }
+        }
     });
     // the relay: no session of RemoteDesk here - no key, no token, no screen; the meetings go to the server named
     match (forward, meet) {
